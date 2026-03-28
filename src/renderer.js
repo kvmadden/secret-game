@@ -92,8 +92,8 @@ export class Renderer {
     ctx.fillRect(0, 7 * TILE_SIZE, 33 * TILE_SIZE, TILE_SIZE);
 
     // Meter-based ambient tint — pharmacy gets redder as rage/burnout climb
-    if (state.meters) {
-      const urgency = Math.max(state.meters.rage, state.meters.burnout) / 100;
+    if (gameState.meters) {
+      const urgency = Math.max(gameState.meters.rage, gameState.meters.burnout) / 100;
       if (urgency > 0.5) {
         const alpha = (urgency - 0.5) * 0.08;
         ctx.fillStyle = `rgba(255, 50, 0, ${alpha})`;

@@ -377,22 +377,49 @@ function drawFloorTile(variant) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Base floor color
-  const base = variant % 2 === 0 ? '#d8d4c8' : '#d4d0c4';
-  rect(ctx, 0, 0, 16, 16, base);
+  // Base floor — slight color variation per tile
+  const bases = ['#d4d0c4', '#d6d2c6', '#d2cec2', '#d5d1c5', '#d3cfc3', '#d7d3c7', '#d1cdc1'];
+  rect(ctx, 0, 0, 16, 16, bases[variant % bases.length]);
 
-  // Subtle tile grid lines
-  ctx.fillStyle = '#ccc8bc';
+  // VCT tile grid lines (vinyl composite tile — standard pharmacy floor)
+  ctx.fillStyle = '#cbc7bb';
   ctx.fillRect(0, 0, 16, 1);
   ctx.fillRect(0, 0, 1, 16);
+  // Inner highlight edge
+  ctx.fillStyle = '#ddd9cd';
+  ctx.fillRect(1, 1, 15, 1);
+  ctx.fillRect(1, 1, 1, 15);
 
-  // Random speckle
-  if (variant % 3 === 0) {
-    px(ctx, 4, 7, '#ccc');
-    px(ctx, 11, 3, '#ccc');
+  // Scuff marks and wear patterns
+  const seed = variant * 13;
+  if (seed % 7 === 0) {
+    // Dark scuff
+    ctx.fillStyle = '#c4c0b4';
+    ctx.fillRect(3, 8, 4, 1);
+    px(ctx, 4, 9, '#c4c0b4');
   }
-  if (variant % 5 === 0) {
+  if (seed % 11 === 0) {
+    // Light scratch
+    ctx.fillStyle = '#d9d5c9';
+    ctx.fillRect(6, 4, 1, 5);
+  }
+  if (seed % 5 === 0) {
+    // Speckle cluster
+    px(ctx, 4, 7, '#c8c4b8');
+    px(ctx, 11, 3, '#ccc8bc');
     px(ctx, 8, 12, '#c8c4b8');
+  }
+  if (seed % 9 === 0) {
+    // Heel mark
+    ctx.fillStyle = '#c0bcb0';
+    ctx.fillRect(9, 10, 3, 1);
+    px(ctx, 10, 11, '#c0bcb0');
+  }
+  if (seed % 13 === 0) {
+    // Faint cross-pattern (wax buildup)
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(0, 7, 16, 2);
+    ctx.fillRect(7, 0, 2, 16);
   }
 
   spriteCache.set(key, c);
@@ -444,27 +471,76 @@ function drawShelfTile(row) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Shelf back
-  rect(ctx, 0, 0, 16, 16, '#7a6545');
+  // Shelf back panel
+  rect(ctx, 0, 0, 16, 16, '#6a5535');
+  // Vertical support brackets
+  rect(ctx, 0, 0, 1, 16, '#5a4525');
+  rect(ctx, 15, 0, 1, 16, '#5a4525');
 
-  // Shelf brackets
+  // Shelf surfaces (3 shelves)
   rect(ctx, 0, 0, 16, 2, '#8b7355');
+  rect(ctx, 0, 1, 16, 1, '#9b8365'); // highlight
   rect(ctx, 0, 7, 16, 2, '#8b7355');
+  rect(ctx, 0, 8, 16, 1, '#9b8365');
   rect(ctx, 0, 14, 16, 2, '#8b7355');
+  rect(ctx, 0, 15, 16, 1, '#9b8365');
 
-  // Medicine bottles on shelves
-  const colors = ['#c8884a', '#d4a060', '#ffffff', '#e8e0d0', '#c8884a', '#aaa'];
+  // Medicine items on each shelf — varied types
+  const seed = row * 17;
   for (let shelf = 0; shelf < 2; shelf++) {
     const sy = shelf === 0 ? 2 : 9;
+    const shelfSeed = seed + shelf * 7;
+
     for (let i = 0; i < 5; i++) {
       const bx = 1 + i * 3;
-      const bh = 3 + (((row * 7 + i + shelf * 3) % 3));
-      const col = colors[((row + i + shelf) * 3) % colors.length];
-      rect(ctx, bx, sy + (5 - bh), 2, bh, col);
-      // Cap
-      rect(ctx, bx, sy + (5 - bh), 2, 1, '#ddd');
+      const itemType = (shelfSeed + i * 3) % 6;
+
+      if (itemType === 0) {
+        // Amber vial (round pill bottle)
+        const h = 4;
+        rect(ctx, bx, sy + (5 - h), 2, h, '#c8884a');
+        rect(ctx, bx, sy + (5 - h), 2, 1, '#e0c090'); // cap
+        px(ctx, bx, sy + (5 - h) + 2, '#fff'); // label
+        px(ctx, bx + 1, sy + (5 - h) + 2, '#fff');
+      } else if (itemType === 1) {
+        // White pharmacy box (tall)
+        const h = 5;
+        rect(ctx, bx, sy + (5 - h), 2, h, '#f0f0f0');
+        rect(ctx, bx, sy + (5 - h), 2, 1, '#cc3333'); // red stripe
+        px(ctx, bx, sy + (5 - h) + 2, '#ccc'); // text line
+      } else if (itemType === 2) {
+        // Short amber vial
+        const h = 3;
+        rect(ctx, bx, sy + (5 - h), 2, h, '#d4a060');
+        rect(ctx, bx, sy + (5 - h), 2, 1, '#ddd');
+      } else if (itemType === 3) {
+        // Blue box (generic brand)
+        const h = 4;
+        rect(ctx, bx, sy + (5 - h), 2, h, '#4466aa');
+        rect(ctx, bx, sy + (5 - h), 2, 1, '#4466aa');
+        px(ctx, bx, sy + (5 - h) + 2, '#88aadd'); // label
+      } else if (itemType === 4) {
+        // Green box
+        const h = 4;
+        rect(ctx, bx, sy + (5 - h), 2, h, '#448844');
+        px(ctx, bx, sy + (5 - h) + 1, '#88cc88');
+        px(ctx, bx + 1, sy + (5 - h) + 1, '#88cc88');
+      } else {
+        // Tall amber with visible pills
+        const h = 5;
+        rect(ctx, bx, sy + (5 - h), 2, h, '#c8884a');
+        rect(ctx, bx, sy + (5 - h), 2, 1, '#e8c090');
+        // Visible pills through amber
+        px(ctx, bx, sy + (5 - h) + 3, '#e0b070');
+        px(ctx, bx + 1, sy + (5 - h) + 2, '#e0b070');
+      }
     }
   }
+
+  // Shadow under items on shelf
+  ctx.fillStyle = 'rgba(0,0,0,0.08)';
+  ctx.fillRect(1, 6, 14, 1);
+  ctx.fillRect(1, 13, 14, 1);
 
   spriteCache.set(key, c);
   return c;
@@ -491,24 +567,98 @@ function drawBackWallTile(variant) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  rect(ctx, 0, 0, 16, 16, '#d8d4cc');
-  // Baseboard
-  rect(ctx, 0, 14, 16, 2, '#b8b4ac');
+  // Wall base
+  rect(ctx, 0, 0, 16, 16, '#d4d0c8');
+  // Baseboard molding
+  rect(ctx, 0, 13, 16, 1, '#c0bcb4');
+  rect(ctx, 0, 14, 16, 2, '#b0aca4');
 
-  if (variant % 4 === 0) {
-    // Clipboard
-    rect(ctx, 5, 3, 6, 8, '#c8a060');
-    rect(ctx, 6, 4, 4, 6, '#fff');
-    rect(ctx, 7, 5, 2, 1, '#aaa');
-    rect(ctx, 7, 7, 2, 1, '#aaa');
-  }
-  if (variant % 4 === 1) {
-    // Fridge
-    rect(ctx, 2, 1, 12, 14, '#ccc');
-    rect(ctx, 3, 2, 10, 6, '#ddf');
-    rect(ctx, 3, 9, 10, 5, '#ddf');
-    rect(ctx, 13, 5, 1, 3, '#999');
-    rect(ctx, 13, 11, 1, 2, '#999');
+  const type = variant % 8;
+
+  if (type === 0) {
+    // Clipboard with papers
+    rect(ctx, 5, 2, 6, 9, '#c8a060');
+    rect(ctx, 5, 2, 6, 1, '#b89050'); // clip
+    px(ctx, 8, 2, '#888'); // clip metal
+    rect(ctx, 6, 3, 4, 7, '#fff');
+    rect(ctx, 7, 4, 2, 1, '#aaa');
+    rect(ctx, 7, 6, 2, 1, '#aaa');
+    rect(ctx, 7, 8, 2, 1, '#aaa');
+  } else if (type === 1) {
+    // Medication fridge
+    rect(ctx, 2, 1, 12, 12, '#c8c8cc');
+    rect(ctx, 3, 2, 10, 5, '#d8ddf0');
+    rect(ctx, 3, 8, 10, 4, '#d8ddf0');
+    rect(ctx, 13, 4, 1, 2, '#999');
+    rect(ctx, 13, 10, 1, 1, '#999');
+    // Temperature display
+    rect(ctx, 4, 2, 3, 2, '#224422');
+    px(ctx, 5, 3, '#44ff44');
+  } else if (type === 2) {
+    // Bulletin board / notice board
+    rect(ctx, 2, 1, 12, 10, '#8b6b3a');
+    rect(ctx, 3, 2, 10, 8, '#a08050');
+    // Pinned notes
+    rect(ctx, 4, 3, 3, 3, '#fff');
+    px(ctx, 5, 3, '#ff4444'); // pin
+    rect(ctx, 8, 3, 4, 2, '#ffffaa');
+    px(ctx, 9, 3, '#4444ff'); // pin
+    rect(ctx, 4, 7, 4, 2, '#aaddff');
+    rect(ctx, 9, 6, 3, 3, '#ffddaa');
+    px(ctx, 10, 6, '#44aa44'); // pin
+  } else if (type === 3) {
+    // Stacked storage boxes
+    rect(ctx, 2, 6, 6, 7, '#c8a868');
+    rect(ctx, 2, 6, 6, 1, '#b89858');
+    rect(ctx, 3, 8, 4, 1, '#aaa'); // label
+    rect(ctx, 8, 4, 6, 9, '#c8a868');
+    rect(ctx, 8, 4, 6, 1, '#b89858');
+    rect(ctx, 9, 6, 4, 1, '#aaa');
+    // Small box on top
+    rect(ctx, 9, 1, 4, 3, '#d4b878');
+    rect(ctx, 10, 2, 2, 1, '#bbb');
+  } else if (type === 4) {
+    // Fire extinguisher + exit sign
+    // Exit sign
+    rect(ctx, 4, 1, 8, 3, '#cc2222');
+    ctx.fillStyle = '#fff';
+    // Tiny "EXIT" text approximation
+    px(ctx, 5, 2, '#fff'); px(ctx, 6, 2, '#fff');
+    px(ctx, 8, 2, '#fff'); px(ctx, 9, 2, '#fff');
+    px(ctx, 10, 2, '#fff'); px(ctx, 11, 2, '#fff');
+    // Extinguisher
+    rect(ctx, 6, 5, 4, 7, '#cc2222');
+    rect(ctx, 7, 5, 2, 1, '#222');
+    px(ctx, 9, 6, '#888'); // handle
+    rect(ctx, 7, 8, 2, 1, '#aa1111'); // label band
+  } else if (type === 5) {
+    // Schedule board / whiteboard
+    rect(ctx, 2, 1, 12, 10, '#eee');
+    rect(ctx, 2, 1, 12, 1, '#999'); // frame top
+    rect(ctx, 2, 10, 12, 1, '#999');
+    rect(ctx, 2, 1, 1, 10, '#999');
+    rect(ctx, 13, 1, 1, 10, '#999');
+    // Written schedule
+    rect(ctx, 4, 3, 6, 1, '#3366cc');
+    rect(ctx, 4, 5, 8, 1, '#333');
+    rect(ctx, 4, 7, 5, 1, '#cc3333');
+    rect(ctx, 4, 9, 7, 1, '#333');
+  } else if (type === 6) {
+    // Wall outlet + paper towel dispenser
+    rect(ctx, 4, 3, 8, 6, '#bbb');
+    rect(ctx, 5, 4, 6, 4, '#ccc');
+    rect(ctx, 6, 7, 4, 1, '#fff'); // paper edge
+    // Outlet below
+    rect(ctx, 6, 10, 4, 2, '#e8e4dc');
+    px(ctx, 7, 11, '#444');
+    px(ctx, 9, 11, '#444');
+  } else {
+    // Plain wall with electrical conduit
+    rect(ctx, 7, 0, 2, 13, '#bbb');
+    rect(ctx, 7, 0, 2, 1, '#aaa');
+    // Junction box
+    rect(ctx, 5, 5, 6, 4, '#999');
+    rect(ctx, 6, 6, 4, 2, '#aaa');
   }
 
   spriteCache.set(key, c);
@@ -879,6 +1029,170 @@ function drawRxBags() {
   return c;
 }
 
+// ========== RECEIPT PRINTER (16x16) ==========
+function drawReceiptPrinter() {
+  const key = getCacheKey('receiptPrinter');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const c = createSpriteCanvas(16, 16);
+  const ctx = c.getContext('2d');
+
+  // Printer body
+  rect(ctx, 3, 8, 10, 6, '#d8d4cc');
+  rect(ctx, 4, 9, 8, 4, '#c8c4bc');
+  // Top slot
+  rect(ctx, 4, 7, 8, 2, '#3a3a3a');
+  // Paper coming out
+  rect(ctx, 5, 2, 6, 6, '#f0ede5');
+  // Paper curl
+  rect(ctx, 5, 2, 6, 1, '#e8e5dd');
+  rect(ctx, 6, 1, 4, 1, '#f0ede5');
+  // Text lines on paper
+  for (let i = 0; i < 3; i++) {
+    rect(ctx, 6, 3 + i, 4, 0.5, '#aaa');
+  }
+  // Status LED
+  px(ctx, 11, 10, '#44ff88');
+  // Shadow
+  rect(ctx, 3, 14, 10, 1, 'rgba(0,0,0,0.15)');
+
+  spriteCache.set(key, c);
+  return c;
+}
+
+// ========== DROP-OFF BIN (16x16) ==========
+function drawDropOffBin() {
+  const key = getCacheKey('dropOffBin');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const c = createSpriteCanvas(16, 16);
+  const ctx = c.getContext('2d');
+
+  // Bin body — wire basket
+  rect(ctx, 2, 5, 12, 9, '#8a8578');
+  // Inner darker area
+  rect(ctx, 3, 6, 10, 7, '#6a6558');
+  // Wire grid pattern
+  ctx.strokeStyle = '#9a9588';
+  ctx.lineWidth = 0.5;
+  for (let gy = 7; gy < 13; gy += 2) {
+    ctx.beginPath();
+    ctx.moveTo(3, gy);
+    ctx.lineTo(13, gy);
+    ctx.stroke();
+  }
+  for (let gx = 5; gx < 13; gx += 3) {
+    ctx.beginPath();
+    ctx.moveTo(gx, 6);
+    ctx.lineTo(gx, 13);
+    ctx.stroke();
+  }
+  // Prescription papers sticking out
+  rect(ctx, 4, 3, 5, 4, '#f0ede5');
+  rect(ctx, 6, 4, 4, 3, '#e8e5dd');
+  // Rx symbol
+  ctx.fillStyle = '#4466aa';
+  ctx.font = '4px monospace';
+  ctx.fillText('Rx', 5, 7);
+  // Label
+  rect(ctx, 3, 12, 10, 2, '#cc2233');
+  ctx.fillStyle = '#fff';
+  ctx.font = '3px monospace';
+  ctx.fillText('DROP', 4, 14);
+
+  spriteCache.set(key, c);
+  return c;
+}
+
+// ========== COMPUTER MONITOR (16x16) ==========
+function drawComputerMonitor() {
+  const key = getCacheKey('monitor');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const c = createSpriteCanvas(16, 16);
+  const ctx = c.getContext('2d');
+
+  // Monitor bezel
+  rect(ctx, 2, 2, 12, 9, '#2a2a2a');
+  // Screen
+  rect(ctx, 3, 3, 10, 7, '#1a3a5a');
+  // Screen content — Rx software
+  rect(ctx, 4, 4, 8, 1, '#2a5a8a');
+  rect(ctx, 4, 6, 5, 0.5, '#3a7aaa');
+  rect(ctx, 4, 7, 6, 0.5, '#3a7aaa');
+  rect(ctx, 4, 8, 4, 0.5, '#3a7aaa');
+  // Screen glow
+  px(ctx, 10, 4, '#44ff88');
+  // Stand
+  rect(ctx, 6, 11, 4, 2, '#3a3a3a');
+  // Base
+  rect(ctx, 4, 13, 8, 1, '#4a4a4a');
+  // Power LED
+  px(ctx, 8, 10, '#44cc66');
+
+  spriteCache.set(key, c);
+  return c;
+}
+
+// ========== BLOOD PRESSURE MACHINE (16x16) ==========
+function drawBPMachine() {
+  const key = getCacheKey('bpMachine');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const c = createSpriteCanvas(16, 16);
+  const ctx = c.getContext('2d');
+
+  // Pole
+  rect(ctx, 7, 6, 2, 9, '#aaa8a0');
+  // Base — heavy flat base
+  rect(ctx, 3, 14, 10, 2, '#8a8880');
+  rect(ctx, 4, 13, 8, 1, '#9a9890');
+  // Machine head
+  rect(ctx, 3, 1, 10, 6, '#d8d4cc');
+  rect(ctx, 4, 2, 8, 4, '#e0dcd4');
+  // Screen
+  rect(ctx, 5, 2, 6, 3, '#1a4a2a');
+  // Screen readout
+  ctx.fillStyle = '#44ff88';
+  ctx.font = '3px monospace';
+  ctx.fillText('120', 5.5, 4.5);
+  // Cuff holder
+  rect(ctx, 2, 5, 3, 3, '#445566');
+  // Arm rest
+  rect(ctx, 1, 8, 5, 2, '#6a6558');
+
+  spriteCache.set(key, c);
+  return c;
+}
+
+// ========== TRASH BIN (16x16) ==========
+function drawTrashBin() {
+  const key = getCacheKey('trashBin');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+
+  const c = createSpriteCanvas(16, 16);
+  const ctx = c.getContext('2d');
+
+  // Bin body — tapers slightly
+  rect(ctx, 4, 5, 9, 10, '#5a5a6a');
+  rect(ctx, 5, 5, 7, 10, '#6a6a7a');
+  // Lid
+  rect(ctx, 3, 3, 11, 3, '#7a7a8a');
+  rect(ctx, 4, 2, 9, 1, '#8a8a9a');
+  // Swing flap
+  rect(ctx, 5, 3, 7, 1, '#6a6a7a');
+  // Foot pedal
+  rect(ctx, 5, 15, 4, 1, '#4a4a5a');
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(8, 15.5, 5, 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  spriteCache.set(key, c);
+  return c;
+}
+
 // ========== EXPORTS ==========
 export const Sprites = {
   pharmacist: drawPharmacistFrame,
@@ -904,4 +1218,9 @@ export const Sprites = {
   driveThruWindow: drawDriveThruWindow,
   pillBottles: drawPillBottles,
   rxBags: drawRxBags,
+  receiptPrinter: drawReceiptPrinter,
+  dropOffBin: drawDropOffBin,
+  computerMonitor: drawComputerMonitor,
+  bpMachine: drawBPMachine,
+  trashBin: drawTrashBin,
 };

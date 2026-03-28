@@ -119,16 +119,60 @@ export function renderMap(map, scale) {
         case TILE.WORKSPACE:
           ctx.drawImage(Sprites.floorTile((row * MAP_COLS + col + 3) % 7), x, y);
           break;
-        case TILE.DRIVE_LANE:
-          // Asphalt
-          ctx.fillStyle = '#666';
+        case TILE.DRIVE_LANE: {
+          // Asphalt base with subtle variation
+          const asphaltShade = ((col * 7 + row * 13) % 3);
+          ctx.fillStyle = asphaltShade === 0 ? '#5a5a5a' : asphaltShade === 1 ? '#626262' : '#585858';
           ctx.fillRect(x, y, tileSize, tileSize);
-          // Lane markings
-          if (row % 4 === 0) {
-            ctx.fillStyle = '#aa0';
-            ctx.fillRect(x + 7, y, 2, 8);
+
+          // Asphalt texture — tiny aggregate specks
+          const rng = (col * 31 + row * 17) % 97;
+          for (let s = 0; s < 4; s++) {
+            const sx = ((rng * (s + 1) * 7) % 14) + 1;
+            const sy = ((rng * (s + 1) * 11) % 14) + 1;
+            ctx.fillStyle = s % 2 === 0 ? '#6e6e6e' : '#505050';
+            ctx.fillRect(x + sx, y + sy, 1, 1);
+          }
+
+          // Curb on left edge of drive lane (col 33)
+          if (col === 33) {
+            // Concrete curb
+            ctx.fillStyle = '#b0aba0';
+            ctx.fillRect(x, y, 2, tileSize);
+            // Curb highlight
+            ctx.fillStyle = '#c8c3b8';
+            ctx.fillRect(x, y, 1, tileSize);
+            // Curb shadow
+            ctx.fillStyle = '#8a857a';
+            ctx.fillRect(x + 2, y, 1, tileSize);
+          }
+
+          // Yellow center lane dashes
+          if (col === 36) {
+            if (row % 2 === 0) {
+              ctx.fillStyle = '#ccaa22';
+              ctx.fillRect(x + 7, y + 2, 2, 12);
+              // Highlight edge
+              ctx.fillStyle = '#ddbb44';
+              ctx.fillRect(x + 7, y + 2, 1, 12);
+            }
+          }
+
+          // White edge line on far right
+          if (col === 39) {
+            ctx.fillStyle = '#aaa89e';
+            ctx.fillRect(x + 14, y, 2, tileSize);
+          }
+
+          // Oil stain near where cars idle
+          if (col === 35 && row === 2) {
+            ctx.fillStyle = 'rgba(30, 25, 20, 0.3)';
+            ctx.beginPath();
+            ctx.ellipse(x + 8, y + 8, 5, 3, 0.2, 0, Math.PI * 2);
+            ctx.fill();
           }
           break;
+        }
         default:
           ctx.drawImage(Sprites.floorTile(0), x, y);
       }
@@ -167,6 +211,24 @@ export function renderMap(map, scale) {
 
   // Drive-thru window
   ctx.drawImage(Sprites.driveThruWindow(), STATIONS.drive.col * tileSize, (STATIONS.drive.row) * tileSize);
+
+  // Receipt printer near verification station
+  ctx.drawImage(Sprites.receiptPrinter(), (STATIONS.verify.col + 2) * tileSize, STATIONS.verify.row * tileSize);
+
+  // Drop-off bin (left of pickup, customer-facing)
+  ctx.drawImage(Sprites.dropOffBin(), (STATIONS.pickup.col - 5) * tileSize, 5 * tileSize);
+
+  // Computer monitors at workstations
+  ctx.drawImage(Sprites.computerMonitor(), 7 * tileSize, 8 * tileSize);
+  ctx.drawImage(Sprites.computerMonitor(), 20 * tileSize, 8 * tileSize);
+  ctx.drawImage(Sprites.computerMonitor(), 28 * tileSize, 8 * tileSize);
+
+  // Blood pressure machine in waiting area
+  ctx.drawImage(Sprites.bpMachine(), 14 * tileSize, 0 * tileSize);
+
+  // Trash bins in workspace
+  ctx.drawImage(Sprites.trashBin(), 11 * tileSize, 9 * tileSize);
+  ctx.drawImage(Sprites.trashBin(), 26 * tileSize, 9 * tileSize);
 
   // ========== HANGING SIGNS ==========
   const signs = [
