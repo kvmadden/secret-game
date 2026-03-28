@@ -196,6 +196,50 @@ export const PATIENT_BARKS = [
   "I'm calling the news.",
   "You think you're better than me?",
   "I didn't go to school for this kind of treatment.",
+  // Medical misunderstandings
+  "Can I take this with grapefruit?",
+  "My friend takes this. Can I have some?",
+  "I stopped taking it because I felt better.",
+  "I've been cutting them in half to save money.",
+  "Can I get the one from the commercial?",
+  "The internet says I shouldn't take this.",
+  "I lost my meds on vacation.",
+  "My dog ate my prescription.",
+  "Can you just give me a sample?",
+  "I need something for my 'nerves.'",
+  // Entitled / absurd
+  "I've been waiting in my car for five minutes.",
+  "Can't you just LOOK at the computer?",
+  "My cousin is a vet tech. She says this is wrong.",
+  "I have a flight in two hours.",
+  "Do you do returns?",
+  "This pill is a different shade of white.",
+  "I need ALL of them today.",
+  "Can you bubble-wrap this?",
+  "I need a note for my boss.",
+  "My chiropractor told me to stop all medications.",
+  // Oddly specific
+  "I counted. There are only 29 pills.",
+  "This bottle cap is too hard to open.",
+  "Can you write 'take with love' on the label?",
+  "I need this in chewable.",
+  "Do you have a bathroom?",
+  "Can you check if my doctor called back? ...today.",
+  "I'm allergic to the blue ones.",
+  "My other pharmacy gives me 90 days.",
+  "I was here yesterday, you told me to come back today.",
+  "I need to talk to you about my cat.",
+  // Rare gems
+  "You're the ONLY one who helps me. Thank you.",
+  "My grandson is in pharmacy school! Any advice?",
+  "I brought you cookies. Don't tell anyone.",
+  "I know you're busy. Take your time.",
+  "Sorry for yelling last time.",
+  "How do you do this every day?",
+  "You saved my life last year. Just wanted you to know.",
+  "I pray for you pharmacy people.",
+  "Is there anything I can do to help?",
+  "You look tired. Please take care of yourself.",
 ];
 
 // ========== PIPELINE DANGER THRESHOLDS ==========
@@ -303,3 +347,60 @@ export const LUNCH_MESSAGES = [
   'Someone knocked on the gate.',
   '"This is unacceptable."',
 ];
+
+// ========== PHARMACIST THOUGHTS ==========
+export const PHARMACIST_THOUGHTS = [
+  "Did I check that interaction...",
+  "How many more hours...",
+  "I should eat something.",
+  "Focus. You've got this.",
+  "Is that count right?",
+  "I need coffee.",
+  "Deep breaths.",
+  "Three more hours.",
+  "They're doing their best too.",
+  "Tomorrow is a new day.",
+  "I chose this. Right?",
+  "Just one more patient.",
+  "The queue will slow down.",
+  "At least it's not raining... wait.",
+  "I wonder if that script was right.",
+  "Note to self: recount the C2s.",
+  "My feet hurt.",
+  "Lunch feels like it was yesterday.",
+  "Almost closing time.",
+  "Stay sharp. People depend on you.",
+];
+
+// ========== GRADE THRESHOLDS ==========
+export const GRADE_THRESHOLDS = {
+  S: { maxAvg: 20, label: 'LEGENDARY', color: '#ffd700' },
+  A: { maxAvg: 35, label: 'EXCELLENT', color: '#44dd44' },
+  B: { maxAvg: 50, label: 'GOOD', color: '#44aadd' },
+  C: { maxAvg: 65, label: 'ADEQUATE', color: '#dddd44' },
+  D: { maxAvg: 80, label: 'STRUGGLING', color: '#dd8844' },
+  F: { maxAvg: 100, label: 'CRITICAL', color: '#dd4444' },
+};
+
+// ========== STATION DESCRIPTIONS ==========
+export const STATION_DESCRIPTIONS = {
+  pickup: { name: 'Pick Up Window', desc: 'Where patients collect their prescriptions', emoji: '🛍️' },
+  consult: { name: 'Consultation Area', desc: 'Private counseling space for patient questions', emoji: '💬' },
+  verify: { name: 'Verification Bench', desc: 'Where prescriptions are checked and counted', emoji: '💊' },
+  phone: { name: 'Phone Station', desc: "Doctors' offices, insurance, and angry patients", emoji: '📞' },
+  drive: { name: 'Drive-Thru Window', desc: 'Convenience for those who refuse to park', emoji: '🚗' },
+};
+
+// ========== COMBO NAMES ==========
+export const COMBO_NAMES = [
+  '', 'Nice!', 'Great!', 'Awesome!', 'Amazing!',
+  'INCREDIBLE!', 'UNSTOPPABLE!', 'GODLIKE!', 'LEGENDARY!', 'PHARMACIST OF THE YEAR!', 'BEYOND MORTAL!'
+];
+
+// ========== WEATHER EFFECTS ==========
+export const WEATHER_EFFECTS = {
+  Sunny: { moodBoost: 0.05, patienceMod: 1.05, ambientLight: 1.1 },
+  Cloudy: { moodBoost: 0, patienceMod: 1.0, ambientLight: 0.95 },
+  Rainy: { moodBoost: -0.05, patienceMod: 0.9, ambientLight: 0.85, wetFloors: true },
+  Stormy: { moodBoost: -0.1, patienceMod: 0.8, ambientLight: 0.7, wetFloors: true, powerFlicker: true },
+};

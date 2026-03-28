@@ -22,6 +22,7 @@
             <span class="pipe-arrow">→</span>
             <span class="pipe-stage" id="pipe-served">🛍<span id="pipe-served-count">0</span></span>
           </div>
+          <span id="weather-indicator" class="weather-icon"></span>
         </div>
         <div id="combo-indicator" style="display:none;"><span id="combo-count">x2</span> COMBO</div>
         <div id="hud-right">
@@ -56,7 +57,7 @@
           <span class="meter-value" id="scrutiny-value">0</span>
         </div>
       </div>
-      <div id="campaign-hud"></div>
+      <div id="campaign-hud"><span id="campaign-day-label"></span></div>
     </div>
 
     <!-- Zone 2: Pharmacy Canvas -->
@@ -72,7 +73,9 @@
     <!-- Title Screen Overlay -->
     <div id="title-screen" class="overlay overlay-visible">
       <div class="title-content">
-        <div class="title-icon">💊</div>
+        <div class="pixel-border-decor"></div>
+        <div class="title-icon"><span class="pill-icon">💊</span><span class="rx-icon">℞</span></div>
+        <div class="title-sparkle"></div>
         <h1>ON THE BENCH</h1>
         <p class="subtitle">A Retail Pharmacy Survival Game</p>
         <p class="flavor">Solo Sunday shift. Six minutes. Five meters. One pharmacist.</p>
@@ -89,7 +92,10 @@
         <button id="start-btn" class="big-btn">QUICK SHIFT</button>
         <button id="campaign-btn" class="big-btn campaign-btn">CAMPAIGN WEEK</button>
         <button id="endless-btn" class="big-btn endless-btn">NO RELIEF</button>
+        <button id="stats-btn" class="big-btn stats-btn">STATS & BADGES</button>
         <div id="high-score-display"></div>
+        <div class="version-tag">v0.3.0</div>
+        <div class="credits-line">A game about surviving retail pharmacy</div>
       </div>
     </div>
 
@@ -105,11 +111,15 @@
     <!-- Results Screen Overlay -->
     <div id="results-screen" class="overlay" style="display:none;">
       <div class="results-content">
+        <div class="results-decoration top-deco">✦</div>
         <h2 id="results-title">HELD TOGETHER</h2>
         <div id="results-grade" class="results-grade">B</div>
+        <div id="results-time" class="results-time"></div>
+        <div id="results-combo" class="results-combo"></div>
         <p id="results-flavor">You kept the store open. That was the assignment.</p>
         <div id="results-meters"></div>
         <div id="results-stats"></div>
+        <div class="results-decoration bottom-deco">✦</div>
         <button id="retry-btn" class="big-btn">RETRY</button>
         <button id="title-btn" class="big-btn secondary">TITLE</button>
       </div>
@@ -119,7 +129,9 @@
     <div id="pause-overlay" class="overlay" style="display:none;">
       <div class="pause-content">
         <h2>PAUSED</h2>
+        <div id="pause-difficulty" class="pause-info"></div>
         <p class="pause-flavor">Take a breath. They'll still be angry when you get back.</p>
+        <div id="pause-stats" class="pause-info"></div>
         <div class="pause-controls">
           <button id="zoom-btn" class="pause-ctrl-btn">🔍 ZOOM</button>
           <button id="mute-btn" class="pause-ctrl-btn">🔊 SOUND</button>
@@ -200,8 +212,28 @@
       </div>
     </div>
 
+    <!-- Achievement Popup -->
+    <div id="achievement-popup" class="achievement-popup" style="display:none;">
+      <div class="achievement-icon" id="achievement-icon"></div>
+      <div class="achievement-info">
+        <div class="achievement-label">ACHIEVEMENT</div>
+        <div class="achievement-name" id="achievement-name"></div>
+        <div class="achievement-desc" id="achievement-desc"></div>
+      </div>
+    </div>
+
+    <!-- Stats Screen -->
+    <div id="stats-screen" class="overlay" style="display:none;">
+      <div class="stats-content">
+        <h2>PHARMACIST STATS</h2>
+        <div id="stats-grid" class="stats-grid"></div>
+        <div id="achievement-grid" class="achievement-grid"></div>
+        <button id="stats-close-btn" class="big-btn">BACK</button>
+      </div>
+    </div>
+
     <!-- Tutorial Hint -->
-    <div id="tutorial-hint" style="display:none;"></div>
+    <div id="tutorial-hint" class="tutorial-hint" style="display:none;"><span class="tutorial-icon">💡</span><span id="tutorial-text"></span></div>
 
     <!-- Working overlay on canvas -->
     <div id="work-progress" style="display:none;">

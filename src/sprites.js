@@ -33,9 +33,11 @@ function rect(ctx, x, y, w, h, color) {
 
 // ========== PHARMACIST SPRITE (16x16) ==========
 // Stardew Valley quality: 6 walk frames, 10+ colors, stress states, idle breathing/blink
-function drawPharmacistFrame(facing, frame, stress, time) {
+function drawPharmacistFrame(facing, frame, stress, time, hairstyle) {
   // stress: 0-1, affects visual appearance
   // time: animation clock for idle blink/breathing (optional)
+  // hairstyle: 0=default short, 1=ponytail (optional, default 0)
+  hairstyle = hairstyle || 0;
   const stressLevel = stress < 0.3 ? 0 : stress < 0.5 ? 1 : stress < 0.7 ? 2 : 3;
   const t = time || 0;
   // Blink: eyes closed for ~0.15s every ~3s
@@ -49,7 +51,7 @@ function drawPharmacistFrame(facing, frame, stress, time) {
   // Quantize blink and breath for caching
   const blinkKey = isBlinking ? 1 : 0;
   const breathKey = breathExpand;
-  const key = getCacheKey('pharmacist', facing, frame, stressLevel, blinkKey, breathKey);
+  const key = getCacheKey('pharmacist', facing, frame, stressLevel, blinkKey, breathKey, hairstyle);
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const c = createSpriteCanvas(16, 16);
@@ -133,6 +135,29 @@ function drawPharmacistFrame(facing, frame, stress, time) {
     rect(ctx, 9 + bx - fwd * 2, 14, 2, 1, shoeColor);
   }
 
+  // === SHOE SOLE HIGHLIGHTS (lighter brown 1px line at bottom of each shoe) ===
+  const soleHighlight = '#3a2a1a';
+  if (frame === 0 || frame === 3) {
+    px(ctx, 5 + bx, 14.5, soleHighlight); px(ctx, 6 + bx, 14.5, soleHighlight);
+    px(ctx, 9 + bx, 14.5, soleHighlight); px(ctx, 10 + bx, 14.5, soleHighlight);
+  } else if (frame === 1) {
+    const fwd = flip ? -1 : 1;
+    px(ctx, 5 + bx - fwd, 14.5, soleHighlight); px(ctx, 6 + bx - fwd, 14.5, soleHighlight);
+    px(ctx, 9 + bx + fwd, 14.5, soleHighlight); px(ctx, 10 + bx + fwd, 14.5, soleHighlight);
+  } else if (frame === 2) {
+    const fwd = flip ? -1 : 1;
+    px(ctx, 5 + bx - fwd * 2, 14.5, soleHighlight); px(ctx, 6 + bx - fwd * 2, 14.5, soleHighlight);
+    px(ctx, 9 + bx + fwd * 2, 14.5, soleHighlight); px(ctx, 10 + bx + fwd * 2, 14.5, soleHighlight);
+  } else if (frame === 4) {
+    const fwd = flip ? -1 : 1;
+    px(ctx, 5 + bx + fwd, 14.5, soleHighlight); px(ctx, 6 + bx + fwd, 14.5, soleHighlight);
+    px(ctx, 9 + bx - fwd, 14.5, soleHighlight); px(ctx, 10 + bx - fwd, 14.5, soleHighlight);
+  } else if (frame === 5) {
+    const fwd = flip ? -1 : 1;
+    px(ctx, 5 + bx + fwd * 2, 14.5, soleHighlight); px(ctx, 6 + bx + fwd * 2, 14.5, soleHighlight);
+    px(ctx, 9 + bx - fwd * 2, 14.5, soleHighlight); px(ctx, 10 + bx - fwd * 2, 14.5, soleHighlight);
+  }
+
   // === LAB COAT BODY ===
   const bodyY = 6 + shoulderRaise;
   const bodyH = 7 - shoulderRaise;
@@ -193,6 +218,23 @@ function drawPharmacistFrame(facing, frame, stress, time) {
     px(ctx, 3 + bx - armFwd * ext, 10 + shoulderRaise, skinBase);
   }
 
+  // === COAT WRINKLE LINES (subtle 1px darker lines at elbow area during arm swing) ===
+  if (frame === 1 || frame === 2) {
+    const ext = frame === 2 ? 2 : 1;
+    const armFwd = flip ? 1 : -1;
+    // Wrinkle at elbow of forward-swinging left arm
+    px(ctx, 3 + bx + armFwd * ext, 9 + shoulderRaise, coatShadow);
+    // Wrinkle at elbow of backward-swinging right arm
+    px(ctx, 12 + bx - armFwd * ext, 9 + shoulderRaise, coatShadow);
+  } else if (frame === 4 || frame === 5) {
+    const ext = frame === 5 ? 2 : 1;
+    const armFwd = flip ? 1 : -1;
+    // Wrinkle at elbow of forward-swinging right arm
+    px(ctx, 12 + bx + armFwd * ext, 9 + shoulderRaise, coatShadow);
+    // Wrinkle at elbow of backward-swinging left arm
+    px(ctx, 3 + bx - armFwd * ext, 9 + shoulderRaise, coatShadow);
+  }
+
   // === NAME BADGE with detail ===
   const badgeSide = flip ? 9 + bx : 5 + bx;
   rect(ctx, badgeSide, 8, 2, 2, badgeGreen);
@@ -215,14 +257,44 @@ function drawPharmacistFrame(facing, frame, stress, time) {
   px(ctx, 11, hy + 2, skinBase);
   px(ctx, 11, hy + 3, skinShadow);
 
-  // === HAIR (2-tone) ===
-  rect(ctx, 5, hy - 1, 6, 2, hairBase);
-  rect(ctx, 4, hy - 1, 1, 4, hairBase);
-  rect(ctx, 11, hy - 1, 1, 4, hairBase);
-  // Hair highlights
-  px(ctx, 6, hy - 1, hairHighlight);
-  px(ctx, 8, hy - 1, hairHighlight);
-  px(ctx, 9, hy - 1, hairHighlight);
+  // === HAIR (2-tone) with hairstyle variants ===
+  if (hairstyle === 1) {
+    // Ponytail hairstyle: shorter top, ponytail extending from back
+    rect(ctx, 5, hy - 1, 6, 2, hairBase);
+    rect(ctx, 4, hy - 1, 1, 3, hairBase);
+    rect(ctx, 11, hy - 1, 1, 3, hairBase);
+    // Ponytail extending from back-right
+    if (facing === 'left') {
+      rect(ctx, 12, hy, 1, 3, hairBase);
+      px(ctx, 13, hy + 1, hairBase);
+      px(ctx, 13, hy + 2, hairBase);
+      px(ctx, 13, hy + 3, hairHighlight); // tip highlight
+    } else if (facing === 'right') {
+      rect(ctx, 3, hy, 1, 3, hairBase);
+      px(ctx, 2, hy + 1, hairBase);
+      px(ctx, 2, hy + 2, hairBase);
+      px(ctx, 2, hy + 3, hairHighlight); // tip highlight
+    } else {
+      // Front-facing: ponytail behind head, just a hint
+      rect(ctx, 11, hy, 1, 4, hairBase);
+      px(ctx, 12, hy + 1, hairBase);
+      px(ctx, 12, hy + 2, hairHighlight);
+    }
+    // Hair tie
+    px(ctx, facing === 'left' ? 12 : (facing === 'right' ? 3 : 11), hy, '#cc5566');
+    // Highlights
+    px(ctx, 6, hy - 1, hairHighlight);
+    px(ctx, 9, hy - 1, hairHighlight);
+  } else {
+    // Default hairstyle (0): short cropped
+    rect(ctx, 5, hy - 1, 6, 2, hairBase);
+    rect(ctx, 4, hy - 1, 1, 4, hairBase);
+    rect(ctx, 11, hy - 1, 1, 4, hairBase);
+    // Hair highlights
+    px(ctx, 6, hy - 1, hairHighlight);
+    px(ctx, 8, hy - 1, hairHighlight);
+    px(ctx, 9, hy - 1, hairHighlight);
+  }
 
   // === EYES (white + pupil + highlight) ===
   if (isBlinking) {
@@ -310,6 +382,45 @@ function drawPharmacistFrame(facing, frame, stress, time) {
     px(ctx, 8, hy + 4, '#c08070');
   }
 
+  // === PEN BEHIND EAR (1px blue at ear position) ===
+  if (facing === 'left' || facing === 'front') {
+    px(ctx, 11, hy + 1, '#2255aa'); // blue pen tip at right ear
+  } else {
+    px(ctx, 4, hy + 1, '#2255aa'); // blue pen tip at left ear
+  }
+
+  // === GLASSES ACCESSORY (reading glasses pushed up on head at low stress) ===
+  if (stressLevel <= 1) {
+    const glassColor = '#6a6a7a';
+    // Glasses pushed up on forehead
+    px(ctx, 6, hy, glassColor);
+    px(ctx, 7, hy, 'rgba(180,210,240,0.25)'); // left lens tint
+    px(ctx, 8, hy, 'rgba(180,210,240,0.25)'); // right lens tint
+    px(ctx, 9, hy, glassColor);
+    // Bridge
+    px(ctx, 7.5, hy, glassColor);
+  }
+
+  // === STETHOSCOPE around neck (gray line from collar, visible on front-facing) ===
+  if (facing !== 'left' && facing !== 'right') {
+    // Front-facing stethoscope visible
+    const stethColor = '#8a8a90';
+    const stethLight = '#a0a0a8';
+    // Cord from collar down in U-shape
+    px(ctx, 6 + bx, bodyY + 1, stethColor);
+    px(ctx, 5 + bx, bodyY + 2, stethColor);
+    px(ctx, 5 + bx, bodyY + 3, stethLight);
+    px(ctx, 6 + bx, bodyY + 3, stethColor); // chest piece
+    px(ctx, 9 + bx, bodyY + 1, stethColor);
+    px(ctx, 10 + bx, bodyY + 2, stethColor);
+    px(ctx, 10 + bx, bodyY + 3, stethLight);
+  } else {
+    // Side-facing: just a hint of cord at collar
+    const stethColor = '#8a8a90';
+    px(ctx, 7 + bx, bodyY, stethColor);
+    px(ctx, 8 + bx, bodyY + 1, stethColor);
+  }
+
   // === OUTLINE (warm brown edges) ===
   ctx.strokeStyle = outline;
   ctx.lineWidth = 0.5;
@@ -339,7 +450,11 @@ const PATIENT_SKIN_TONES = [
 
 function drawPatientSprite(paletteIndex, emotionLevel) {
   // emotionLevel: 0=calm, 1=impatient, 2=angry
+  // Bit flags: emotionLevel & 4 = child variant, emotionLevel & 8 = elderly variant
   // paletteIndex acts as patient ID for deterministic variety
+  const isChild = (emotionLevel & 4) !== 0;
+  const isElderly = (emotionLevel & 8) !== 0;
+  const baseEmotion = emotionLevel & 3; // strip flags to get 0/1/2
   const id = paletteIndex;
   const key = getCacheKey('patient', paletteIndex, emotionLevel);
   if (spriteCache.has(key)) return spriteCache.get(key);
@@ -365,31 +480,46 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   // Height variation: -1, 0, or +1 pixel
   const heightVar = ((id * 11 + 2) % 3) - 1; // -1, 0, or 1
 
-  // Hair style: 8 styles
-  const hairStyle = (id * 3 + 1) % 8;
+  // Hair style: 12 styles
+  const hairStyle = (id * 3 + 1) % 12;
 
   // Accessories
   const hasGlasses = hashA < 25;        // ~25%
   const hasMask = !hasGlasses && hashB < 15;  // ~15% (not with glasses overlap)
   const hasLanyard = hashC < 10;        // ~10%
+  // New accessories
+  const hashE = (id * 29 + 13) % 100;
+  const hashF = (id * 31 + 17) % 100;
+  const hasBaseballCap = !hasGlasses && hashE < 15;   // ~15%
+  const hasFaceMaskUnderChin = hashF < 10;             // ~10%
+  const hasHeadphones = !hasBaseballCap && (id * 37 + 19) % 100 < 10; // ~10%
+  // Scarf: ~8% chance, only in winter months (Dec, Jan, Feb)
+  const currentMonth = (typeof window !== 'undefined' && window._gameMonth) || new Date().getMonth();
+  const isWinter = currentMonth === 11 || currentMonth === 0 || currentMonth === 1;
+  const hasScarf = isWinter && (id * 41 + 23) % 100 < 8;
 
-  const c = createSpriteCanvas(16, 17); // 17 tall for height variation
+  // Child variant: smaller canvas (12x12 effective), bigger head proportion
+  // Elderly variant: hunched posture
+  const spriteW = isChild ? 12 : 16;
+  const spriteH = isChild ? 13 : 17;
+  const c = createSpriteCanvas(isChild ? 16 : 16, isChild ? 17 : 17); // keep canvas same size for compatibility
   const ctx = c.getContext('2d');
 
   // Y offset for height variation (taller patients start higher)
-  const yo = 1 - heightVar; // base y-offset: shorter=2, normal=1, taller=0
+  const yo = isChild ? 5 : (1 - heightVar); // children offset down more (smaller)
+  const elderlyHunch = isElderly ? 1 : 0; // hunched posture shifts body
 
   const outline = '#3a2820';
 
   // Shadow
   ctx.fillStyle = 'rgba(60,40,20,0.25)';
   ctx.beginPath();
-  ctx.ellipse(8, yo + 15, 3.5, 1.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(8, isChild ? (yo + 11) : (yo + 15), isChild ? 2.5 : 3.5, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // --- LEGS & FEET ---
   // Wider stance when angry
-  const legSpread = emotionLevel >= 2 ? 1 : 0;
+  const legSpread = baseEmotion >= 2 ? 1 : 0;
   const leftLegX = 5 - legSpread;
   const rightLegX = 9 + legSpread;
 
@@ -405,7 +535,7 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   rect(ctx, rightLegX, yo + 14, 2, 1, shoeColor);
 
   // Impatient foot tap indicator (small mark under foot)
-  if (emotionLevel === 1) {
+  if (baseEmotion === 1) {
     px(ctx, rightLegX + 2, yo + 14, 'rgba(60,40,20,0.3)');
   }
 
@@ -426,22 +556,33 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   px(ctx, 7, yo + 6, skin); // neck visible
   px(ctx, 8, yo + 6, skin); // neck visible
 
-  // --- HANDS ---
-  if (emotionLevel >= 2) {
-    // Clenched fists: 2x1 squares
+  // --- HANDS (with finger detail) ---
+  if (baseEmotion >= 2) {
+    // Clenched fists: 2px wide for fist detail
     rect(ctx, 2, yo + 10, 2, 1, skin);
     rect(ctx, 12, yo + 10, 2, 1, skin);
-  } else if (emotionLevel === 1) {
-    // Crossed arms: hands overlap body
+    // Knuckle detail (darker line on fist)
+    px(ctx, 2, yo + 10, skinShadow);
+    px(ctx, 13, yo + 10, skinShadow);
+  } else if (baseEmotion === 1) {
+    // Crossed arms: hands overlap body with finger detail
     px(ctx, 5, yo + 9, skin);
     px(ctx, 10, yo + 9, skin);
+    // Finger tips visible (1px each)
+    px(ctx, 4, yo + 9, skinShadow);
+    px(ctx, 11, yo + 9, skinShadow);
     // Arm cross lines
     px(ctx, 4, yo + 8, shirtShadow);
     px(ctx, 11, yo + 8, shirtShadow);
   } else {
-    // Relaxed hands at sides
+    // Relaxed hands at sides with spread fingers (3px for gesturing)
     px(ctx, 3, yo + 10, skin);
     px(ctx, 12, yo + 10, skin);
+    // Fingers hanging down
+    px(ctx, 3, yo + 11, skinShadow);
+    px(ctx, 12, yo + 11, skinShadow);
+    // Slight finger spread on relaxed hand
+    px(ctx, 2, yo + 11, blendColor(skin, '#ffffff', 0.1));
   }
 
   // --- LANYARD/BADGE accessory ---
@@ -462,7 +603,7 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   px(ctx, 11, yo + 3, skinShadow);
 
   // --- ROSY CHEEKS (calm only, or always subtle) ---
-  if (emotionLevel === 0) {
+  if (baseEmotion === 0) {
     px(ctx, 5, yo + 4, skinBlush);
     px(ctx, 10, yo + 4, skinBlush);
   } else {
@@ -548,10 +689,60 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
     // Show a sliver of hair under hat
     px(ctx, 4, yo + 2, hairBase);
     px(ctx, 11, yo + 2, hairBase);
+  } else if (hairStyle === 8) {
+    // Style 8: Man-bun — hair on top gathered into small bun
+    rect(ctx, 5, yo + 0, 6, 2, hairBase);
+    rect(ctx, 4, yo + 0, 1, 3, hairBase); // side hair
+    rect(ctx, 11, yo + 0, 1, 3, hairBase);
+    // Bun on top
+    rect(ctx, 7, yo - 2, 2, 2, hairBase);
+    px(ctx, 7, yo - 2, hairHighlight); // bun highlight
+    // Hair tie
+    px(ctx, 7, yo - 1, darkenColor(hairBase));
+    px(ctx, 8, yo - 1, darkenColor(hairBase));
+  } else if (hairStyle === 9) {
+    // Style 9: Buzz-cut — very short, almost shaved, skin showing through
+    rect(ctx, 5, yo + 0, 6, 1, hairBase);
+    // Very subtle stubble-like coverage
+    px(ctx, 5, yo + 1, blendColor(skin, hairBase, 0.3));
+    px(ctx, 7, yo + 1, blendColor(skin, hairBase, 0.25));
+    px(ctx, 10, yo + 1, blendColor(skin, hairBase, 0.3));
+    px(ctx, 6, yo + 0, blendColor(skin, hairBase, 0.4));
+    px(ctx, 9, yo + 0, blendColor(skin, hairBase, 0.4));
+    // Barely visible hairline
+    px(ctx, 4, yo + 0, blendColor(skin, hairBase, 0.15));
+    px(ctx, 11, yo + 0, blendColor(skin, hairBase, 0.15));
+  } else if (hairStyle === 10) {
+    // Style 10: Long-wavy — flowing wavy hair past shoulders
+    rect(ctx, 5, yo + 0, 6, 2, hairBase);
+    rect(ctx, 3, yo + 0, 2, 6, hairBase); // left side flowing down
+    rect(ctx, 11, yo + 0, 2, 6, hairBase); // right side flowing down
+    // Wave texture: alternating highlight pixels
+    px(ctx, 3, yo + 2, hairHighlight);
+    px(ctx, 4, yo + 4, hairHighlight);
+    px(ctx, 12, yo + 2, hairHighlight);
+    px(ctx, 11, yo + 4, hairHighlight);
+    // Top highlights
+    px(ctx, 6, yo + 0, hairHighlight);
+    px(ctx, 9, yo + 0, hairHighlight);
+    // Wave curl at ends
+    px(ctx, 3, yo + 6, hairHighlight);
+    px(ctx, 12, yo + 6, hairHighlight);
+  } else if (hairStyle === 11) {
+    // Style 11: Pixie-cut — short, asymmetric, stylish
+    rect(ctx, 5, yo + 0, 6, 2, hairBase);
+    rect(ctx, 4, yo + 0, 1, 3, hairBase);  // left side longer
+    rect(ctx, 3, yo + 1, 1, 2, hairBase);  // asymmetric: left extends further
+    rect(ctx, 11, yo + 0, 1, 2, hairBase); // right side shorter
+    // Side-swept bangs
+    px(ctx, 4, yo + 1, hairHighlight);
+    px(ctx, 5, yo + 0, hairHighlight);
+    // Top highlight
+    px(ctx, 7, yo + 0, hairHighlight);
   }
 
   // --- EYES ---
-  if (emotionLevel < 2) {
+  if (baseEmotion < 2) {
     // Normal eyes: white sclera + dark pupil
     px(ctx, 6, yo + 3, '#ffffff');
     px(ctx, 6, yo + 4, '#2a2018');
@@ -563,14 +754,14 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   }
 
   // --- EMOTION-SPECIFIC DETAILS ---
-  if (emotionLevel === 0) {
+  if (baseEmotion === 0) {
     // Calm: slight smile, relaxed posture
     px(ctx, 7, yo + 5, darkenColor(skin));
     px(ctx, 8, yo + 5, darkenColor(skin));
     // Smile curve (slightly lighter above mouth)
     px(ctx, 6, yo + 5, blendColor(skin, '#c08070', 0.15));
     px(ctx, 9, yo + 5, blendColor(skin, '#c08070', 0.15));
-  } else if (emotionLevel === 1) {
+  } else if (baseEmotion === 1) {
     // Impatient: furrowed brow, mouth turned down
     // Furrowed brows (angled inward)
     px(ctx, 5, yo + 2, darkenColor(hairBase));
@@ -637,6 +828,91 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
     // Ear loops
     px(ctx, 4, yo + 4, '#99ccdd');
     px(ctx, 11, yo + 4, '#99ccdd');
+  }
+
+  // --- BASEBALL CAP accessory ---
+  if (hasBaseballCap && hairStyle !== 7) {
+    // Override hair with cap (skip if already hat style)
+    const capColor = ['#cc3333', '#3355aa', '#338844', '#884488'][(id * 7) % 4];
+    const capBrim = darkenColor(capColor);
+    rect(ctx, 4, yo - 1, 8, 2, capColor);  // cap body
+    rect(ctx, 3, yo + 1, 10, 1, capBrim);  // brim extending forward
+    px(ctx, 6, yo - 1, lightenColor(capColor)); // cap highlight
+    px(ctx, 7, yo - 1, lightenColor(capColor));
+    // Button on top
+    px(ctx, 8, yo - 1, darkenColor(capColor));
+  }
+
+  // --- FACE MASK UNDER CHIN accessory ---
+  if (hasFaceMaskUnderChin) {
+    const maskColor = '#88bbdd';
+    // Mask pulled down under chin
+    rect(ctx, 5, yo + 6, 6, 1, maskColor);
+    px(ctx, 6, yo + 6, '#70a0c0'); // fold shadow
+    // Ear loops hanging loose
+    px(ctx, 4, yo + 5, '#99ccdd');
+    px(ctx, 11, yo + 5, '#99ccdd');
+  }
+
+  // --- HEADPHONES accessory ---
+  if (hasHeadphones) {
+    const hpColor = '#2a2a2a';
+    const hpHighlight = '#4a4a4a';
+    // Headband across top of head
+    rect(ctx, 4, yo - 1, 8, 1, hpColor);
+    px(ctx, 7, yo - 1, hpHighlight); // headband highlight
+    // Ear cups on sides
+    rect(ctx, 3, yo + 2, 2, 2, hpColor);
+    rect(ctx, 11, yo + 2, 2, 2, hpColor);
+    // Cup highlights
+    px(ctx, 3, yo + 2, hpHighlight);
+    px(ctx, 12, yo + 2, hpHighlight);
+    // Padding (inner lighter ring)
+    px(ctx, 4, yo + 2, '#555555');
+    px(ctx, 11, yo + 2, '#555555');
+  }
+
+  // --- SCARF accessory (winter only) ---
+  if (hasScarf) {
+    const scarfColor = ['#cc4444', '#4466bb', '#44aa66', '#aa8844'][(id * 11) % 4];
+    const scarfShadow = darkenColor(scarfColor);
+    // Scarf wrapped around neck
+    rect(ctx, 4, yo + 6, 8, 2, scarfColor);
+    // Scarf folds
+    px(ctx, 6, yo + 7, scarfShadow);
+    px(ctx, 9, yo + 7, scarfShadow);
+    // Hanging end of scarf
+    rect(ctx, 5, yo + 8, 2, 2, scarfColor);
+    px(ctx, 5, yo + 9, scarfShadow);
+    // Knit texture dots
+    px(ctx, 7, yo + 6, lightenColor(scarfColor));
+    px(ctx, 10, yo + 6, lightenColor(scarfColor));
+  }
+
+  // --- ELDERLY VARIANT: hunched posture + cane ---
+  if (isElderly) {
+    // Cane on right side
+    const caneColor = '#6a5030';
+    const caneHighlight = '#8a7050';
+    rect(ctx, 13, yo + 5, 1, 10, caneColor);
+    px(ctx, 13, yo + 5, caneHighlight); // handle highlight
+    // Curved handle
+    px(ctx, 12, yo + 5, caneColor);
+    px(ctx, 12, yo + 4, caneColor);
+    // Hunch effect: slightly darker shadow on upper back
+    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+    ctx.fillRect(4, yo + 6, 8, 2);
+    // Wrinkle lines on face
+    px(ctx, 6, yo + 4, skinShadow);
+    px(ctx, 9, yo + 4, skinShadow);
+  }
+
+  // --- CHILD VARIANT: smaller proportions ---
+  if (isChild) {
+    // Children are drawn with existing body but at the shifted yo offset (set above)
+    // Add a rosy nose detail for child cuteness
+    px(ctx, 7, yo + 4, blendColor(skin, '#ee8888', 0.3));
+    px(ctx, 8, yo + 4, blendColor(skin, '#ee8888', 0.3));
   }
 
   // --- OUTLINES (Stardew-style warm brown) ---

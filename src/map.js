@@ -323,6 +323,403 @@ export function renderMap(map, scale) {
     ctx.fill();
   }
 
+  // ========== STARDEW-QUALITY ENVIRONMENT DETAILS ==========
+
+  // --- 1. Workspace clutter (rows 9-13) ---
+
+  // Scattered papers at (3, 11)
+  ctx.fillStyle = '#f0ede8';
+  ctx.fillRect(3 * tileSize + 3, 11 * tileSize + 2, 8, 11);
+  ctx.fillStyle = '#d0ccc4';
+  for (let ln = 0; ln < 4; ln++) {
+    ctx.fillRect(3 * tileSize + 5, 11 * tileSize + 4 + ln * 2.5, 5, 0.5);
+  }
+  // Scattered papers at (7, 13)
+  ctx.fillStyle = '#f0ede8';
+  ctx.fillRect(7 * tileSize + 1, 13 * tileSize + 4, 9, 10);
+  ctx.save();
+  ctx.translate(7 * tileSize + 5.5, 13 * tileSize + 9);
+  ctx.rotate(0.15);
+  ctx.fillStyle = '#eae6de';
+  ctx.fillRect(-4, -4, 8, 10);
+  ctx.fillStyle = '#c8c4bc';
+  for (let ln = 0; ln < 3; ln++) {
+    ctx.fillRect(-2, -2 + ln * 2.5, 5, 0.5);
+  }
+  ctx.restore();
+
+  // Coffee mug at (5, 10)
+  ctx.fillStyle = '#8b6240';
+  ctx.beginPath();
+  ctx.arc(5 * tileSize + 8, 10 * tileSize + 9, 4, 0, Math.PI * 2);
+  ctx.fill();
+  // Mug inner (dark coffee)
+  ctx.fillStyle = '#3e2210';
+  ctx.beginPath();
+  ctx.arc(5 * tileSize + 8, 10 * tileSize + 9, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  // Handle
+  ctx.strokeStyle = '#8b6240';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(5 * tileSize + 13, 10 * tileSize + 9, 2, -Math.PI * 0.5, Math.PI * 0.5);
+  ctx.stroke();
+
+  // Sticky notes at (4, 12)
+  ctx.fillStyle = '#f5e65a';
+  ctx.fillRect(4 * tileSize + 2, 12 * tileSize + 2, 6, 6);
+  ctx.fillStyle = '#d4c840';
+  ctx.fillRect(4 * tileSize + 3, 12 * tileSize + 4, 4, 0.5);
+  ctx.fillRect(4 * tileSize + 3, 12 * tileSize + 5.5, 3, 0.5);
+  // Pink sticky note
+  ctx.fillStyle = '#f5a0c0';
+  ctx.fillRect(4 * tileSize + 8, 12 * tileSize + 3, 6, 6);
+  ctx.fillStyle = '#d0809a';
+  ctx.fillRect(4 * tileSize + 9, 12 * tileSize + 5, 4, 0.5);
+  ctx.fillRect(4 * tileSize + 9, 12 * tileSize + 6.5, 3, 0.5);
+
+  // Pen holder at (11, 10)
+  ctx.fillStyle = '#444';
+  ctx.fillRect(11 * tileSize + 5, 10 * tileSize + 4, 6, 8);
+  ctx.fillStyle = '#555';
+  ctx.fillRect(11 * tileSize + 5, 10 * tileSize + 4, 6, 1);
+  // Pen tops
+  ctx.fillStyle = '#2255cc';
+  ctx.fillRect(11 * tileSize + 6, 10 * tileSize + 2, 1.5, 3);
+  ctx.fillStyle = '#cc2233';
+  ctx.fillRect(11 * tileSize + 8, 10 * tileSize + 1, 1.5, 4);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(11 * tileSize + 10, 10 * tileSize + 3, 1.5, 2);
+
+  // Hand sanitizer at (2, 10)
+  ctx.fillStyle = '#e8e8f0';
+  ctx.fillRect(2 * tileSize + 5, 10 * tileSize + 3, 5, 10);
+  ctx.fillStyle = '#5599dd';
+  ctx.fillRect(2 * tileSize + 5, 10 * tileSize + 6, 5, 4);
+  // Pump top
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(2 * tileSize + 7, 10 * tileSize + 1, 2, 3);
+  ctx.fillRect(2 * tileSize + 5, 10 * tileSize + 1, 3, 1);
+
+  // Keyboards at (4, 10) and (9, 10) — near computer monitors
+  ctx.fillStyle = '#333';
+  ctx.fillRect(4 * tileSize + 2, 10 * tileSize + 12, 12, 3);
+  ctx.fillStyle = '#444';
+  for (let kx = 0; kx < 5; kx++) {
+    for (let ky = 0; ky < 2; ky++) {
+      ctx.fillRect(4 * tileSize + 3 + kx * 2.2, 10 * tileSize + 12.5 + ky * 1.2, 1.5, 0.8);
+    }
+  }
+  ctx.fillStyle = '#333';
+  ctx.fillRect(9 * tileSize + 2, 10 * tileSize + 12, 12, 3);
+  ctx.fillStyle = '#444';
+  for (let kx = 0; kx < 5; kx++) {
+    for (let ky = 0; ky < 2; ky++) {
+      ctx.fillRect(9 * tileSize + 3 + kx * 2.2, 10 * tileSize + 12.5 + ky * 1.2, 1.5, 0.8);
+    }
+  }
+
+  // --- 2. Customer area details (rows 2-6) ---
+
+  // Floor mat at entrance: (6, 2) to (7, 2)
+  ctx.fillStyle = '#5a5040';
+  ctx.fillRect(6 * tileSize, 2 * tileSize, 2 * tileSize, tileSize);
+  ctx.fillStyle = '#4a4535';
+  ctx.fillRect(6 * tileSize + 1, 2 * tileSize + 1, 2 * tileSize - 2, tileSize - 2);
+  // "WELCOME" tiny text
+  ctx.fillStyle = '#8a8060';
+  ctx.font = '4px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('WELCOME', 7 * tileSize, 2 * tileSize + 10);
+  ctx.textAlign = 'start';
+
+  // Tile checkerboard pattern in waiting area (rows 3-5)
+  for (let cRow = 3; cRow <= 5; cRow++) {
+    for (let cCol = 0; cCol <= 12; cCol++) {
+      if ((cRow + cCol) % 2 === 0) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
+        ctx.fillRect(cCol * tileSize, cRow * tileSize, tileSize, tileSize);
+      }
+    }
+  }
+
+  // Queue rope stands at (4, 5) and (8, 5)
+  // Left post
+  ctx.fillStyle = '#b0a080';
+  ctx.beginPath();
+  ctx.arc(4 * tileSize + 8, 5 * tileSize + 8, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d4c090';
+  ctx.fillRect(4 * tileSize + 7, 5 * tileSize + 3, 2, 10);
+  // Right post
+  ctx.fillStyle = '#b0a080';
+  ctx.beginPath();
+  ctx.arc(8 * tileSize + 8, 5 * tileSize + 8, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#d4c090';
+  ctx.fillRect(8 * tileSize + 7, 5 * tileSize + 3, 2, 10);
+  // Rope between posts (retractable belt)
+  ctx.strokeStyle = '#cc2244';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(4 * tileSize + 9, 5 * tileSize + 6);
+  // Slight sag
+  ctx.quadraticCurveTo(6 * tileSize + 8, 5 * tileSize + 9, 8 * tileSize + 7, 5 * tileSize + 6);
+  ctx.stroke();
+
+  // Hand sanitizer station at (6, 3) — standing dispenser
+  ctx.fillStyle = '#777';
+  ctx.fillRect(6 * tileSize + 7, 3 * tileSize + 4, 2, 10);
+  ctx.fillStyle = '#e8e8f0';
+  ctx.fillRect(6 * tileSize + 5, 3 * tileSize + 1, 6, 5);
+  ctx.fillStyle = '#5599dd';
+  ctx.fillRect(6 * tileSize + 5, 3 * tileSize + 3, 6, 2);
+  // Label
+  ctx.fillStyle = '#444';
+  ctx.font = '3px monospace';
+  ctx.fillText('SANI', 6 * tileSize + 5.5, 3 * tileSize + 2.5);
+
+  // --- 3. Counter details (row 7-8) ---
+
+  // Receipt holder/spike at (5, 7)
+  ctx.fillStyle = '#aaa';
+  ctx.fillRect(5 * tileSize + 7, 7 * tileSize + 2, 1.5, 8);
+  ctx.fillStyle = '#c0c0c0';
+  ctx.beginPath();
+  ctx.moveTo(5 * tileSize + 7.75, 7 * tileSize + 1);
+  ctx.lineTo(5 * tileSize + 6, 7 * tileSize + 3);
+  ctx.lineTo(5 * tileSize + 9.5, 7 * tileSize + 3);
+  ctx.closePath();
+  ctx.fill();
+  // Receipt paper on spike
+  ctx.fillStyle = '#f5f2ea';
+  ctx.fillRect(5 * tileSize + 5, 7 * tileSize + 5, 6, 6);
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(5 * tileSize + 6, 7 * tileSize + 7, 4, 0.5);
+  ctx.fillRect(5 * tileSize + 6, 7 * tileSize + 8.5, 3, 0.5);
+
+  // "PLEASE WAIT" sign at (7, 7)
+  ctx.fillStyle = '#333';
+  ctx.fillRect(7 * tileSize + 4, 7 * tileSize + 8, 2, 5);
+  ctx.fillStyle = '#eee';
+  ctx.fillRect(7 * tileSize + 1, 7 * tileSize + 2, 14, 7);
+  ctx.fillStyle = '#333';
+  ctx.fillRect(7 * tileSize + 1.5, 7 * tileSize + 2.5, 13, 6);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 4px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('PLEASE', 7 * tileSize + 8, 7 * tileSize + 6);
+  ctx.fillText('WAIT', 7 * tileSize + 8, 7 * tileSize + 10.5);
+  ctx.textAlign = 'start';
+
+  // Pen-on-chain at (4, 7)
+  ctx.fillStyle = '#2255cc';
+  ctx.beginPath();
+  ctx.arc(4 * tileSize + 10, 7 * tileSize + 10, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 0.5;
+  ctx.setLineDash([1, 1]);
+  ctx.beginPath();
+  ctx.moveTo(4 * tileSize + 10, 7 * tileSize + 8);
+  ctx.lineTo(4 * tileSize + 6, 7 * tileSize + 4);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Credit card terminal at (3, 7)
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(3 * tileSize + 3, 7 * tileSize + 3, 8, 10);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(3 * tileSize + 4, 7 * tileSize + 4, 6, 5);
+  // Green status dot
+  ctx.fillStyle = '#44cc44';
+  ctx.beginPath();
+  ctx.arc(3 * tileSize + 9, 7 * tileSize + 11, 1, 0, Math.PI * 2);
+  ctx.fill();
+  // Keypad dots
+  ctx.fillStyle = '#555';
+  for (let kr = 0; kr < 2; kr++) {
+    for (let kc = 0; kc < 3; kc++) {
+      ctx.fillRect(3 * tileSize + 4.5 + kc * 2, 7 * tileSize + 9.5 + kr * 1.5, 1, 1);
+    }
+  }
+
+  // Tissue box at (10, 7)
+  ctx.fillStyle = '#6699cc';
+  ctx.fillRect(10 * tileSize + 3, 7 * tileSize + 4, 10, 8);
+  ctx.fillStyle = '#88bbee';
+  ctx.fillRect(10 * tileSize + 3, 7 * tileSize + 4, 10, 2);
+  // Tissue sticking out
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fillRect(10 * tileSize + 6, 7 * tileSize + 1, 4, 4);
+  ctx.fillStyle = '#eee';
+  ctx.fillRect(10 * tileSize + 7, 7 * tileSize + 1, 2, 1);
+
+  // --- 4. Back area details (rows 14-17) ---
+
+  // Temperature log clipboard on wall at (8, 16)
+  ctx.fillStyle = '#a08060';
+  ctx.fillRect(8 * tileSize + 3, 16 * tileSize + 1, 9, 13);
+  ctx.fillStyle = '#f0ede4';
+  ctx.fillRect(8 * tileSize + 4, 16 * tileSize + 3, 7, 10);
+  // Clip
+  ctx.fillStyle = '#bbb';
+  ctx.fillRect(8 * tileSize + 6, 16 * tileSize + 0.5, 3, 2);
+  // Lines on clipboard
+  ctx.fillStyle = '#c0bdb4';
+  for (let ln = 0; ln < 4; ln++) {
+    ctx.fillRect(8 * tileSize + 5, 16 * tileSize + 5 + ln * 2, 5, 0.5);
+  }
+
+  // Emergency eye wash sign at (3, 16)
+  ctx.fillStyle = '#228844';
+  ctx.fillRect(3 * tileSize + 2, 16 * tileSize + 2, 12, 10);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 3px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('EYE', 3 * tileSize + 8, 16 * tileSize + 7);
+  ctx.fillText('WASH', 3 * tileSize + 8, 16 * tileSize + 10.5);
+  ctx.textAlign = 'start';
+  // White cross
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(3 * tileSize + 7, 16 * tileSize + 3, 2, 2);
+
+  // Fire extinguisher at (12, 17)
+  ctx.fillStyle = '#cc2222';
+  ctx.fillRect(12 * tileSize + 5, 17 * tileSize + 2, 5, 11);
+  // Nozzle
+  ctx.fillStyle = '#222';
+  ctx.fillRect(12 * tileSize + 6, 17 * tileSize + 0.5, 3, 2.5);
+  // Handle
+  ctx.fillStyle = '#444';
+  ctx.fillRect(12 * tileSize + 10, 17 * tileSize + 3, 2, 4);
+  // Label
+  ctx.fillStyle = '#f5f0e0';
+  ctx.fillRect(12 * tileSize + 6, 17 * tileSize + 6, 3, 3);
+
+  // First aid box at (1, 16)
+  ctx.fillStyle = '#dd3333';
+  ctx.fillRect(1 * tileSize + 2, 16 * tileSize + 3, 11, 9);
+  ctx.fillStyle = '#ee4444';
+  ctx.fillRect(1 * tileSize + 2, 16 * tileSize + 3, 11, 2);
+  // White cross
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(1 * tileSize + 6, 16 * tileSize + 5, 3, 6);
+  ctx.fillRect(1 * tileSize + 4.5, 16 * tileSize + 6.5, 6, 3);
+
+  // Staff schedule board at (6, 16)
+  ctx.fillStyle = '#f5f0e0';
+  ctx.fillRect(6 * tileSize + 1, 16 * tileSize + 1, 12, 13);
+  ctx.fillStyle = '#ccc';
+  ctx.fillRect(6 * tileSize + 1, 16 * tileSize + 1, 12, 2);
+  ctx.fillStyle = '#888';
+  ctx.font = '3px monospace';
+  ctx.fillText('SCHED', 6 * tileSize + 2.5, 16 * tileSize + 2.5);
+  // Grid lines
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 0.3;
+  for (let gx = 0; gx < 4; gx++) {
+    ctx.beginPath();
+    ctx.moveTo(6 * tileSize + 1 + gx * 3, 16 * tileSize + 3);
+    ctx.lineTo(6 * tileSize + 1 + gx * 3, 16 * tileSize + 14);
+    ctx.stroke();
+  }
+  for (let gy = 0; gy < 5; gy++) {
+    ctx.beginPath();
+    ctx.moveTo(6 * tileSize + 1, 16 * tileSize + 3 + gy * 2.2);
+    ctx.lineTo(6 * tileSize + 13, 16 * tileSize + 3 + gy * 2.2);
+    ctx.stroke();
+  }
+  // Colored schedule blocks
+  const schedColors = ['#88bbee', '#ee8888', '#88cc88', '#ddbb66'];
+  for (let si = 0; si < 4; si++) {
+    ctx.fillStyle = schedColors[si];
+    ctx.fillRect(6 * tileSize + 2 + (si % 3) * 3, 16 * tileSize + 4 + Math.floor(si / 3) * 2.2, 2.5, 1.5);
+  }
+
+  // --- 5. Drive-thru enhancements (cols 13-15) ---
+
+  // Menu/speaker board at row 5 in drive lane
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(14 * tileSize + 2, 5 * tileSize + 1, tileSize + 10, 14);
+  ctx.fillStyle = '#f5e8a0';
+  ctx.fillRect(14 * tileSize + 3, 5 * tileSize + 2, tileSize + 8, 8);
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 3px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('MENU', 15 * tileSize, 5 * tileSize + 6);
+  ctx.font = '3px monospace';
+  ctx.fillText('ORDER', 15 * tileSize, 5 * tileSize + 9);
+  ctx.textAlign = 'start';
+  // Speaker grille
+  ctx.fillStyle = '#555';
+  ctx.beginPath();
+  ctx.arc(15 * tileSize, 5 * tileSize + 13, 2.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#444';
+  ctx.beginPath();
+  ctx.arc(15 * tileSize, 5 * tileSize + 13, 1.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // "DRIVE THRU" painted on asphalt at row 3
+  ctx.fillStyle = 'rgba(200, 200, 180, 0.25)';
+  ctx.font = 'bold 5px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('DRIVE', 15 * tileSize, 3 * tileSize + 6);
+  ctx.fillText('THRU', 15 * tileSize, 3 * tileSize + 12);
+  // Arrow
+  ctx.fillStyle = 'rgba(200, 200, 180, 0.2)';
+  ctx.beginPath();
+  ctx.moveTo(15 * tileSize, 3 * tileSize + 13);
+  ctx.lineTo(15 * tileSize - 3, 3 * tileSize + 15);
+  ctx.lineTo(15 * tileSize + 3, 3 * tileSize + 15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.textAlign = 'start';
+
+  // Speed bump at row 8 — yellow striped line
+  ctx.fillStyle = '#c8a020';
+  ctx.fillRect(14 * tileSize, 8 * tileSize + 7, 2 * tileSize, 2);
+  // Stripes on speed bump
+  ctx.fillStyle = '#333';
+  for (let sx = 0; sx < 8; sx++) {
+    ctx.fillRect(14 * tileSize + sx * 4, 8 * tileSize + 7, 2, 2);
+  }
+
+  // Trash can at drive window at (13, 13)
+  ctx.fillStyle = '#556655';
+  ctx.fillRect(13 * tileSize + 3, 13 * tileSize + 2, 10, 12);
+  ctx.fillStyle = '#667766';
+  ctx.fillRect(13 * tileSize + 2, 13 * tileSize + 2, 12, 2);
+  // Lid line
+  ctx.fillStyle = '#4a5a4a';
+  ctx.fillRect(13 * tileSize + 5, 13 * tileSize + 2, 6, 1);
+
+  // --- 6. Lighting hints on floor ---
+
+  // Fluorescent light pools in workspace (rows 10-12)
+  for (let lr = 10; lr <= 12; lr++) {
+    for (let lc = 2; lc <= 10; lc += 4) {
+      ctx.fillStyle = 'rgba(255, 250, 230, 0.06)';
+      ctx.beginPath();
+      ctx.arc(lc * tileSize + tileSize / 2, lr * tileSize + tileSize / 2, tileSize * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Window light on customer floor (rows 3-5, warm tint)
+  for (let wr = 3; wr <= 5; wr++) {
+    const lightAlpha = wr === 4 ? 0.07 : 0.04;
+    ctx.fillStyle = `rgba(255, 240, 200, ${lightAlpha})`;
+    ctx.fillRect(0, wr * tileSize, 13 * tileSize, tileSize);
+  }
+  // Warm spotlight near windows on left
+  ctx.fillStyle = 'rgba(255, 230, 180, 0.08)';
+  ctx.beginPath();
+  ctx.arc(1 * tileSize, 4 * tileSize + tileSize / 2, tileSize * 2.5, 0, Math.PI * 2);
+  ctx.fill();
+
   // ========== STATION MARKERS (glow dots on floor) ==========
   for (const [key, station] of Object.entries(STATIONS)) {
     const marker = Sprites.stationMarker(station.color, station.label);

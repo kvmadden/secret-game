@@ -76,6 +76,7 @@ export class Game {
       workEvent: null,
       workLabel: '',
       idleTimer: 0,
+      idleAnim: 'none', // 'none' | 'tapping' | 'watch' | 'sigh'
       stress: 0, // visual stress indicator (0-1)
     };
 
@@ -96,10 +97,14 @@ export class Game {
 
     // Drive-thru cars
     this.driveThruCars = 0;
+    this.driveThruCarQueue = [];
 
     // Ambient shoppers (background life in store area)
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
+
+    // Weather (weighted random pick)
+    this.weather = this._pickWeather();
 
     // Timers
     this.nextEventTimer = 3;
@@ -599,6 +604,8 @@ export class Game {
       this.updateDeferred(dt);
       this.updatePhoneRing(dt);
       this.updateAmbientShoppers(dt);
+      this.updateDriveThruCars(dt);
+      this.updateIdleBehavior(dt);
       this.checkMeterWarnings(dt);
       this.checkGameOver();
     } else if (this.state === 'LUNCH') {
@@ -631,6 +638,7 @@ export class Game {
       patients: this.patients,
       stationManager: this.stationManager,
       driveThruCars: this.driveThruCars,
+      driveThruCarQueue: this.driveThruCarQueue,
       phoneRinging: this.phoneRinging,
       meters: this.meters,
       ambientShoppers: this.ambientShoppers,
@@ -673,20 +681,28 @@ export class Game {
     }
 
     if (to === 'LUNCH_CLOSE') {
-      Audio.playLunchStart();
+      // Dramatic 0.5s delay before the gate slams shut
+      setTimeout(() => {
+        Audio.playLunchStart();
+        this.renderer.shake(2); // Gate slam shake
 
-      // Grace period: if pharmacist is working, let them finish
-      if (this.pharmacist.state === 'WORKING') {
-        this.lunchGraceTimer = this.pharmacist.workDuration - this.pharmacist.workTimer + 0.5;
-      } else {
-        this.enterLunch();
-      }
+        // Grace period: if pharmacist is working, let them finish
+        if (this.pharmacist.state === 'WORKING') {
+          this.lunchGraceTimer = this.pharmacist.workDuration - this.pharmacist.workTimer + 0.5;
+        } else {
+          this.enterLunch();
+        }
+      }, 500);
+      return; // Skip the phase announce below — lunch handles its own UI
     } else if (to === 'REOPEN_RUSH' && from === 'LUNCH_CLOSE') {
       Audio.playReopenRush();
       this.state = 'PLAYING';
       this.ui.hideLunch();
       this.renderer.setGate(false); // Open the gate
       Audio.playGateOpen();
+      this.renderer.shake(3); // Gate opens with force
+      // Flash effect on reopen
+      this.renderer.flashComplete(8, 7, '#ffffaa');
       this.ui.showPhaseAnnounce('REOPEN RUSH');
       this.meters.queue = Math.min(METER_MAX, this.meters.queue + 15);
       this.meters.rage = Math.min(METER_MAX, this.meters.rage + 8);
@@ -696,6 +712,16 @@ export class Game {
       this.spawnPatient('pickup');
       this.spawnPatient('drive');
       this.driveThruCars = 2;
+      // Populate car queue for reopen rush
+      const CAR_COLORS_RUSH = ['#c0392b', '#2980b9', '#27ae60', '#f39c12'];
+      this.driveThruCarQueue = [];
+      for (let ci = 0; ci < 2; ci++) {
+        this.driveThruCarQueue.push({
+          row: 8 + ci * 3, col: 14.5,
+          color: CAR_COLORS_RUSH[Math.floor(Math.random() * CAR_COLORS_RUSH.length)],
+          waiting: false, leaving: false, timer: 0,
+        });
+      }
       this.nextEventTimer = 0.5;
       this.updatePipelineCards();
     } else if (to === 'BUILDING') {
@@ -838,6 +864,11 @@ export class Game {
           this.showTutorial('pressure');
         }
       }
+      // Screen shake when a meter hits critical (>85)
+      if (this.meters[key] > 85 && this.meterWarningCooldown[key] > 6.5) {
+        // Only shake once per warning cycle (just crossed 85)
+        this.renderer.shake(2);
+      }
     }
   }
 
@@ -944,6 +975,15 @@ export class Game {
 
     if (event.station === 'drive') {
       this.driveThruCars = Math.min(3, this.driveThruCars + 1);
+      // Queue a car object if not already at max
+      if (this.driveThruCarQueue.length < 3) {
+        const CAR_COLORS = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#2c3e50'];
+        this.driveThruCarQueue.push({
+          row: 0, col: 14.5,
+          color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+          waiting: false, leaving: false, timer: 0,
+        });
+      }
     }
 
     this.ui.addCard(event,
@@ -1165,6 +1205,24 @@ export class Game {
     }
   }
 
+  updateIdleBehavior(dt) {
+    const pharm = this.pharmacist;
+    if (pharm.state !== 'IDLE') {
+      pharm.idleAnim = 'none';
+      return;
+    }
+    // Progressive idle animations for game juice
+    if (pharm.idleTimer >= 8) {
+      pharm.idleAnim = 'sigh';       // thought bubble sigh
+    } else if (pharm.idleTimer >= 5) {
+      pharm.idleAnim = 'watch';      // checks watch
+    } else if (pharm.idleTimer >= 3) {
+      pharm.idleAnim = 'tapping';    // taps foot
+    } else {
+      pharm.idleAnim = 'none';
+    }
+  }
+
   completeWork() {
     const pharm = this.pharmacist;
     const event = pharm.workEvent;
@@ -1190,6 +1248,17 @@ export class Game {
         this.meters.scrutiny = Math.max(0, this.meters.scrutiny - bonus * 0.3);
         // Extra particles for combos
         this.renderer.spawnParticles(pharm.col, pharm.row, '#ffdd00', this.comboCount * 3);
+        // Combo screen shake that scales with combo count
+        this.renderer.shake(0.5 * this.comboCount);
+        // Flash the combo indicator with a scale animation
+        const comboEl = document.getElementById('combo-indicator');
+        if (comboEl) {
+          comboEl.style.transform = 'scale(1.4)';
+          comboEl.style.transition = 'transform 0.2s ease-out';
+          setTimeout(() => {
+            comboEl.style.transform = 'scale(1)';
+          }, 200);
+        }
       }
 
       this.applyEffects(event.effects);
@@ -1218,9 +1287,15 @@ export class Game {
 
       if (event.station === 'drive') {
         this.driveThruCars = Math.max(0, this.driveThruCars - 1);
+        // Release the first waiting car in the queue
+        const waitingCar = this.driveThruCarQueue.find(c => c.waiting);
+        if (waitingCar) waitingCar.leaving = true;
       }
       this.removePatientAtStation(event.station);
     }
+
+    // Detect if this was a rushed completion (label starts with ⚡)
+    const wasRush = pharm.workLabel && pharm.workLabel.startsWith('⚡');
 
     pharm.state = 'IDLE';
     pharm.workEvent = null;
@@ -1230,6 +1305,14 @@ export class Game {
     // Station-specific completion particles
     const stationColor = event ? (STATIONS[event.station]?.color || '#f0d880') : '#f0d880';
     this.renderer.flashComplete(pharm.col, pharm.row, stationColor);
+
+    // Rush completion: extra particles + stronger flash for dramatic feedback
+    if (wasRush && event) {
+      this.renderer.spawnParticles(pharm.col, pharm.row, '#ff8800', 10);
+      this.renderer.spawnParticles(pharm.col, pharm.row, stationColor, 6);
+      this.renderer.shake(1);
+    }
+
     this.updatePipelineCards();
   }
 
@@ -1389,8 +1472,10 @@ export class Game {
         patient.stormingOut = true;
         patient.stormTarget = { col: patient.col < 8 ? -2 : 17, row: -2 };
         this.stats.patientsLost++;
-        this.renderer.shake(2);
+        this.renderer.shake(1.5);
         Audio.playStormOut();
+        // Red flash at patient position for dramatic storm-out
+        this.renderer.flashComplete(patient.col, patient.row, '#ff4444');
         // Angry speech bubble
         patient.showBubble = true;
         patient.bubbleText = Math.random() < 0.5 ? "I'M LEAVING!" : "UNBELIEVABLE!";
@@ -1526,6 +1611,72 @@ export class Game {
       hasCart: Math.random() < 0.3, // Some push shopping carts
     };
     this.ambientShoppers.push(shopper);
+  }
+
+  // ========== WEATHER ==========
+
+  _pickWeather() {
+    const totalWeight = WEATHER_TYPES.reduce((sum, w) => sum + w.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const w of WEATHER_TYPES) {
+      roll -= w.weight;
+      if (roll <= 0) return w;
+    }
+    return WEATHER_TYPES[0];
+  }
+
+  // ========== DRIVE-THRU CAR QUEUE ==========
+
+  updateDriveThruCars(dt) {
+    const DRIVE_COL = 14.5;
+    const WINDOW_ROW = 12;
+    const EXIT_ROW = 19;
+    const CAR_COLORS = ['#c0392b', '#2980b9', '#27ae60', '#f39c12', '#8e44ad', '#2c3e50'];
+
+    // Spawn cars when drive-thru events are active and queue not full
+    const driveEvents = this.activeEvents.filter(e => e.station === 'drive' && !e.isPipeline);
+    if (driveEvents.length > 0 && this.driveThruCarQueue.length < 2) {
+      // Check if we should spawn (no car already approaching)
+      const approaching = this.driveThruCarQueue.some(c => c.row < WINDOW_ROW && !c.waiting && !c.leaving);
+      if (!approaching) {
+        this.driveThruCarQueue.push({
+          row: 0,
+          col: DRIVE_COL,
+          color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)],
+          waiting: false,
+          leaving: false,
+          timer: 0,
+        });
+      }
+    }
+
+    // Update car positions
+    for (let i = this.driveThruCarQueue.length - 1; i >= 0; i--) {
+      const car = this.driveThruCarQueue[i];
+
+      if (car.leaving) {
+        // Drive away
+        car.row += 4 * dt;
+        if (car.row > EXIT_ROW) {
+          this.driveThruCarQueue.splice(i, 1);
+        }
+      } else if (car.waiting) {
+        car.timer += dt;
+      } else {
+        // Approach the window
+        if (car.row < WINDOW_ROW) {
+          car.row += 3 * dt;
+          if (car.row >= WINDOW_ROW) {
+            car.row = WINDOW_ROW;
+            car.waiting = true;
+            car.timer = 0;
+          }
+        }
+      }
+    }
+
+    // Sync numeric count for renderer backward compat
+    this.driveThruCars = this.driveThruCarQueue.length;
   }
 
   // ========== GAME OVER ==========
