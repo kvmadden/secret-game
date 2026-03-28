@@ -643,10 +643,10 @@ export class Renderer {
   renderPharmacist(ctx, state) {
     const pharm = state.pharmacist;
     const frame = pharm.state === 'WALKING'
-      ? (Math.floor(state.time * 6) % 3)
+      ? (Math.floor(state.time * 8) % 6)
       : 0;
     const facing = pharm.facing || 'right';
-    const sprite = Sprites.pharmacist(facing, frame, pharm.stress || 0);
+    const sprite = Sprites.pharmacist(facing, frame, pharm.stress || 0, state.time || 0);
 
     const px = pharm.col * TILE_SIZE;
     const py = pharm.row * TILE_SIZE;

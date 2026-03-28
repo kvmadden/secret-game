@@ -32,137 +32,291 @@ function rect(ctx, x, y, w, h, color) {
 }
 
 // ========== PHARMACIST SPRITE (16x16) ==========
-function drawPharmacistFrame(facing, frame, stress) {
+// Stardew Valley quality: 6 walk frames, 10+ colors, stress states, idle breathing/blink
+function drawPharmacistFrame(facing, frame, stress, time) {
   // stress: 0-1, affects visual appearance
-  const stressLevel = Math.floor((stress || 0) * 2); // 0, 1, 2
-  const key = getCacheKey('pharmacist', facing, frame, stressLevel);
+  // time: animation clock for idle blink/breathing (optional)
+  const stressLevel = stress < 0.3 ? 0 : stress < 0.5 ? 1 : stress < 0.7 ? 2 : 3;
+  const t = time || 0;
+  // Blink: eyes closed for ~0.15s every ~3s
+  const blinkCycle = t % 3.0;
+  const isBlinking = (frame === 0 && blinkCycle > 2.85);
+  // Breathing for idle: chest expand on sine cycle (~2s period)
+  const breathPhase = Math.sin(t * Math.PI);
+  const isIdle = (frame === 0);
+  const breathExpand = isIdle ? (breathPhase > 0.7 ? 1 : 0) : 0;
+
+  // Quantize blink and breath for caching
+  const blinkKey = isBlinking ? 1 : 0;
+  const breathKey = breathExpand;
+  const key = getCacheKey('pharmacist', facing, frame, stressLevel, blinkKey, breathKey);
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
   const flip = facing === 'left';
 
-  const outline = '#3a2820'; // warm dark brown outline
+  // === PALETTE (12 colors) ===
+  const skinBase = stressLevel >= 3 ? '#e8a078' : '#e8b88a';  // reddened at high stress
+  const skinShadow = stressLevel >= 3 ? '#d08868' : '#d4a070';
+  const hairBase = '#5a3820';
+  const hairHighlight = '#7a5838';
+  const coatBase = stressLevel >= 3 ? '#e8e4dc' : '#f4f0e8';
+  const coatHighlight = '#faf8f2';
+  const coatShadow = stressLevel >= 3 ? '#ccc8c0' : '#dcd8d0';
+  const pantsBase = '#3a3a4a';
+  const pantsShadow = '#2c2c3a';
+  const shoeColor = '#22180e';
+  const badgeGreen = '#4a9a5a';
+  const badgeLight = '#60b870';
+  const outline = '#3a2820';
 
-  // Shadow
+  // Mid-stride frames get head bob (0.5px up) and hip sway (1px)
+  const isMidStride = (frame === 2 || frame === 5);
+  const headBob = isMidStride ? -0.5 : 0;
+  // Hip sway: shift body 1px on extended frames
+  const hipSway = isMidStride ? (frame === 2 ? (flip ? -1 : 1) : (flip ? 1 : -1)) : 0;
+
+  // Stress posture: shoulders raised 1px at medium+ stress
+  const shoulderRaise = stressLevel >= 1 ? -1 : 0;
+
+  // === SHADOW ===
   ctx.fillStyle = 'rgba(60,40,20,0.3)';
   ctx.beginPath();
-  ctx.ellipse(8, 15, 4, 1.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(8, 15.2, 4, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Legs (dark pants) with walk animation
-  if (frame === 0) {
-    rect(ctx, 5, 12, 2, 3, '#3a3a4a');
-    rect(ctx, 9, 12, 2, 3, '#3a3a4a');
+  // === LEGS (6 walk frames with arm swing) ===
+  // Leg positions: [leftLegX, leftLegY, leftLegH, rightLegX, rightLegY, rightLegH]
+  // Arms: [leftArmX, leftArmY, leftArmH, rightArmX, rightArmY, rightArmH]
+  const bx = hipSway; // body x offset for sway
+  if (frame === 0 || frame === 3) {
+    // Standing neutral
+    rect(ctx, 5 + bx, 12, 2, 3, pantsBase);
+    rect(ctx, 9 + bx, 12, 2, 3, pantsBase);
+    // Inner leg shadow
+    rect(ctx, 7 + bx, 12, 2, 2, pantsShadow);
+    // Shoes
+    rect(ctx, 5 + bx, 14, 2, 1, shoeColor);
+    rect(ctx, 9 + bx, 14, 2, 1, shoeColor);
   } else if (frame === 1) {
-    rect(ctx, flip ? 7 : 4, 12, 2, 3, '#3a3a4a');
-    rect(ctx, flip ? 10 : 7, 13, 2, 2, '#3a3a4a');
-    rect(ctx, flip ? 12 : 2, 7, 1, 5, '#f4f0e8');
-    rect(ctx, flip ? 3 : 13, 8, 1, 3, '#f4f0e8');
+    // Right leg forward, left leg back
+    const fwd = flip ? -1 : 1;
+    rect(ctx, 5 + bx - fwd, 12, 2, 3, pantsBase);    // left leg (back)
+    rect(ctx, 9 + bx + fwd, 11, 2, 4, pantsBase);     // right leg (forward)
+    rect(ctx, 9 + bx + fwd, 12, 2, 1, pantsShadow);   // right leg shadow
+    rect(ctx, 5 + bx - fwd, 14, 2, 1, shoeColor);
+    rect(ctx, 9 + bx + fwd, 14, 2, 1, shoeColor);
   } else if (frame === 2) {
-    rect(ctx, flip ? 10 : 7, 12, 2, 3, '#3a3a4a');
-    rect(ctx, flip ? 7 : 4, 13, 2, 2, '#3a3a4a');
-    rect(ctx, flip ? 3 : 13, 7, 1, 5, '#f4f0e8');
-    rect(ctx, flip ? 12 : 2, 8, 1, 3, '#f4f0e8');
+    // Right leg extended, left leg back extended
+    const fwd = flip ? -1 : 1;
+    rect(ctx, 5 + bx - fwd * 2, 12, 2, 3, pantsBase);  // left leg far back
+    rect(ctx, 9 + bx + fwd * 2, 11, 2, 4, pantsBase);   // right leg far forward
+    rect(ctx, 7 + bx, 12, 2, 2, pantsShadow);            // center shadow
+    rect(ctx, 5 + bx - fwd * 2, 14, 2, 1, shoeColor);
+    rect(ctx, 9 + bx + fwd * 2, 14, 2, 1, shoeColor);
+  } else if (frame === 4) {
+    // Left leg forward, right leg back (mirror of frame 1)
+    const fwd = flip ? -1 : 1;
+    rect(ctx, 5 + bx + fwd, 11, 2, 4, pantsBase);     // left leg (forward)
+    rect(ctx, 9 + bx - fwd, 12, 2, 3, pantsBase);     // right leg (back)
+    rect(ctx, 5 + bx + fwd, 12, 2, 1, pantsShadow);   // left leg shadow
+    rect(ctx, 5 + bx + fwd, 14, 2, 1, shoeColor);
+    rect(ctx, 9 + bx - fwd, 14, 2, 1, shoeColor);
+  } else if (frame === 5) {
+    // Left leg extended, right leg back extended (mirror of frame 2)
+    const fwd = flip ? -1 : 1;
+    rect(ctx, 5 + bx + fwd * 2, 11, 2, 4, pantsBase);   // left leg far forward
+    rect(ctx, 9 + bx - fwd * 2, 12, 2, 3, pantsBase);   // right leg far back
+    rect(ctx, 7 + bx, 12, 2, 2, pantsShadow);             // center shadow
+    rect(ctx, 5 + bx + fwd * 2, 14, 2, 1, shoeColor);
+    rect(ctx, 9 + bx - fwd * 2, 14, 2, 1, shoeColor);
   }
 
-  // Shoes
-  if (frame === 0) {
-    rect(ctx, 5, 14, 2, 1, '#2a2018');
-    rect(ctx, 9, 14, 2, 1, '#2a2018');
-  } else if (frame === 1) {
-    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#2a2018');
-    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#2a2018');
-  } else {
-    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#2a2018');
-    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#2a2018');
+  // === LAB COAT BODY ===
+  const bodyY = 6 + shoulderRaise;
+  const bodyH = 7 - shoulderRaise;
+  // Main coat
+  rect(ctx, 4 + bx, bodyY, 8, bodyH, coatBase);
+  // Highlight edge on left side
+  rect(ctx, 4 + bx, bodyY, 1, bodyH - 2, coatHighlight);
+  // Shadow on right fold
+  rect(ctx, 11 + bx, bodyY, 1, bodyH - 1, coatShadow);
+  // Bottom shadow fold
+  rect(ctx, 4 + bx, 10, 8, 3, coatShadow);
+  // Center coat line (buttons)
+  rect(ctx, 8 + bx, bodyY + 1, 1, bodyH - 2, coatShadow);
+  px(ctx, 8 + bx, bodyY + 2, '#c8c4b8'); // button
+  px(ctx, 8 + bx, bodyY + 4, '#c8c4b8'); // button
+  // Collar / neckline
+  rect(ctx, 4 + bx, bodyY, 8, 1, coatShadow);
+  px(ctx, 7 + bx, bodyY, skinBase); // V-neck showing skin
+  px(ctx, 8 + bx, bodyY, skinBase);
+  // Chest breathing expansion
+  if (breathExpand) {
+    rect(ctx, 3 + bx, bodyY + 2, 1, 2, coatBase);
+    rect(ctx, 12 + bx, bodyY + 2, 1, 2, coatBase);
+  }
+  // Coat hem
+  rect(ctx, 4 + bx, 12, 8, 1, coatShadow);
+  // Pocket shadows
+  rect(ctx, 5 + bx, 9, 2, 2, coatShadow);
+  rect(ctx, 9 + bx, 9, 2, 2, coatShadow);
+
+  // === ARMS (swing with walk) ===
+  if (frame === 0 || frame === 3) {
+    // Arms at sides
+    rect(ctx, 3 + bx, 7 + shoulderRaise, 1, 5, coatBase);
+    rect(ctx, 12 + bx, 7 + shoulderRaise, 1, 5, coatBase);
+    // Hands at rest
+    px(ctx, 3 + bx, 11 + shoulderRaise, skinBase);
+    px(ctx, 12 + bx, 11 + shoulderRaise, skinBase);
+  } else if (frame === 1 || frame === 2) {
+    // Left arm forward, right arm back
+    const ext = frame === 2 ? 2 : 1;
+    const armFwd = flip ? 1 : -1;
+    // Left arm forward
+    rect(ctx, 3 + bx + armFwd * ext, 7 + shoulderRaise, 1, 4, coatBase);
+    px(ctx, 3 + bx + armFwd * ext, 10 + shoulderRaise, skinBase);
+    // Right arm back
+    rect(ctx, 12 + bx - armFwd * ext, 7 + shoulderRaise, 1, 4, coatBase);
+    px(ctx, 12 + bx - armFwd * ext, 10 + shoulderRaise, skinBase);
+  } else if (frame === 4 || frame === 5) {
+    // Right arm forward, left arm back
+    const ext = frame === 5 ? 2 : 1;
+    const armFwd = flip ? 1 : -1;
+    // Right arm forward
+    rect(ctx, 12 + bx + armFwd * ext, 7 + shoulderRaise, 1, 4, coatBase);
+    px(ctx, 12 + bx + armFwd * ext, 10 + shoulderRaise, skinBase);
+    // Left arm back
+    rect(ctx, 3 + bx - armFwd * ext, 7 + shoulderRaise, 1, 4, coatBase);
+    px(ctx, 3 + bx - armFwd * ext, 10 + shoulderRaise, skinBase);
   }
 
-  // Lab coat body — warm white
-  const coatColor = stressLevel >= 2 ? '#e8e4dc' : '#f4f0e8';
-  const coatShadow = stressLevel >= 2 ? '#d8d4cc' : '#e4e0d8';
-  rect(ctx, 4, 6, 8, 7, coatColor);
-  // Coat shading
-  rect(ctx, 4, 10, 8, 3, coatShadow);
-  if (frame === 0) {
-    rect(ctx, 3, 7, 1, 4, coatColor);
-    rect(ctx, 12, 7, 1, 4, coatColor);
-  }
+  // === NAME BADGE with detail ===
+  const badgeSide = flip ? 9 + bx : 5 + bx;
+  rect(ctx, badgeSide, 8, 2, 2, badgeGreen);
+  px(ctx, badgeSide + 1, 8, badgeLight); // badge highlight
+  px(ctx, badgeSide, 7, badgeGreen);      // lanyard clip
+  px(ctx, badgeSide, bodyY, '#3a8848');   // lanyard to collar
 
-  // Coat details
-  rect(ctx, 8, 7, 1, 5, coatShadow);
-  px(ctx, 8, 8, '#c8c4b8');
-  px(ctx, 8, 10, '#c8c4b8');
-  rect(ctx, 4, 6, 8, 1, coatShadow);
-  px(ctx, 7, 6, '#e8b88a');
-  px(ctx, 8, 6, '#e8b88a');
-  rect(ctx, 5, 9, 2, 2, coatShadow);
-  rect(ctx, 9, 9, 2, 2, coatShadow);
-  rect(ctx, 4, 12, 8, 1, coatShadow);
-
-  // Hands
-  if (frame === 0) {
-    rect(ctx, 3, 11, 1, 1, '#e8b88a');
-    rect(ctx, 12, 11, 1, 1, '#e8b88a');
-  }
-
-  // Name badge (warm green) with lanyard
-  const badgeSide = flip ? 9 : 5;
-  rect(ctx, badgeSide, 8, 2, 2, '#4a9a5a');
-  px(ctx, badgeSide, 7, '#4a9a5a');
-  px(ctx, badgeSide, 6, '#3a8848');
-
-  // Head — bigger for charm (6px wide, 5px tall)
-  rect(ctx, 5, 1, 6, 6, '#e8b88a');
+  // === HEAD (6x5, with bob on mid-stride) ===
+  const hy = 1 + headBob;
+  // Base skin
+  rect(ctx, 5, hy, 6, 6, skinBase);
+  // Chin/neck shadow
+  rect(ctx, 6, hy + 4.5, 4, 1.5, skinShadow);
   // Rosy cheeks
-  px(ctx, 5, 5, '#e0a080');
-  px(ctx, 10, 5, '#e0a080');
-  // Ears
-  px(ctx, 4, 3, '#e0b080');
-  px(ctx, 11, 3, '#e0b080');
-  // Hair — warm brown, fuller
-  rect(ctx, 5, 0, 6, 2, '#5a3820');
-  rect(ctx, 4, 0, 1, 4, '#5a3820');
-  rect(ctx, 11, 0, 1, 4, '#5a3820');
-  px(ctx, 6, 0, '#6a4830'); // hair highlight
-  px(ctx, 8, 0, '#6a4830');
+  px(ctx, 5, hy + 4, '#e0a080');
+  px(ctx, 10, hy + 4, '#e0a080');
+  // Ears with shadow
+  px(ctx, 4, hy + 2, skinBase);
+  px(ctx, 4, hy + 3, skinShadow);
+  px(ctx, 11, hy + 2, skinBase);
+  px(ctx, 11, hy + 3, skinShadow);
 
-  // Eyes — bigger, with white + pupil + highlight
-  if (facing === 'left') {
-    px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#2a2018');
-    px(ctx, 8, 3, '#fff'); px(ctx, 8, 4, '#2a2018');
-  } else if (facing === 'right') {
-    px(ctx, 7, 3, '#fff'); px(ctx, 7, 4, '#2a2018');
-    px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#2a2018');
+  // === HAIR (2-tone) ===
+  rect(ctx, 5, hy - 1, 6, 2, hairBase);
+  rect(ctx, 4, hy - 1, 1, 4, hairBase);
+  rect(ctx, 11, hy - 1, 1, 4, hairBase);
+  // Hair highlights
+  px(ctx, 6, hy - 1, hairHighlight);
+  px(ctx, 8, hy - 1, hairHighlight);
+  px(ctx, 9, hy - 1, hairHighlight);
+
+  // === EYES (white + pupil + highlight) ===
+  if (isBlinking) {
+    // Closed eyes (blink) — just a line
+    if (facing === 'left') {
+      px(ctx, 6, hy + 3, '#2a2018');
+      px(ctx, 8, hy + 3, '#2a2018');
+    } else if (facing === 'right') {
+      px(ctx, 7, hy + 3, '#2a2018');
+      px(ctx, 9, hy + 3, '#2a2018');
+    } else {
+      px(ctx, 6, hy + 3, '#2a2018');
+      px(ctx, 9, hy + 3, '#2a2018');
+    }
   } else {
-    px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#2a2018');
-    px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#2a2018');
+    // Open eyes
+    const wideEye = stressLevel >= 3; // wider eyes at high stress
+    if (facing === 'left') {
+      px(ctx, 6, hy + 2, '#fff'); px(ctx, 6, hy + 3, '#fff');
+      px(ctx, 6, hy + 3, '#2a2018'); // pupil
+      if (wideEye) px(ctx, 6, hy + 2, '#e8e8ff');
+      px(ctx, 8, hy + 2, '#fff'); px(ctx, 8, hy + 3, '#fff');
+      px(ctx, 8, hy + 3, '#2a2018');
+      if (wideEye) px(ctx, 8, hy + 2, '#e8e8ff');
+      // Tiny highlight
+      px(ctx, 6, hy + 2, '#fff');
+      px(ctx, 8, hy + 2, '#fff');
+    } else if (facing === 'right') {
+      px(ctx, 7, hy + 2, '#fff'); px(ctx, 7, hy + 3, '#fff');
+      px(ctx, 7, hy + 3, '#2a2018');
+      if (wideEye) px(ctx, 7, hy + 2, '#e8e8ff');
+      px(ctx, 9, hy + 2, '#fff'); px(ctx, 9, hy + 3, '#fff');
+      px(ctx, 9, hy + 3, '#2a2018');
+      if (wideEye) px(ctx, 9, hy + 2, '#e8e8ff');
+      px(ctx, 7, hy + 2, '#fff');
+      px(ctx, 9, hy + 2, '#fff');
+    } else {
+      px(ctx, 6, hy + 2, '#fff'); px(ctx, 6, hy + 3, '#fff');
+      px(ctx, 6, hy + 3, '#2a2018');
+      if (wideEye) px(ctx, 6, hy + 2, '#e8e8ff');
+      px(ctx, 9, hy + 2, '#fff'); px(ctx, 9, hy + 3, '#fff');
+      px(ctx, 9, hy + 3, '#2a2018');
+      if (wideEye) px(ctx, 9, hy + 2, '#e8e8ff');
+      px(ctx, 6, hy + 2, '#fff');
+      px(ctx, 9, hy + 2, '#fff');
+    }
   }
 
-  // Eyebrows — warm brown
+  // === EYEBROWS & STRESS VISUALS ===
   if (stressLevel >= 1) {
-    px(ctx, 6, 2, '#5a3820');
-    px(ctx, 9, 2, '#5a3820');
+    // Low stress: furrowed brows
+    px(ctx, 6, hy + 1, hairBase);
+    px(ctx, 9, hy + 1, hairBase);
   }
   if (stressLevel >= 2) {
-    px(ctx, 5, 2, '#4a3020');
-    px(ctx, 10, 2, '#4a3020');
-    // Sweat drop — softer blue
-    px(ctx, 12, 1, '#8ac8e8');
-    px(ctx, 12, 2, '#a0d8f0');
+    // Medium stress: thicker brows + sweat
+    px(ctx, 5, hy + 1, '#4a3020');
+    px(ctx, 10, hy + 1, '#4a3020');
+    // Sweat drops (animated if we have time)
+    const sweatY = hy + 1 + (t ? Math.floor(t * 3) % 2 : 0);
+    px(ctx, 12, sweatY, '#8ac8e8');
+    px(ctx, 12, sweatY + 1, '#a0d8f0');
+  }
+  if (stressLevel >= 3) {
+    // High stress: second sweat drop + reddened face tint overlay
+    px(ctx, 3, hy + 2, '#8ac8e8');
+    px(ctx, 3, hy + 3, '#a0d8f0');
+    // Reddened face tint (overlay with low alpha)
+    ctx.fillStyle = 'rgba(200,80,60,0.12)';
+    ctx.fillRect(5, hy, 6, 5);
   }
 
-  // Mouth — wider, more expressive
-  px(ctx, 7, 5, stressLevel >= 2 ? '#b87060' : '#c08070');
-  px(ctx, 8, 5, stressLevel >= 2 ? '#b87060' : '#c08070');
+  // === MOUTH ===
+  if (stressLevel >= 3) {
+    // Tense grimace
+    px(ctx, 7, hy + 4, '#a06050');
+    px(ctx, 8, hy + 4, '#a06050');
+  } else if (stressLevel >= 2) {
+    // Worried frown
+    px(ctx, 7, hy + 4, '#b87060');
+    px(ctx, 8, hy + 4, '#b87060');
+  } else {
+    // Normal / slight smile
+    px(ctx, 7, hy + 4, '#c08070');
+    px(ctx, 8, hy + 4, '#c08070');
+  }
 
-  // Dark outline pass — warm brown edges
+  // === OUTLINE (warm brown edges) ===
   ctx.strokeStyle = outline;
   ctx.lineWidth = 0.5;
   // Head outline
-  ctx.strokeRect(4.5, 0.5, 7, 6);
+  ctx.strokeRect(4.5, hy - 0.5, 7, 6.5);
   // Body outline
-  ctx.strokeRect(3.5, 5.5, 9, 8);
+  ctx.strokeRect(3.5 + bx, 5.5 + shoulderRaise, 9, 8 - shoulderRaise);
 
   spriteCache.set(key, c);
   return c;
