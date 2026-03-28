@@ -90,6 +90,10 @@ export class Game {
     // Drive-thru cars
     this.driveThruCars = 0;
 
+    // Ambient shoppers (background life in store area)
+    this.ambientShoppers = [];
+    this.ambientShopperTimer = 2;
+
     // Timers
     this.nextEventTimer = 3;
     this.nextScriptTimer = 6;
@@ -271,6 +275,7 @@ export class Game {
       this.updatePipeline(dt);
       this.updateDeferred(dt);
       this.updatePhoneRing(dt);
+      this.updateAmbientShoppers(dt);
       this.checkMeterWarnings(dt);
       this.checkGameOver();
     } else if (this.state === 'LUNCH') {
@@ -305,6 +310,7 @@ export class Game {
       driveThruCars: this.driveThruCars,
       phoneRinging: this.phoneRinging,
       meters: this.meters,
+      ambientShoppers: this.ambientShoppers,
     };
   }
 
@@ -1045,6 +1051,81 @@ export class Game {
         this.stationManager.setUrgency(patient.station, 1);
       }
     }
+  }
+
+  // ========== AMBIENT SHOPPERS ==========
+
+  updateAmbientShoppers(dt) {
+    this.ambientShopperTimer -= dt;
+
+    // Spawn new shoppers periodically (max 4 at once)
+    if (this.ambientShopperTimer <= 0 && this.ambientShoppers.length < 4) {
+      this.ambientShopperTimer = 3 + Math.random() * 5;
+      this.spawnAmbientShopper();
+    }
+
+    // Update existing shoppers
+    for (let i = this.ambientShoppers.length - 1; i >= 0; i--) {
+      const s = this.ambientShoppers[i];
+
+      if (s.state === 'WALKING') {
+        const dx = s.targetCol - s.col;
+        const dy = s.targetRow - s.row;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.2) {
+          s.col = s.targetCol;
+          s.row = s.targetRow;
+          s.state = 'BROWSING';
+          s.browseTimer = 2 + Math.random() * 4;
+        } else {
+          const speed = 1.5 * dt; // Slow stroll
+          s.col += (dx / dist) * speed;
+          s.row += (dy / dist) * speed;
+          s.facing = dx > 0 ? 'right' : 'left';
+        }
+      } else if (s.state === 'BROWSING') {
+        s.browseTimer -= dt;
+        if (s.browseTimer <= 0) {
+          // Pick a new destination or leave
+          if (Math.random() < 0.4) {
+            // Leave the store
+            s.targetCol = s.col < 8 ? -2 : 17;
+            s.targetRow = s.row;
+            s.state = 'LEAVING';
+          } else {
+            // Browse another spot
+            s.targetCol = 2 + Math.random() * 10;
+            s.targetRow = 1 + Math.random() * 4;
+            s.state = 'WALKING';
+          }
+        }
+      } else if (s.state === 'LEAVING') {
+        const dx = s.targetCol - s.col;
+        const speed = 2 * dt;
+        s.col += Math.sign(dx) * speed;
+        s.facing = dx > 0 ? 'right' : 'left';
+        if (s.col < -2 || s.col > 17) {
+          this.ambientShoppers.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  spawnAmbientShopper() {
+    const fromLeft = Math.random() < 0.5;
+    const shopper = {
+      id: nextUid(),
+      col: fromLeft ? -1 : 16,
+      row: 1 + Math.random() * 2,
+      targetCol: 2 + Math.random() * 10,
+      targetRow: 1 + Math.random() * 4,
+      state: 'WALKING',
+      facing: fromLeft ? 'right' : 'left',
+      browseTimer: 0,
+      paletteIndex: Math.floor(Math.random() * PATIENT_PALETTES.length),
+      hasCart: Math.random() < 0.3, // Some push shopping carts
+    };
+    this.ambientShoppers.push(shopper);
   }
 
   // ========== GAME OVER ==========

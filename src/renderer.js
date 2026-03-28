@@ -249,11 +249,17 @@ export class Renderer {
     // Lighting zones
     this.renderLighting(ctx, gameState);
 
+    // Draw animated world elements
+    this.renderWorldAnimations(ctx, gameState);
+
     // Draw phone (animated if ringing)
     this.renderPhone(ctx, gameState);
 
     // Draw drive-thru cars
     this.renderDriveThruCars(ctx, gameState);
+
+    // Draw ambient shoppers (behind patients, in store area)
+    this.renderAmbientShoppers(ctx, gameState);
 
     // Draw patients (sorted by row for depth)
     const sortedPatients = [...gameState.patients].sort((a, b) => a.row - b.row);
@@ -292,6 +298,25 @@ export class Renderer {
   // ========== LIGHTING ==========
 
   renderLighting(ctx, gameState) {
+    // Time-of-day tint: morning gold → midday bright → afternoon amber
+    const progress = gameState.time ? gameState.time / 360 : 0; // 0-1 over shift
+    let todR, todG, todB, todA;
+    if (progress < 0.3) {
+      // Morning — warm golden sunlight streaming in
+      todR = 255; todG = 220; todB = 140; todA = 0.06 * (1 - progress / 0.3);
+    } else if (progress < 0.6) {
+      // Midday — neutral bright
+      todR = 255; todG = 250; todB = 240; todA = 0.02;
+    } else {
+      // Afternoon — amber/orange as sun lowers
+      const t = (progress - 0.6) / 0.4;
+      todR = 255; todG = 200 - t * 40; todB = 120 - t * 40; todA = 0.04 + t * 0.06;
+    }
+
+    // Apply time-of-day tint to customer-visible area (rows 0-7)
+    ctx.fillStyle = `rgba(${todR}, ${todG}, ${todB}, ${todA.toFixed(3)})`;
+    ctx.fillRect(0, 0, 14 * TILE_SIZE, 8 * TILE_SIZE);
+
     // Store area — warm golden retail lighting
     ctx.fillStyle = 'rgba(255, 230, 180, 0.12)';
     ctx.fillRect(0, 0, 14 * TILE_SIZE, 2 * TILE_SIZE);
@@ -307,6 +332,12 @@ export class Renderer {
     // Fluorescent lighting — workspace band, warm white
     ctx.fillStyle = 'rgba(255, 245, 220, 0.12)';
     ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, 5 * TILE_SIZE);
+
+    // Fluorescent flicker (subtle, random)
+    if (Math.sin(gameState.time * 47) > 0.97) {
+      ctx.fillStyle = 'rgba(255, 250, 230, 0.08)';
+      ctx.fillRect(4 * TILE_SIZE, 10 * TILE_SIZE, 5 * TILE_SIZE, 2 * TILE_SIZE);
+    }
 
     // Back shelf area darker — warm shadow
     ctx.fillStyle = 'rgba(30, 15, 0, 0.12)';
@@ -381,6 +412,69 @@ export class Renderer {
 
   // ========== ENTITIES ==========
 
+  renderWorldAnimations(ctx, state) {
+    const t = state.time || 0;
+
+    // Wall clock (on back wall, row 16, col 7)
+    const clockX = 7 * TILE_SIZE;
+    const clockY = 16 * TILE_SIZE + 2;
+    // Clock face
+    ctx.fillStyle = '#f0ece0';
+    ctx.beginPath();
+    ctx.arc(clockX + 8, clockY + 6, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#5a4030';
+    ctx.lineWidth = 0.7;
+    ctx.stroke();
+    // Clock hands — rotate based on game time
+    const progress = t / 360; // 0-1 over shift
+    const hourAngle = -Math.PI / 2 + progress * Math.PI * 2;
+    const minAngle = -Math.PI / 2 + progress * Math.PI * 24; // Faster rotation
+    // Hour hand
+    ctx.strokeStyle = '#3a2820';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(clockX + 8, clockY + 6);
+    ctx.lineTo(clockX + 8 + Math.cos(hourAngle) * 3.5, clockY + 6 + Math.sin(hourAngle) * 3.5);
+    ctx.stroke();
+    // Minute hand
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(clockX + 8, clockY + 6);
+    ctx.lineTo(clockX + 8 + Math.cos(minAngle) * 4.5, clockY + 6 + Math.sin(minAngle) * 4.5);
+    ctx.stroke();
+    // Center dot
+    ctx.fillStyle = '#3a2820';
+    ctx.beginPath();
+    ctx.arc(clockX + 8, clockY + 6, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hanging signs sway gently
+    const swayAngle = Math.sin(t * 1.2) * 0.03; // Very subtle sway
+    const signs = [
+      { text: '💊', x: 6 * TILE_SIZE + 8, y: 6 * TILE_SIZE },
+    ];
+    for (const sign of signs) {
+      ctx.save();
+      ctx.translate(sign.x, sign.y);
+      ctx.rotate(swayAngle);
+      // Hanging chain
+      ctx.strokeStyle = '#8a8070';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -4);
+      ctx.lineTo(0, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Monitors screen glow flicker (subtle)
+    const monitorFlicker = Math.sin(t * 3.7) * 0.03 + 0.05;
+    ctx.fillStyle = `rgba(100, 180, 220, ${monitorFlicker})`;
+    ctx.fillRect(4 * TILE_SIZE + 3, 10 * TILE_SIZE + 3, 10, 7);
+    ctx.fillRect(9 * TILE_SIZE + 3, 10 * TILE_SIZE + 3, 10, 7);
+  }
+
   renderPhone(ctx, state) {
     const phoneStation = STATIONS.phone;
     const px = phoneStation.col * TILE_SIZE;
@@ -435,6 +529,14 @@ export class Renderer {
 
     ctx.drawImage(sprite, px, py - 4);
 
+    // Walking dust particles — tiny warm-colored puffs
+    if (pharm.state === 'WALKING' && Math.floor(state.time * 6) % 3 === 0) {
+      const dustPhase = state.time * 12;
+      if (Math.sin(dustPhase) > 0.8) {
+        this.spawnParticles(pharm.col, pharm.row + 0.5, 'rgba(180,160,130,0.6)', 1);
+      }
+    }
+
     // Working indicator — animated glow + progress arc
     if (pharm.state === 'WORKING') {
       const pulse = 0.08 + Math.sin(state.time * 4) * 0.04;
@@ -476,6 +578,31 @@ export class Renderer {
     }
   }
 
+  renderAmbientShoppers(ctx, state) {
+    if (!state.ambientShoppers) return;
+    for (const shopper of state.ambientShoppers) {
+      const sprite = Sprites.patient(shopper.paletteIndex, 0); // Always calm
+      const px = shopper.col * TILE_SIZE;
+      const py = shopper.row * TILE_SIZE;
+      const walkBob = shopper.state === 'WALKING' || shopper.state === 'LEAVING'
+        ? Math.sin(state.time * 8 + shopper.id) * 0.5 : 0;
+
+      // Slightly transparent — background characters
+      ctx.globalAlpha = 0.7;
+      ctx.drawImage(sprite, px, py - 4 + walkBob);
+
+      // Shopping cart/basket
+      if (shopper.hasCart) {
+        ctx.fillStyle = '#8a8070';
+        ctx.fillRect(px + (shopper.facing === 'right' ? 12 : -6), py + 8, 5, 4);
+        ctx.fillStyle = '#9a9080';
+        ctx.fillRect(px + (shopper.facing === 'right' ? 12 : -6), py + 7, 5, 1);
+      }
+
+      ctx.globalAlpha = 1;
+    }
+  }
+
   renderPatients(ctx, state, sortedPatients) {
     for (const patient of sortedPatients) {
       if (!patient.visible) continue;
@@ -495,12 +622,47 @@ export class Renderer {
 
       ctx.drawImage(sprite, px, py - 4 + bob + walkBob);
 
-      // Impatient foot-tap indicator
-      if (emotionLevel >= 1 && !patient.walking) {
-        const tapFrame = Math.floor(state.time * 4 + patient.id) % 2;
-        if (tapFrame === 0) {
-          ctx.fillStyle = emotionLevel >= 2 ? '#ff4444' : '#ffaa00';
-          ctx.fillRect(px + 6, py + 12, 2, 1);
+      // Idle behaviors (only when not walking)
+      if (!patient.walking && !patient.fadeOut) {
+        const idleSeed = patient.id % 4;
+
+        if (emotionLevel === 0 && idleSeed === 0) {
+          // Looking at phone — small rectangle in hand
+          const phoneY = py + 8 + Math.sin(state.time * 1.5 + patient.id) * 0.3;
+          ctx.fillStyle = '#2a2420';
+          ctx.fillRect(px + 11, phoneY, 3, 4);
+          // Screen glow
+          ctx.fillStyle = 'rgba(150, 200, 255, 0.4)';
+          ctx.fillRect(px + 11.5, phoneY + 0.5, 2, 3);
+        } else if (emotionLevel === 0 && idleSeed === 1) {
+          // Arms crossed — subtle overlay
+          const crossPhase = Math.floor(state.time * 0.5 + patient.id) % 8;
+          if (crossPhase === 0) {
+            // Occasional slight head turn
+            ctx.fillStyle = 'rgba(0,0,0,0.03)';
+            ctx.fillRect(px + 3, py, 2, 6);
+          }
+        } else if (emotionLevel >= 1 && !patient.walking) {
+          // Impatient foot-tap indicator
+          const tapFrame = Math.floor(state.time * 4 + patient.id) % 2;
+          if (tapFrame === 0) {
+            ctx.fillStyle = emotionLevel >= 2 ? '#ff4444' : '#e8a040';
+            ctx.fillRect(px + 6, py + 12, 2, 1);
+          }
+
+          // Impatient arm gesture (waving/pointing at watch)
+          if (emotionLevel >= 2 && Math.sin(state.time * 3 + patient.id * 2) > 0.7) {
+            ctx.fillStyle = 'rgba(255, 80, 40, 0.2)';
+            ctx.fillRect(px + 12, py + 4, 3, 2); // raised arm
+          }
+        }
+
+        // Occasional look-around (all patience levels)
+        const lookPhase = Math.sin(state.time * 0.8 + patient.id * 1.7);
+        if (lookPhase > 0.95) {
+          // Head-turn dots (eyes shift)
+          ctx.fillStyle = 'rgba(0,0,0,0.15)';
+          ctx.fillRect(px + 3, py + 1, 1, 1);
         }
       }
 

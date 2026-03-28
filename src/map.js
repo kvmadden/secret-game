@@ -130,13 +130,16 @@ export function renderMap(map, scale) {
 
       switch (tile) {
         case TILE.STORE_FLOOR:
-          // Retail store floor — lighter, warmer tone
-          ctx.fillStyle = '#d8d0c0';
+          // Retail store floor — warm golden tile
+          ctx.fillStyle = '#e0d4b8';
           ctx.fillRect(x, y, tileSize, tileSize);
-          // Subtle tile grid
-          ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+          // Tile grid lines — warm
+          ctx.strokeStyle = 'rgba(120, 90, 40, 0.08)';
           ctx.lineWidth = 0.5;
           ctx.strokeRect(x + 0.5, y + 0.5, tileSize - 1, tileSize - 1);
+          // Inner highlight
+          ctx.fillStyle = 'rgba(255, 240, 200, 0.06)';
+          ctx.fillRect(x + 1, y + 1, tileSize - 2, 1);
           break;
 
         case TILE.CUSTOMER_FLOOR:
@@ -164,47 +167,52 @@ export function renderMap(map, scale) {
           break;
 
         case TILE.HALF_WALL: {
-          // Low wall / divider between pharmacy and drive-thru
+          // Low wall / divider — warm brick
           ctx.drawImage(Sprites.floorTile(2), x, y);
-          ctx.fillStyle = '#a09888';
+          ctx.fillStyle = '#a89880';
           ctx.fillRect(x, y, tileSize, tileSize);
-          // Brick-like pattern
-          ctx.fillStyle = '#b0a898';
+          // Brick-like pattern — warm tones
+          ctx.fillStyle = '#b8a890';
           for (let by = 0; by < tileSize; by += 4) {
             const offset = (by % 8 === 0) ? 0 : 4;
             for (let bx = offset; bx < tileSize; bx += 8) {
               ctx.fillRect(x + bx + 0.5, y + by + 0.5, 7, 3);
             }
           }
+          // Mortar lines
+          ctx.fillStyle = '#988870';
+          for (let by = 3; by < tileSize; by += 4) {
+            ctx.fillRect(x, y + by, tileSize, 1);
+          }
           // Top highlight
-          ctx.fillStyle = 'rgba(255,255,255,0.1)';
+          ctx.fillStyle = 'rgba(255,240,200,0.12)';
           ctx.fillRect(x, y, tileSize, 2);
           break;
         }
 
         case TILE.DRIVE_LANE: {
-          // Asphalt
+          // Asphalt — warmer gray
           const shade = ((col * 7 + row * 13) % 3);
-          ctx.fillStyle = shade === 0 ? '#5a5a5a' : shade === 1 ? '#626262' : '#585858';
+          ctx.fillStyle = shade === 0 ? '#5a5850' : shade === 1 ? '#625e54' : '#585650';
           ctx.fillRect(x, y, tileSize, tileSize);
-          // Specks
+          // Specks — warm
           const rng = (col * 31 + row * 17) % 97;
           for (let s = 0; s < 3; s++) {
             const sx = ((rng * (s + 1) * 7) % 14) + 1;
             const sy = ((rng * (s + 1) * 11) % 14) + 1;
-            ctx.fillStyle = s % 2 === 0 ? '#6e6e6e' : '#505050';
+            ctx.fillStyle = s % 2 === 0 ? '#6e6a60' : '#504e48';
             ctx.fillRect(x + sx, y + sy, 1, 1);
           }
-          // Curb on left edge
+          // Curb on left edge — warm concrete
           if (col === 14) {
-            ctx.fillStyle = '#b0aba0';
+            ctx.fillStyle = '#b8b0a0';
             ctx.fillRect(x, y, 2, tileSize);
-            ctx.fillStyle = '#c8c3b8';
+            ctx.fillStyle = '#c8c0b0';
             ctx.fillRect(x, y, 1, tileSize);
           }
-          // Center dashes
+          // Center dashes — warm yellow
           if (col === 15 && row % 3 === 0) {
-            ctx.fillStyle = '#ccaa22';
+            ctx.fillStyle = '#c8a020';
             ctx.fillRect(x + 6, y + 2, 2, 10);
           }
           break;
