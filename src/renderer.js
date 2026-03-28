@@ -12,6 +12,9 @@ import { renderMap } from './map.js';
 import { Sprites } from './sprites.js';
 import { SpriteVehicles } from './sprite-vehicles.js';
 import { SpriteItems } from './sprite-items.js';
+import { LeaderSprites } from './leader-sprites.js';
+
+import { MentorSprite } from './mentor-sprite.js';
 
 const FOLLOW_ZOOM = 2.8;   // Zoomed-in scale (pharmacist detail view)
 const OVERVIEW_ZOOM = 0;    // 0 means "fit to screen" — calculated at resize
@@ -377,6 +380,10 @@ export class Renderer {
     // Draw patients (sorted by row for depth)
     const sortedPatients = [...gameState.patients].sort((a, b) => a.row - b.row);
     this.renderPatients(ctx, gameState, sortedPatients);
+
+    // Draw field leader and mentor (campaign / tutorial characters)
+    this.renderLeader(ctx, gameState);
+    this.renderMentor(ctx, gameState);
 
     // Draw pharmacist
     this.renderPharmacist(ctx, gameState);
@@ -1185,9 +1192,37 @@ export class Renderer {
         ctx.globalAlpha = Math.max(0, patient.opacity);
       }
 
+      // Customer type visual modifiers
+      const ctVisual = patient.customerType ? patient.customerType.visual : null;
+      const walkSpeedMod = ctVisual && ctVisual.walkSpeed ? ctVisual.walkSpeed : 1.0;
+      const walkBobRate = walkSpeedMod < 0.8 ? 7 : walkSpeedMod > 1.2 ? 14 : 10;
+
       const bob = emotionLevel >= 2 ? Math.sin(state.time * 8 + patient.id) * 1 : 0;
-      const walkBob = patient.walking ? Math.sin(state.time * 10) * 0.5 : 0;
+      const walkBob = patient.walking ? Math.sin(state.time * walkBobRate) * 0.5 : 0;
       const drawY = py - 4 + bob + walkBob;
+
+      // Height scale from customerType (heightMod: -1 = 0.9, -2 = 0.85, +1 = 1.05, +2 = 1.1)
+      let ctScaleY = 1;
+      if (ctVisual && ctVisual.heightMod) {
+        ctScaleY = 1 + ctVisual.heightMod * 0.05;
+      }
+
+      // Posture offsets
+      let postureOffsetY = 0;
+      let postureScaleX = 1;
+      if (ctVisual && ctVisual.posture) {
+        switch (ctVisual.posture) {
+          case 'hunched':
+            postureOffsetY = 1;
+            postureScaleX = 1.02;
+            break;
+          case 'leaning_forward':
+            postureOffsetY = 2;
+            postureScaleX = 1.04;
+            break;
+          // 'upright', 'normal', and others: no change
+        }
+      }
 
       // Squash-and-stretch for patients
       if (patient.walking) {
@@ -1195,10 +1230,10 @@ export class Renderer {
         const psX = 1 + pCos * 0.025;
         const psY = 1 - pCos * 0.025;
         ctx.save();
-        ctx.translate(px + 8, drawY + 12);
-        ctx.scale(psX, psY);
-        ctx.translate(-(px + 8), -(drawY + 12));
-        ctx.drawImage(sprite, px, drawY);
+        ctx.translate(px + 8, drawY + 12 + postureOffsetY);
+        ctx.scale(psX * postureScaleX, psY * ctScaleY);
+        ctx.translate(-(px + 8), -(drawY + 12 + postureOffsetY));
+        ctx.drawImage(sprite, px, drawY + postureOffsetY);
         ctx.restore();
       } else {
         // Subtle idle bob
@@ -1206,10 +1241,100 @@ export class Renderer {
         const isX = 1 + idleCos * 0.008;
         const isY = 1 - idleCos * 0.008;
         ctx.save();
-        ctx.translate(px + 8, drawY + 12);
-        ctx.scale(isX, isY);
-        ctx.translate(-(px + 8), -(drawY + 12));
-        ctx.drawImage(sprite, px, drawY);
+        ctx.translate(px + 8, drawY + 12 + postureOffsetY);
+        ctx.scale(isX * postureScaleX, isY * ctScaleY);
+        ctx.translate(-(px + 8), -(drawY + 12 + postureOffsetY));
+        ctx.drawImage(sprite, px, drawY + postureOffsetY);
+        ctx.restore();
+      }
+
+      // Accessory overlays from customer type
+      if (ctVisual && ctVisual.accessory) {
+        ctx.save();
+        switch (ctVisual.accessory) {
+          case 'glasses':
+            // Two small lens squares connected by a bridge
+            ctx.fillStyle = '#3a3a3a';
+            ctx.fillRect(px + 4, py + 1, 3, 2);  // left lens
+            ctx.fillRect(px + 9, py + 1, 3, 2);  // right lens
+            ctx.fillRect(px + 7, py + 1, 2, 1);  // bridge
+            break;
+          case 'hat':
+            ctx.fillStyle = '#5a4a3a';
+            ctx.fillRect(px + 3, py - 4, 10, 3); // hat brim
+            ctx.fillRect(px + 5, py - 6, 6, 3);  // hat top
+            break;
+          case 'cane':
+            ctx.strokeStyle = '#6a5a4a';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(px + 14, py + 6);
+            ctx.lineTo(px + 15, py + 14);
+            ctx.stroke();
+            // cane handle
+            ctx.fillStyle = '#6a5a4a';
+            ctx.fillRect(px + 13, py + 5, 3, 1);
+            break;
+          case 'baby_carrier':
+          case 'child_carrier':
+            // Small shape on front of character
+            ctx.fillStyle = '#7a9abf';
+            ctx.fillRect(px + 2, py + 5, 4, 5);
+            // Baby head peek
+            ctx.fillStyle = '#e8c8a0';
+            ctx.fillRect(px + 3, py + 4, 2, 2);
+            break;
+          case 'backpack':
+            ctx.fillStyle = '#4a6a4a';
+            ctx.fillRect(px + 0, py + 3, 3, 6);
+            // Strap
+            ctx.fillStyle = '#3a5a3a';
+            ctx.fillRect(px + 2, py + 2, 1, 4);
+            break;
+          case 'large_sunglasses_on_head':
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(px + 4, py - 2, 8, 2);
+            ctx.fillStyle = '#4a3a2a';
+            ctx.fillRect(px + 5, py - 3, 3, 2);
+            ctx.fillRect(px + 9, py - 3, 3, 2);
+            break;
+          case 'face_mask':
+            ctx.fillStyle = '#d0e8f0';
+            ctx.fillRect(px + 4, py + 3, 8, 3);
+            ctx.fillStyle = '#b0d0e0';
+            ctx.fillRect(px + 4, py + 4, 8, 1);
+            break;
+          case 'handbag':
+            ctx.fillStyle = '#8a5a3a';
+            ctx.fillRect(px + 13, py + 7, 3, 4);
+            // Handle
+            ctx.fillStyle = '#7a4a2a';
+            ctx.fillRect(px + 13, py + 6, 3, 1);
+            break;
+          case 'smartwatch':
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(px + 12, py + 6, 2, 2);
+            ctx.fillStyle = '#40a0ff';
+            ctx.fillRect(px + 12.5, py + 6.5, 1, 1);
+            break;
+          case 'pill_organizer':
+            ctx.fillStyle = '#e0d8c0';
+            ctx.fillRect(px + 12, py + 8, 4, 3);
+            // Dividers
+            ctx.fillStyle = '#c0b8a0';
+            ctx.fillRect(px + 13, py + 8, 1, 3);
+            ctx.fillRect(px + 15, py + 8, 1, 3);
+            break;
+          case 'phone_in_hand':
+            // Only draw if not already handled by idle behavior
+            if (patient.walking) {
+              ctx.fillStyle = '#2a2420';
+              ctx.fillRect(px + 12, py + 7, 2, 3);
+              ctx.fillStyle = 'rgba(150, 200, 255, 0.3)';
+              ctx.fillRect(px + 12, py + 7.5, 2, 2);
+            }
+            break;
+        }
         ctx.restore();
       }
 
@@ -1754,5 +1879,63 @@ export class Renderer {
     grad.addColorStop(1, 'rgba(0, 0, 0, 0.08)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
+  }
+
+  renderLeader(ctx, state) {
+    if (!state.leaderType) return;
+
+    const leaderSpriteFn = LeaderSprites[state.leaderType];
+    if (!leaderSpriteFn) return;
+
+    const sprite = leaderSpriteFn();
+
+    // Leader stands near the counter, observing (row 6, col 10)
+    // With slight idle animation
+    const lx = 10 * TILE_SIZE;
+    const ly = 6 * TILE_SIZE;
+    const idleBob = Math.sin(state.time * 1.5) * 0.5;
+
+    // Semi-transparent when not in focus
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(sprite, lx, ly + idleBob);
+    ctx.globalAlpha = 1;
+
+    // Small name tag above leader
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.8)';
+    ctx.fillRect(lx - 4, ly - 8, 24, 7);
+    ctx.fillStyle = '#c8a832';
+    ctx.font = '4px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('LEADER', lx + 8, ly - 3);
+    ctx.textAlign = 'start';
+  }
+
+  renderMentor(ctx, state) {
+    if (!state.mentorPresent) return;
+
+    // If MentorSprite module loaded, it could be used here in the future.
+    // For now, use fallback: draw a pharmacist with a golden badge tint overlay.
+
+    // Mentor stands near verify station (row 10, col 6)
+    const mx = 6 * TILE_SIZE;
+    const my = 10 * TILE_SIZE;
+    const bob = Math.sin(state.time * 2) * 0.3;
+
+    // Use pharmacist sprite but with a golden badge tint overlay
+    const mentorSprite = Sprites.pharmacist('right', 0, 0, state.time);
+    ctx.drawImage(mentorSprite, mx, my + bob);
+
+    // Gold badge overlay to distinguish from player
+    ctx.fillStyle = '#c8a832';
+    ctx.fillRect(mx + 5, my + 6, 3, 2);
+
+    // "DR. CHEN" label
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.8)';
+    ctx.fillRect(mx - 6, my - 8, 28, 7);
+    ctx.fillStyle = '#c8a832';
+    ctx.font = '4px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('DR.CHEN', mx + 8, my - 3);
+    ctx.textAlign = 'start';
   }
 }

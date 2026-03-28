@@ -10,6 +10,9 @@ import {
 // Campaign leader types
 import { LEADER_TYPES } from './constants.js';
 
+import { Portraits } from './portraits.js';
+import { LeaderSprites } from './leader-sprites.js';
+
 export class UI {
   constructor() {
     // HUD elements
@@ -486,6 +489,11 @@ export class UI {
     if (gradeEl) {
       gradeEl.textContent = grade;
       gradeEl.className = 'results-grade grade-' + grade.toLowerCase() + ' grade-animate';
+
+      // Add pharmacist portrait next to grade
+      const stress = (meters.burnout || 0) / 100;
+      const portrait = Portraits.pharmacistPortrait(stress);
+      this._insertPortraitCanvas(gradeEl, portrait, 48);
     }
 
     // Personal best indicator
@@ -1028,13 +1036,24 @@ export class UI {
 
     const leader = (LEADER_TYPES && LEADER_TYPES[leaderType]) || { title: leaderType || 'Leader' };
     overlay.innerHTML = `
-      <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#88aaff; margin-bottom:6px;">
-        ${leader.title}
-      </div>
-      <div style="font-size:14px; color:#ccdaff; line-height:1.4;">
-        "${message}"
+      <div id="leader-msg-content" style="display:flex; align-items:center; justify-content:center;">
+        <div id="leader-msg-portrait"></div>
+        <div>
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#88aaff; margin-bottom:6px;">
+            ${leader.title}
+          </div>
+          <div style="font-size:14px; color:#ccdaff; line-height:1.4;">
+            "${message}"
+          </div>
+        </div>
       </div>
     `;
+
+    // Insert leader portrait if available
+    const leaderPortraitHost = document.getElementById('leader-msg-portrait');
+    const leaderPortrait = LeaderSprites.leaderPortrait(leaderType);
+    this._insertPortraitCanvas(leaderPortraitHost, leaderPortrait, 48);
+
     overlay.style.opacity = '1';
     overlay.style.display = 'block';
 
@@ -1179,6 +1198,7 @@ export class UI {
       ).join('');
 
       dialogue.innerHTML = `
+        <div id="decision-dialogue-portrait" style="margin-bottom:12px;"></div>
         <div style="font-size:20px; font-weight:600; color:#f0d880; letter-spacing:1px; margin-bottom:12px;">
           ${title}
         </div>
@@ -1191,6 +1211,11 @@ export class UI {
           max-width:400px; min-height:20px; opacity:0; transition:opacity 0.4s ease;
         "></div>
       `;
+
+      // Insert decision-relevant portrait
+      const portraitHost = document.getElementById('decision-dialogue-portrait');
+      const decisionPortrait = this._getDecisionPortrait(title);
+      this._insertPortraitCanvas(portraitHost, decisionPortrait, 48);
 
       dialogue.style.display = 'flex';
 
@@ -1278,5 +1303,36 @@ export class UI {
       toast.style.opacity = '0';
       setTimeout(() => { toast.style.display = 'none'; }, 300);
     }, 3000);
+  }
+
+  // ========== PORTRAIT HELPERS ==========
+
+  _insertPortraitCanvas(parentEl, portraitCanvas, size) {
+    if (!parentEl || !portraitCanvas) return;
+    size = size || 48;
+    const displayCanvas = document.createElement('canvas');
+    displayCanvas.width = size;
+    displayCanvas.height = size;
+    const ctx = displayCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(portraitCanvas, 0, 0, size, size);
+    displayCanvas.style.display = 'inline-block';
+    displayCanvas.style.verticalAlign = 'middle';
+    displayCanvas.style.marginRight = '8px';
+    parentEl.prepend(displayCanvas);
+  }
+
+  _getDecisionPortrait(decisionId) {
+    const id = (decisionId || '').toLowerCase();
+    if (id.includes('patient') || id.includes('elderly') || id.includes('sick')) {
+      return Portraits.elderlyPatientPortrait();
+    }
+    if (id.includes('angry') || id.includes('customer') || id.includes('complaint') || id.includes('karen')) {
+      return Portraits.angryCustomerPortrait();
+    }
+    if (id.includes('late') || id.includes('burnout') || id.includes('overtime') || id.includes('stay')) {
+      return Portraits.pharmacistPortrait(0.7);
+    }
+    return Portraits.pharmacistPortrait(0.3);
   }
 }

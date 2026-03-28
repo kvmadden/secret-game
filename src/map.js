@@ -21,6 +21,14 @@
 import { MAP_COLS, MAP_ROWS, STATIONS, COLORS } from './constants.js';
 import { Sprites } from './sprites.js';
 import { SpriteFurniture } from './sprite-furniture.js';
+import { SpriteItems } from './sprite-items.js';
+import { STORE_LAYOUTS, getStoreDecorations } from './store-layouts.js';
+
+let currentStoreType = 'home';
+
+export function setStoreType(type) {
+  currentStoreType = type || 'home';
+}
 
 // Tile types
 export const TILE = {
@@ -225,6 +233,14 @@ export function renderMap(map, scale) {
     }
   }
 
+  // Apply store layout color tint if applicable
+  const layout = STORE_LAYOUTS[currentStoreType];
+  if (layout && layout.colorTint) {
+    const t = layout.colorTint;
+    ctx.fillStyle = `rgba(${t.r}, ${t.g}, ${t.b}, ${t.a})`;
+    ctx.fillRect(0, 0, MAP_COLS * tileSize, MAP_ROWS * tileSize);
+  }
+
   // ========== RETAIL STORE HINTS ==========
   // "PHARMACY" sign spanning top
   const pharmSign = Sprites.sign('PHARMACY', '#cc2233');
@@ -420,6 +436,12 @@ export function renderMap(map, scale) {
     }
   }
 
+  // Prescription paper in workspace clutter at (5, 11)
+  ctx.drawImage(SpriteItems.prescriptionPaper(), 5 * tileSize, 11 * tileSize);
+
+  // Syringe near consult/vaccine area at (11, 10)
+  ctx.drawImage(SpriteItems.syringe(), 11 * tileSize, 10 * tileSize);
+
   // --- 2. Customer area details (rows 2-6) ---
 
   // Floor mat at entrance: (6, 2) to (7, 2)
@@ -480,6 +502,9 @@ export function renderMap(map, scale) {
   ctx.fillStyle = '#444';
   ctx.font = '3px monospace';
   ctx.fillText('SANI', 6 * tileSize + 5.5, 3 * tileSize + 2.5);
+
+  // Thermometer near BP machine at (0, 5)
+  ctx.drawImage(SpriteItems.thermometer(), 0 * tileSize, 5 * tileSize);
 
   // --- 3. Counter details (row 7-8) ---
 
@@ -557,7 +582,22 @@ export function renderMap(map, scale) {
   ctx.fillStyle = '#eee';
   ctx.fillRect(10 * tileSize + 7, 7 * tileSize + 1, 2, 1);
 
+  // Insurance card left on counter near pickup at (2, 7)
+  ctx.drawImage(SpriteItems.insuranceCard(), 2 * tileSize, 7 * tileSize);
+
   // --- 4. Back area details (rows 14-17) ---
+
+  // Blister pack on back shelf at (4, 14)
+  ctx.drawImage(SpriteItems.blisterPack(), 4 * tileSize, 14 * tileSize);
+
+  // Inhaler on shelf near pill bottles at (8, 15)
+  ctx.drawImage(SpriteItems.inhaler('blue'), 8 * tileSize, 15 * tileSize);
+
+  // Eye drops near consult station at (10, 14)
+  ctx.drawImage(SpriteItems.eyeDrops(), 10 * tileSize, 14 * tileSize);
+
+  // Bandage box near first aid area at (1, 17)
+  ctx.drawImage(SpriteItems.bandageBox(), 1 * tileSize, 17 * tileSize);
 
   // Temperature log clipboard on wall at (8, 16)
   ctx.fillStyle = '#a08060';
@@ -752,6 +792,16 @@ export function renderMap(map, scale) {
   ctx.beginPath();
   ctx.arc(1 * tileSize, 4 * tileSize + tileSize / 2, tileSize * 2.5, 0, Math.PI * 2);
   ctx.fill();
+
+  // Store-type specific decorations
+  const storeDecorations = getStoreDecorations(currentStoreType);
+  if (storeDecorations) {
+    for (const dec of storeDecorations) {
+      if (dec.spriteFunc && typeof dec.spriteFunc === 'function') {
+        ctx.drawImage(dec.spriteFunc(), dec.col * tileSize, dec.row * tileSize);
+      }
+    }
+  }
 
   // ========== STATION MARKERS (glow dots on floor) ==========
   for (const [key, station] of Object.entries(STATIONS)) {

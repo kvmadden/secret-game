@@ -38,6 +38,9 @@ import { SeasonalDecorations } from './seasonal.js';
 import { FIELD_LEADERS } from './field-leaders.js';
 import { SUPERVISOR_EVENTS } from './supervisor-events.js';
 import { SHIFT_WEATHER, getWeatherForShift, getWeatherEffects } from './shift-weather.js';
+import { WeatherRenderer } from './weather-renderer.js';
+import { NightRenderer } from './night-renderer.js';
+import { SignatureEventVisuals } from './signature-event-visuals.js';
 
 let uidCounter = 0;
 function nextUid() { return ++uidCounter; }
@@ -64,6 +67,9 @@ export class Game {
     this.meterVisuals = new MeterVisuals();
     this.cameraJuice = new CameraJuice();
     this.seasonal = new SeasonalDecorations();
+    this.weatherRenderer = new WeatherRenderer();
+    this.nightRenderer = new NightRenderer();
+    this.signatureVisuals = new SignatureEventVisuals();
 
     this.reset();
     this.setupListeners();
@@ -665,6 +671,9 @@ export class Game {
     this.cameraJuice.update(dt);
     this.dayNight.update(this.elapsed, GAME_DURATION, this.weather);
     this.miniMap.update(this.getState());
+    this.weatherRenderer.update(dt, this.weather || 'clear', 0.7);
+    this.nightRenderer.update(dt, this.nightRenderer.isNightShift(this.campaign?.currentNodeId));
+    this.signatureVisuals.update(dt);
 
     this.renderer.updateCamera(this.pharmacist, dt, this.getState());
     this.renderer.render(this.getState());
@@ -679,6 +688,9 @@ export class Game {
     this.meterVisuals.render(ctx, w, h);
     this.screenFX.applyEffects(ctx, w, h, this.getState());
     this.miniMap.render(ctx, w / (this.renderer.dpr || 1), h / (this.renderer.dpr || 1), this.renderer.camZoom);
+    this.weatherRenderer.render(ctx, w, h, this.weather || 'clear', 0.7);
+    this.nightRenderer.render(ctx, w, h, this.nightRenderer.isNightShift(this.campaign?.currentNodeId));
+    this.signatureVisuals.render(ctx, w, h);
 
     // Disable action buttons when pharmacist is busy
     this.ui.setCardsBusy(this.pharmacist.state !== 'IDLE');
@@ -1014,6 +1026,10 @@ export class Game {
     event.escalationCount = 0;
     this.activeEvents.push(event);
     this.stationManager.setEvent(event.station, true);
+
+    if (event.tier === 'signature') {
+      this.signatureVisuals.startEvent(event.id);
+    }
 
     if (event.isEscalated) {
       Audio.playEscalation();
@@ -1355,6 +1371,10 @@ export class Game {
         if (waitingCar) waitingCar.leaving = true;
       }
       this.removePatientAtStation(event.station);
+
+      if (this.signatureVisuals.isActive()) {
+        this.signatureVisuals.endEvent();
+      }
     }
 
     // Detect if this was a rushed completion (label starts with ⚡)
