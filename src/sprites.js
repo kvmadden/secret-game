@@ -322,121 +322,330 @@ function drawPharmacistFrame(facing, frame, stress, time) {
   return c;
 }
 
-// ========== PATIENT SPRITE (16x16) ==========
+const PATIENT_HAIR_COLORS = [
+  '#3a2a1a', '#8b6914', '#1a1a1a', '#cc8833', '#555555',
+  '#2a1a0a', '#994422', '#1a2a1a', '#664422', '#aa7733',
+  '#bb9944', '#774422', '#333333', '#2a2a2a',
+];
+const PATIENT_SHIRT_COLORS = [
+  '#4466aa', '#aa4444', '#44aa66', '#6644aa', '#aa6644',
+  '#44aaaa', '#888844', '#aa4488', '#5588aa', '#cc6644',
+  '#5577bb', '#bb5566', '#448877', '#7766aa', '#cc8855', '#557799',
+];
+const PATIENT_SKIN_TONES = [
+  '#f0c8a0', '#e8c8a0', '#e8b88a', '#d4a574',
+  '#c49060', '#b07848', '#a06838', '#8b6240',
+];
+
 function drawPatientSprite(paletteIndex, emotionLevel) {
   // emotionLevel: 0=calm, 1=impatient, 2=angry
+  // paletteIndex acts as patient ID for deterministic variety
+  const id = paletteIndex;
   const key = getCacheKey('patient', paletteIndex, emotionLevel);
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const palette = PATIENT_PALETTES[paletteIndex % PATIENT_PALETTES.length];
   const skin = palette.skin || '#e8b88a';
-  const c = createSpriteCanvas(16, 16);
+  const skinBlush = blendColor(skin, '#e08060', 0.35);
+  const skinShadow = darkenColor(skin);
+  const hairBase = palette.hair;
+  const hairHighlight = lightenColor(hairBase);
+  const shirtBase = palette.shirt;
+  const shirtShadow = darkenColor(shirtBase);
+  const pantsBase = palette.pants || '#3a3848';
+  const pantsShadow = darkenColor(pantsBase);
+  const shoeColor = palette.shoes || '#2a2018';
+
+  // Deterministic pseudo-random helpers using patient id
+  const hashA = (id * 7 + 3) % 100;
+  const hashB = (id * 13 + 11) % 100;
+  const hashC = (id * 17 + 5) % 100;
+  const hashD = (id * 23 + 7) % 100;
+
+  // Height variation: -1, 0, or +1 pixel
+  const heightVar = ((id * 11 + 2) % 3) - 1; // -1, 0, or 1
+
+  // Hair style: 8 styles
+  const hairStyle = (id * 3 + 1) % 8;
+
+  // Accessories
+  const hasGlasses = hashA < 25;        // ~25%
+  const hasMask = !hasGlasses && hashB < 15;  // ~15% (not with glasses overlap)
+  const hasLanyard = hashC < 10;        // ~10%
+
+  const c = createSpriteCanvas(16, 17); // 17 tall for height variation
   const ctx = c.getContext('2d');
 
-  const outline = '#3a2820'; // warm dark brown outline
+  // Y offset for height variation (taller patients start higher)
+  const yo = 1 - heightVar; // base y-offset: shorter=2, normal=1, taller=0
 
-  // Shadow — warm
+  const outline = '#3a2820';
+
+  // Shadow
   ctx.fillStyle = 'rgba(60,40,20,0.25)';
   ctx.beginPath();
-  ctx.ellipse(8, 15, 3.5, 1.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(8, yo + 15, 3.5, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Legs (jeans/pants) — warmer tones
-  const pantsColors = ['#3a3848', '#4a4438', '#3e3e50', '#484040', '#3a4040'];
-  const pantsColor = pantsColors[paletteIndex % pantsColors.length];
-  rect(ctx, 5, 12, 2, 3, pantsColor);
-  rect(ctx, 9, 12, 2, 3, pantsColor);
-  // Shoes — warm dark
-  const shoeColor = paletteIndex % 2 === 0 ? '#2a2018' : '#4a3020';
-  rect(ctx, 5, 14, 2, 1, shoeColor);
-  rect(ctx, 9, 14, 2, 1, shoeColor);
+  // --- LEGS & FEET ---
+  // Wider stance when angry
+  const legSpread = emotionLevel >= 2 ? 1 : 0;
+  const leftLegX = 5 - legSpread;
+  const rightLegX = 9 + legSpread;
 
-  // Body (shirt) with shading
-  rect(ctx, 4, 6, 8, 7, palette.shirt);
-  // Shirt shadow on sides
-  rect(ctx, 4, 6, 1, 7, darkenColor(palette.shirt));
-  rect(ctx, 11, 6, 1, 7, darkenColor(palette.shirt));
+  // Legs with pants shading
+  rect(ctx, leftLegX, yo + 12, 2, 3, pantsBase);
+  rect(ctx, rightLegX, yo + 12, 2, 3, pantsBase);
+  // Pants shadow (inner edge)
+  px(ctx, leftLegX + 1, yo + 13, pantsShadow);
+  px(ctx, rightLegX, yo + 13, pantsShadow);
+
+  // Shoes
+  rect(ctx, leftLegX, yo + 14, 2, 1, shoeColor);
+  rect(ctx, rightLegX, yo + 14, 2, 1, shoeColor);
+
+  // Impatient foot tap indicator (small mark under foot)
+  if (emotionLevel === 1) {
+    px(ctx, rightLegX + 2, yo + 14, 'rgba(60,40,20,0.3)');
+  }
+
+  // --- BODY (SHIRT) ---
+  rect(ctx, 4, yo + 6, 8, 7, shirtBase);
+  // Shirt fold shadow (center crease + sides)
+  rect(ctx, 4, yo + 6, 1, 7, shirtShadow);
+  rect(ctx, 11, yo + 6, 1, 7, shirtShadow);
+  px(ctx, 7, yo + 9, shirtShadow);  // center fold
+  px(ctx, 8, yo + 10, shirtShadow); // center fold
+  // Bottom hem shadow
+  rect(ctx, 4, yo + 12, 8, 1, shirtShadow);
   // Sleeves
-  rect(ctx, 3, 7, 1, 3, palette.shirt);
-  rect(ctx, 12, 7, 1, 3, palette.shirt);
+  rect(ctx, 3, yo + 7, 1, 3, shirtBase);
+  rect(ctx, 12, yo + 7, 1, 3, shirtBase);
   // Collar
-  rect(ctx, 6, 6, 4, 1, darkenColor(palette.shirt));
-  px(ctx, 7, 6, skin); // neck visible
+  rect(ctx, 6, yo + 6, 4, 1, shirtShadow);
+  px(ctx, 7, yo + 6, skin); // neck visible
+  px(ctx, 8, yo + 6, skin); // neck visible
 
-  // Hands
-  px(ctx, 3, 10, skin);
-  px(ctx, 12, 10, skin);
-
-  // Head — bigger for charm (6px wide, 5px tall)
-  rect(ctx, 5, 1, 6, 6, skin);
-  // Rosy cheeks
-  px(ctx, 5, 4, blendColor(skin, '#e08060', 0.4));
-  px(ctx, 10, 4, blendColor(skin, '#e08060', 0.4));
-  // Ears
-  px(ctx, 4, 3, darkenColor(skin));
-  px(ctx, 11, 3, darkenColor(skin));
-
-  // Hair — varied styles based on palette, with highlights
-  const hairStyle = paletteIndex % 4;
-  rect(ctx, 5, 0, 6, 2, palette.hair);
-  if (hairStyle === 0) {
-    // Full hair
-    rect(ctx, 4, 0, 1, 3, palette.hair);
-    rect(ctx, 11, 0, 1, 3, palette.hair);
-    px(ctx, 6, 0, lightenColor(palette.hair));
-    px(ctx, 8, 0, lightenColor(palette.hair));
-  } else if (hairStyle === 1) {
-    // Short sides
-    rect(ctx, 4, 1, 1, 1, palette.hair);
-    rect(ctx, 11, 1, 1, 1, palette.hair);
-    px(ctx, 7, 0, lightenColor(palette.hair));
-  } else if (hairStyle === 2) {
-    // Longer hair
-    rect(ctx, 4, 0, 1, 4, palette.hair);
-    rect(ctx, 11, 0, 1, 4, palette.hair);
-    rect(ctx, 5, 0, 6, 1, lightenColor(palette.hair));
-  } else {
-    // Buzz cut
-    rect(ctx, 5, 0, 6, 1, palette.hair);
-  }
-
-  // Eyes — bigger with white + pupil (Stardew style)
-  px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#2a2018');
-  px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#2a2018');
-
-  // Emotion-specific details
-  if (emotionLevel === 0) {
-    // Calm — small smile
-    px(ctx, 7, 5, darkenColor(skin));
-    px(ctx, 8, 5, darkenColor(skin));
+  // --- HANDS ---
+  if (emotionLevel >= 2) {
+    // Clenched fists: 2x1 squares
+    rect(ctx, 2, yo + 10, 2, 1, skin);
+    rect(ctx, 12, yo + 10, 2, 1, skin);
   } else if (emotionLevel === 1) {
-    // Impatient — frown
-    px(ctx, 7, 5, '#a07050');
-    px(ctx, 8, 5, '#a07050');
-    // Furrowed brows
-    px(ctx, 5, 2, palette.hair);
-    px(ctx, 10, 2, palette.hair);
+    // Crossed arms: hands overlap body
+    px(ctx, 5, yo + 9, skin);
+    px(ctx, 10, yo + 9, skin);
+    // Arm cross lines
+    px(ctx, 4, yo + 8, shirtShadow);
+    px(ctx, 11, yo + 8, shirtShadow);
   } else {
-    // Angry — red face, wide mouth
-    rect(ctx, 5, 1, 6, 6, blendColor(skin, '#ff4444', 0.15));
-    // Re-draw eyes (angrier)
-    px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#1a1010');
-    px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#1a1010');
-    // Angry eyebrows
-    px(ctx, 5, 2, '#2a1a10'); px(ctx, 6, 2, '#2a1a10');
-    px(ctx, 9, 2, '#2a1a10'); px(ctx, 10, 2, '#2a1a10');
-    // Open mouth
-    rect(ctx, 7, 5, 2, 1, '#993333');
-    // Warm red tint
-    ctx.fillStyle = 'rgba(200, 60, 30, 0.08)';
-    ctx.fillRect(0, 0, 16, 16);
+    // Relaxed hands at sides
+    px(ctx, 3, yo + 10, skin);
+    px(ctx, 12, yo + 10, skin);
   }
 
-  // Dark outline pass — warm brown edges (Stardew style)
+  // --- LANYARD/BADGE accessory ---
+  if (hasLanyard) {
+    const badgeSide = (id % 2 === 0) ? 5 : 9;
+    px(ctx, badgeSide, yo + 6, '#4a8a5a'); // lanyard from neck
+    px(ctx, badgeSide, yo + 7, '#4a8a5a');
+    rect(ctx, badgeSide, yo + 8, 2, 2, '#5a9a6a'); // badge
+    px(ctx, badgeSide, yo + 8, '#ffffff');           // badge text dot
+  }
+
+  // --- HEAD ---
+  rect(ctx, 5, yo + 1, 6, 6, skin);
+  // Chin shadow
+  rect(ctx, 6, yo + 6, 4, 1, skinShadow);
+  // Ears
+  px(ctx, 4, yo + 3, skinShadow);
+  px(ctx, 11, yo + 3, skinShadow);
+
+  // --- ROSY CHEEKS (calm only, or always subtle) ---
+  if (emotionLevel === 0) {
+    px(ctx, 5, yo + 4, skinBlush);
+    px(ctx, 10, yo + 4, skinBlush);
+  } else {
+    // Subtle blush even when upset
+    px(ctx, 5, yo + 4, blendColor(skin, '#e08060', 0.15));
+    px(ctx, 10, yo + 4, blendColor(skin, '#e08060', 0.15));
+  }
+
+  // --- HAIR: 8 styles with base + highlight ---
+  // Common top hair for most styles
+  if (hairStyle !== 3 && hairStyle !== 7) {
+    rect(ctx, 5, yo + 0, 6, 2, hairBase);
+  }
+
+  if (hairStyle === 0) {
+    // Style 0: Short cropped — tight to head, no side extension
+    rect(ctx, 5, yo + 0, 6, 2, hairBase);
+    px(ctx, 4, yo + 1, hairBase);
+    px(ctx, 11, yo + 1, hairBase);
+    px(ctx, 7, yo + 0, hairHighlight); // highlight strand
+  } else if (hairStyle === 1) {
+    // Style 1: Long straight — extends down sides
+    rect(ctx, 4, yo + 0, 1, 4, hairBase);
+    rect(ctx, 11, yo + 0, 1, 4, hairBase);
+    px(ctx, 6, yo + 0, hairHighlight);
+    px(ctx, 8, yo + 0, hairHighlight);
+  } else if (hairStyle === 2) {
+    // Style 2: Ponytail — hair on top + tail extending right
+    rect(ctx, 4, yo + 0, 1, 3, hairBase);
+    rect(ctx, 11, yo + 0, 1, 3, hairBase);
+    // Ponytail on right side
+    rect(ctx, 12, yo + 1, 1, 3, hairBase);
+    px(ctx, 13, yo + 2, hairBase);
+    px(ctx, 13, yo + 3, hairBase);
+    px(ctx, 5, yo + 0, hairHighlight); // top highlight
+  } else if (hairStyle === 3) {
+    // Style 3: Bald/buzzcut — just a thin line on top
+    rect(ctx, 5, yo + 0, 6, 1, hairBase);
+    // Very subtle stubble dots
+    px(ctx, 6, yo + 1, blendColor(skin, hairBase, 0.2));
+    px(ctx, 9, yo + 1, blendColor(skin, hairBase, 0.2));
+  } else if (hairStyle === 4) {
+    // Style 4: Curly/afro — rounded, 2px taller (extends above normal bounds)
+    rect(ctx, 4, yo - 1, 8, 1, hairBase);  // top row (extends up)
+    rect(ctx, 3, yo + 0, 10, 2, hairBase); // wide middle
+    rect(ctx, 4, yo + 2, 1, 1, hairBase);  // side curls
+    rect(ctx, 11, yo + 2, 1, 1, hairBase);
+    // Curl highlights
+    px(ctx, 5, yo - 1, hairHighlight);
+    px(ctx, 9, yo - 1, hairHighlight);
+    px(ctx, 7, yo + 0, hairHighlight);
+  } else if (hairStyle === 5) {
+    // Style 5: Bob cut — chin length, wider
+    rect(ctx, 4, yo + 0, 8, 2, hairBase);   // top, wider
+    rect(ctx, 3, yo + 1, 1, 4, hairBase);   // left side down to chin
+    rect(ctx, 12, yo + 1, 1, 4, hairBase);  // right side down to chin
+    rect(ctx, 4, yo + 4, 1, 1, hairBase);   // chin tuck left
+    rect(ctx, 11, yo + 4, 1, 1, hairBase);  // chin tuck right
+    px(ctx, 6, yo + 0, hairHighlight);
+    px(ctx, 9, yo + 0, hairHighlight);
+  } else if (hairStyle === 6) {
+    // Style 6: Messy/spiky — jagged top edge
+    rect(ctx, 5, yo + 0, 6, 2, hairBase);
+    // Spiky top: alternating pixels above hairline
+    px(ctx, 5, yo - 1, hairBase);
+    px(ctx, 7, yo - 1, hairBase);
+    px(ctx, 9, yo - 1, hairBase);
+    px(ctx, 11, yo - 1, hairBase);
+    // Side tufts
+    px(ctx, 4, yo + 0, hairBase);
+    px(ctx, 11, yo + 0, hairBase);
+    // Highlights on spikes
+    px(ctx, 5, yo - 1, hairHighlight);
+    px(ctx, 9, yo - 1, hairHighlight);
+  } else if (hairStyle === 7) {
+    // Style 7: Hat/cap — flat top with brim, uses hair color as hat color
+    const hatColor = hairBase;
+    const hatBrim = darkenColor(hatColor);
+    rect(ctx, 4, yo + 0, 8, 2, hatColor);   // hat body
+    rect(ctx, 3, yo + 2, 10, 1, hatBrim);   // brim (wider)
+    px(ctx, 6, yo + 0, lightenColor(hatColor)); // hat highlight
+    px(ctx, 7, yo + 0, lightenColor(hatColor));
+    // Show a sliver of hair under hat
+    px(ctx, 4, yo + 2, hairBase);
+    px(ctx, 11, yo + 2, hairBase);
+  }
+
+  // --- EYES ---
+  if (emotionLevel < 2) {
+    // Normal eyes: white sclera + dark pupil
+    px(ctx, 6, yo + 3, '#ffffff');
+    px(ctx, 6, yo + 4, '#2a2018');
+    px(ctx, 9, yo + 3, '#ffffff');
+    px(ctx, 9, yo + 4, '#2a2018');
+    // Tiny eye highlight
+    px(ctx, 6, yo + 3, '#ffffff');
+    px(ctx, 9, yo + 3, '#ffffff');
+  }
+
+  // --- EMOTION-SPECIFIC DETAILS ---
+  if (emotionLevel === 0) {
+    // Calm: slight smile, relaxed posture
+    px(ctx, 7, yo + 5, darkenColor(skin));
+    px(ctx, 8, yo + 5, darkenColor(skin));
+    // Smile curve (slightly lighter above mouth)
+    px(ctx, 6, yo + 5, blendColor(skin, '#c08070', 0.15));
+    px(ctx, 9, yo + 5, blendColor(skin, '#c08070', 0.15));
+  } else if (emotionLevel === 1) {
+    // Impatient: furrowed brow, mouth turned down
+    // Furrowed brows (angled inward)
+    px(ctx, 5, yo + 2, darkenColor(hairBase));
+    px(ctx, 6, yo + 2, darkenColor(hairBase));
+    px(ctx, 9, yo + 2, darkenColor(hairBase));
+    px(ctx, 10, yo + 2, darkenColor(hairBase));
+    // Mouth turned down
+    px(ctx, 7, yo + 5, '#a07050');
+    px(ctx, 8, yo + 5, '#a07050');
+    px(ctx, 6, yo + 5, blendColor(skin, '#a07050', 0.2)); // frown corners
+    px(ctx, 9, yo + 5, blendColor(skin, '#a07050', 0.2));
+  } else {
+    // Angry: red tint, sharp eyebrows, wide mouth, clenched fists
+    // Red-tinted face
+    rect(ctx, 5, yo + 1, 6, 6, blendColor(skin, '#ff4444', 0.18));
+    // Chin shadow on red face
+    rect(ctx, 6, yo + 6, 4, 1, darkenColor(blendColor(skin, '#ff4444', 0.18)));
+    // Re-draw ears with tint
+    px(ctx, 4, yo + 3, darkenColor(blendColor(skin, '#ff4444', 0.12)));
+    px(ctx, 11, yo + 3, darkenColor(blendColor(skin, '#ff4444', 0.12)));
+    // Angry eyes: narrower, darker
+    px(ctx, 6, yo + 3, '#ffffff');
+    px(ctx, 6, yo + 4, '#1a1010');
+    px(ctx, 9, yo + 3, '#ffffff');
+    px(ctx, 9, yo + 4, '#1a1010');
+    // Sharp angled eyebrows (inner higher than outer)
+    px(ctx, 5, yo + 3, '#2a1a10');
+    px(ctx, 6, yo + 2, '#2a1a10');
+    px(ctx, 9, yo + 2, '#2a1a10');
+    px(ctx, 10, yo + 3, '#2a1a10');
+    // Open angry mouth
+    rect(ctx, 7, yo + 5, 2, 1, '#993333');
+    // Overall warm red tint overlay
+    ctx.fillStyle = 'rgba(200, 60, 30, 0.08)';
+    ctx.fillRect(0, 0, 16, 17);
+  }
+
+  // --- GLASSES accessory ---
+  if (hasGlasses) {
+    const glassFrame = '#3a3a4a';
+    // Left lens
+    rect(ctx, 5, yo + 3, 2, 2, 'rgba(180,210,240,0.3)'); // lens tint
+    ctx.strokeStyle = glassFrame;
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(5, yo + 3, 2, 2);
+    // Right lens
+    rect(ctx, 9, yo + 3, 2, 2, 'rgba(180,210,240,0.3)');
+    ctx.strokeRect(9, yo + 3, 2, 2);
+    // Bridge
+    rect(ctx, 7, yo + 3, 2, 0.5, glassFrame);
+    // Temples (side arms)
+    px(ctx, 4, yo + 3, glassFrame);
+    px(ctx, 11, yo + 3, glassFrame);
+  }
+
+  // --- MASK accessory ---
+  if (hasMask) {
+    const maskColor = '#88bbdd';
+    const maskShadow = '#70a0c0';
+    rect(ctx, 5, yo + 4, 6, 2, maskColor);
+    // Mask shadow/fold
+    px(ctx, 7, yo + 5, maskShadow);
+    px(ctx, 8, yo + 5, maskShadow);
+    // Ear loops
+    px(ctx, 4, yo + 4, '#99ccdd');
+    px(ctx, 11, yo + 4, '#99ccdd');
+  }
+
+  // --- OUTLINES (Stardew-style warm brown) ---
   ctx.strokeStyle = outline;
   ctx.lineWidth = 0.5;
-  ctx.strokeRect(4.5, 0.5, 7, 6);  // head
-  ctx.strokeRect(3.5, 5.5, 9, 9);  // body
+  // Head outline
+  ctx.strokeRect(4.5, yo + 0.5, 7, 6);
+  // Body outline
+  ctx.strokeRect(3.5, yo + 5.5, 9, 9);
 
   spriteCache.set(key, c);
   return c;

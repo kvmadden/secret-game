@@ -108,16 +108,22 @@ export const MAX_PATIENTS_PER_STATION = 3;
 export const PATIENT_LEAVE_THRESHOLD = 0; // patience at which they leave
 
 export const PATIENT_PALETTES = [
-  { hair: '#3a2a1a', shirt: '#4466aa', skin: '#e8b88a' },
-  { hair: '#8b6914', shirt: '#aa4444', skin: '#d4a574' },
-  { hair: '#1a1a1a', shirt: '#44aa66', skin: '#c49060' },
-  { hair: '#cc8833', shirt: '#6644aa', skin: '#e8c8a0' },
-  { hair: '#555555', shirt: '#aa6644', skin: '#8b6240' },
-  { hair: '#2a1a0a', shirt: '#44aaaa', skin: '#d4a574' },
-  { hair: '#994422', shirt: '#888844', skin: '#e8b88a' },
-  { hair: '#1a2a1a', shirt: '#aa4488', skin: '#c49060' },
-  { hair: '#443322', shirt: '#5588aa', skin: '#e0c090' },
-  { hair: '#111111', shirt: '#cc6644', skin: '#8b6240' },
+  { hair: '#3a2a1a', shirt: '#4466aa', skin: '#e8b88a', pants: '#3a3848', shoes: '#2a2018' },
+  { hair: '#8b6914', shirt: '#aa4444', skin: '#d4a574', pants: '#4a4438', shoes: '#4a3020' },
+  { hair: '#1a1a1a', shirt: '#44aa66', skin: '#c49060', pants: '#3e3e50', shoes: '#2a2018' },
+  { hair: '#cc8833', shirt: '#6644aa', skin: '#e8c8a0', pants: '#484040', shoes: '#3a2820' },
+  { hair: '#555555', shirt: '#aa6644', skin: '#8b6240', pants: '#3a4040', shoes: '#1a1810' },
+  { hair: '#2a1a0a', shirt: '#44aaaa', skin: '#d4a574', pants: '#3a3848', shoes: '#4a3020' },
+  { hair: '#994422', shirt: '#888844', skin: '#e8b88a', pants: '#4a4438', shoes: '#2a2018' },
+  { hair: '#1a2a1a', shirt: '#aa4488', skin: '#c49060', pants: '#3e3e50', shoes: '#3a2820' },
+  { hair: '#443322', shirt: '#5588aa', skin: '#e0c090', pants: '#484040', shoes: '#2a2018' },
+  { hair: '#111111', shirt: '#cc6644', skin: '#8b6240', pants: '#3a4040', shoes: '#1a1810' },
+  { hair: '#664422', shirt: '#5577bb', skin: '#f0c8a0', pants: '#3a3a4a', shoes: '#2a2018' },
+  { hair: '#2a2a2a', shirt: '#bb5566', skin: '#b07848', pants: '#484040', shoes: '#4a3020' },
+  { hair: '#aa7733', shirt: '#448877', skin: '#e8d0a8', pants: '#3e3e50', shoes: '#2a2018' },
+  { hair: '#774422', shirt: '#7766aa', skin: '#d0a070', pants: '#3a3848', shoes: '#3a2820' },
+  { hair: '#333333', shirt: '#cc8855', skin: '#a06838', pants: '#4a4438', shoes: '#1a1810' },
+  { hair: '#bb9944', shirt: '#557799', skin: '#e8c090', pants: '#3a4040', shoes: '#2a2018' },
 ];
 
 export const PATIENT_BARKS = [
