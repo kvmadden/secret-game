@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>On the Bench — A Retail Pharmacy Survival Game</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div id="game-container">
+    <!-- Zone 1: HUD -->
+    <div id="hud">
+      <div id="hud-top">
+        <div id="phase-name">OPENING</div>
+        <div id="timer">9:00 AM</div>
+      </div>
+      <div id="meters">
+        <div class="meter" id="meter-queue">
+          <span class="meter-label">QUEUE</span>
+          <div class="meter-bar"><div class="meter-fill" id="queue-fill"></div></div>
+          <span class="meter-value" id="queue-value">0</span>
+        </div>
+        <div class="meter" id="meter-rage">
+          <span class="meter-label">RAGE</span>
+          <div class="meter-bar"><div class="meter-fill" id="rage-fill"></div></div>
+          <span class="meter-value" id="rage-value">0</span>
+        </div>
+        <div class="meter" id="meter-burnout">
+          <span class="meter-label">BURN</span>
+          <div class="meter-bar"><div class="meter-fill" id="burnout-fill"></div></div>
+          <span class="meter-value" id="burnout-value">0</span>
+        </div>
+      </div>
+      <div id="pipeline-indicator">
+        <span class="pipe-stage" id="pipe-unverified">📋 <span id="pipe-unverified-count">0</span></span>
+        <span class="pipe-arrow">→</span>
+        <span class="pipe-stage" id="pipe-ready">✓ <span id="pipe-ready-count">0</span></span>
+        <span class="pipe-arrow">→</span>
+        <span class="pipe-stage" id="pipe-served">🛍 <span id="pipe-served-count">0</span></span>
+      </div>
+    </div>
+
+    <!-- Zone 2: Pharmacy Canvas -->
+    <div id="canvas-wrapper">
+      <canvas id="pharmacy-canvas"></canvas>
+    </div>
+
+    <!-- Zone 3: Action Cards -->
+    <div id="action-zone">
+      <div id="card-container"></div>
+    </div>
+
+    <!-- Title Screen Overlay -->
+    <div id="title-screen" class="overlay">
+      <div class="title-content">
+        <h1>ON THE BENCH</h1>
+        <p class="subtitle">A Retail Pharmacy Survival Game</p>
+        <p class="flavor">Solo Sunday shift. Six minutes. Three meters. One pharmacist.</p>
+        <button id="start-btn" class="big-btn">START SHIFT</button>
+      </div>
+    </div>
+
+    <!-- Lunch Overlay -->
+    <div id="lunch-overlay" class="overlay" style="display:none;">
+      <div class="lunch-content">
+        <h2>PHARMACY CLOSED</h2>
+        <p id="lunch-message">Mandatory lunch break.</p>
+        <p class="lunch-sub" id="lunch-sub">Patients piling up...</p>
+      </div>
+    </div>
+
+    <!-- Results Screen Overlay -->
+    <div id="results-screen" class="overlay" style="display:none;">
+      <div class="results-content">
+        <h2 id="results-title">HELD TOGETHER</h2>
+        <p id="results-flavor">You kept the store open. That was the assignment.</p>
+        <div id="results-meters"></div>
+        <div id="results-stats"></div>
+        <button id="retry-btn" class="big-btn">RETRY</button>
+        <button id="title-btn" class="big-btn secondary">TITLE</button>
+      </div>
+    </div>
+
+    <!-- Working overlay on canvas -->
+    <div id="work-progress" style="display:none;">
+      <div id="work-bar-bg"><div id="work-bar-fill"></div></div>
+      <div id="work-label"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
