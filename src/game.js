@@ -179,11 +179,20 @@ export class Game {
       this.startCampaign();
     });
 
-    // Day intro start button
+    // Day intro start/continue button
     document.getElementById('day-start-btn').addEventListener('click', () => {
       Audio.playClick();
       this.ui.hideDayIntro();
-      this.startShiftFromCampaign();
+      if (this.campaign.isActive()) {
+        const node = this.campaign.getCurrentNode();
+        if (node && node.type === 'shift') {
+          this.startShiftFromCampaign();
+        } else {
+          this.advanceCampaignNode();
+        }
+      } else if (this.endless.isActive()) {
+        this.startEndlessSegment();
+      }
     });
 
     // Endless mode button
@@ -297,13 +306,23 @@ export class Game {
       return;
     }
 
-    // Day intro: Enter/Space to start shift
+    // Day intro: Enter/Space to continue
     if (this.state === 'DAY_INTRO') {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         Audio.playClick();
         this.ui.hideDayIntro();
-        this.startShiftFromCampaign();
+        // Check if current node is a shift (start playing) or story/chapter_result (advance)
+        if (this.campaign.isActive()) {
+          const node = this.campaign.getCurrentNode();
+          if (node && node.type === 'shift') {
+            this.startShiftFromCampaign();
+          } else {
+            this.advanceCampaignNode();
+          }
+        } else if (this.endless.isActive()) {
+          this.startShiftFromCampaign();
+        }
       }
       return;
     }
@@ -1571,16 +1590,70 @@ export class Game {
     this.stopTitleAnimation();
     this.campaign.start();
     this.ui.hideTitle();
-    this.showDayIntro();
+    this.processCampaignNode();
   }
 
-  showDayIntro() {
+  // Central router — reads current node type, shows appropriate UI
+  processCampaignNode() {
+    const node = this.campaign.getCurrentNode();
+    if (!node) {
+      this.showCampaignEnding();
+      return;
+    }
+
+    const chapter = this.campaign.getCurrentChapter();
+    const chapterLabel = chapter ? `CH${chapter.id}: ${chapter.title}` : '';
+
+    switch (node.type) {
+      case 'story':
+      case 'chapter_result':
+        this.showCampaignStory(node, chapterLabel);
+        break;
+      case 'shift':
+        this.showCampaignShiftIntro(node, chapterLabel);
+        break;
+      case 'decision':
+        this.showCampaignDecisionNode(node, chapterLabel);
+        break;
+      case 'ending':
+        this.showCampaignEnding();
+        break;
+      default:
+        // Unknown node type — try to advance past it
+        if (this.campaign.advanceToNextNode()) {
+          this.processCampaignNode();
+        } else {
+          this.showCampaignEnding();
+        }
+    }
+  }
+
+  // Story / chapter_result nodes — narrative text, Enter to continue
+  showCampaignStory(node, chapterLabel) {
+    this.state = 'DAY_INTRO';
+    const isChapterResult = node.type === 'chapter_result';
+    const dayName = node.title;
+    const narrative = { intro: node.content, flavor: isChapterResult ? 'Chapter complete.' : (this.campaign.getCurrentChapter()?.subtitle || '') };
+    this.ui.showDayIntro(
+      isChapterResult ? '✓' : chapterLabel,
+      dayName,
+      narrative,
+      null,
+      null,
+      isChapterResult ? [{ text: 'Story continues...', type: 'buff' }] : [],
+      true // isStory — show CONTINUE button
+    );
+  }
+
+  // Shift nodes — show shift intro with difficulty info
+  showCampaignShiftIntro(node, chapterLabel) {
     this.state = 'DAY_INTRO';
     const shiftDay = this.campaign.getShiftDay();
     const weather = this.campaign.getWeather();
     this.campaignWeather = weather;
-    const narrative = this.campaign.getDayNarrative();
     const day = this.campaign.getCurrentDay();
+
+    const narrative = { intro: node.content, flavor: this.campaign.getCurrentChapter()?.subtitle || '' };
 
     // Build modifier tags from carry-over effects
     const mods = this.campaign.shiftModifiers;
@@ -1594,7 +1667,41 @@ export class Game {
     if (mods.scriptSpeedMult < 1) modTags.push({ text: 'Extra help', type: 'buff' });
     if (mods.scriptSpeedMult > 1) modTags.push({ text: 'Undertrained staff', type: 'debuff' });
 
-    this.ui.showDayIntro(day, shiftDay.name, narrative, shiftDay, weather, modTags);
+    // Add node-specific difficulty hint
+    if (node.difficulty?.desc) modTags.push({ text: node.difficulty.desc, type: 'neutral' });
+
+    this.ui.showDayIntro(day, node.title || shiftDay.name, narrative, shiftDay, weather, modTags);
+    this.ui.showCampaignHud(chapterLabel, `Shift ${day}`);
+  }
+
+  // Decision nodes — show choices from the node itself
+  showCampaignDecisionNode(node, chapterLabel) {
+    this.state = 'SHIFT_END';
+    const recap = node.content || node.title;
+    const decision = {
+      prompt: node.content || node.title,
+      choices: node.choices || [],
+    };
+    this.ui.showShiftEnd(recap, decision, (choiceIdx) => {
+      Audio.playClick();
+      this.handleCampaignNodeDecision(node, choiceIdx);
+    });
+  }
+
+  // Handle decision choice from a decision node
+  handleCampaignNodeDecision(node, choiceIndex) {
+    const choice = node.choices[choiceIndex];
+    if (choice && choice.effects) {
+      // Apply effects to persistent variables
+      const vars = ['burnout', 'reputation', 'teamStrength', 'storeReadiness', 'leadershipAlignment', 'clinicalIntegrity'];
+      for (const v of vars) {
+        if (choice.effects[v] !== undefined) {
+          this.campaign[v] = Math.max(0, Math.min(100, this.campaign[v] + choice.effects[v]));
+        }
+      }
+    }
+    this.ui.hideShiftEnd();
+    this.advanceCampaignNode();
   }
 
   startShiftFromCampaign() {
@@ -1664,7 +1771,10 @@ export class Game {
     this.ui.hideTutorial();
     this.ui.hidePause();
     this.ui.hideCombo();
-    this.ui.showCampaignHud(this.campaign.getCurrentDay(), this.campaign.totalDays);
+
+    const chapter = this.campaign.getCurrentChapter();
+    const chapterLabel = chapter ? `CH${chapter.id}: ${chapter.title}` : '';
+    this.ui.showCampaignHud(chapterLabel, `Shift ${this.campaign.getCurrentDay()}`);
 
     this.state = 'PLAYING';
     this.renderer.setOverview(false);
@@ -1672,7 +1782,9 @@ export class Game {
     Audio.startAmbient();
     this.spawnInitialPatients();
 
-    this.ui.showPhaseAnnounce(this.shiftDay.name);
+    const node = this.campaign.getCurrentNode();
+    const shiftTitle = (node && node.title) || this.shiftDay.name;
+    this.ui.showPhaseAnnounce(shiftTitle);
     setTimeout(() => {
       const weatherInfo = this.weather ? ` | ${this.weather.name}` : '';
       this.ui.showTutorial(`${this.shiftDay.modifier}: ${this.shiftDay.desc}${weatherInfo}`);
@@ -1684,69 +1796,44 @@ export class Game {
   }
 
   handleCampaignShiftEnd(won, lostMeter) {
-    // Record the result
     const grade = this.ui.calculateGrade(won, this.meters, this.stats);
     this.campaign.recordShiftResult(won, this.meters, this.stats, grade);
 
-    // Check if campaign is done (lost too many or completed all days)
-    if (this.campaign.getCurrentDay() >= this.campaign.totalDays) {
-      // Show campaign end
-      setTimeout(() => {
-        this.ui.hideResults();
-        const endMsg = this.campaign.getCampaignEndMessage();
-        const summary = this.campaign.getCampaignSummary();
-        this.ui.showCampaignEnd(endMsg, summary);
-        this.state = 'CAMPAIGN_END';
-      }, 2000);
-      return;
-    }
-
-    // Show between-shift decision
+    // After showing results briefly, advance to next node
     setTimeout(() => {
       this.ui.hideResults();
-      const decision = this.campaign.getPendingDecision();
-      if (!decision) {
-        // No decision, just advance
-        this.advanceCampaignDay();
-        return;
-      }
-
-      const recap = won
-        ? `Day ${this.campaign.getCurrentDay()} complete. Grade: ${grade}. Reputation: ${this.campaign.reputation}.`
-        : `Day ${this.campaign.getCurrentDay()} failed. Keep going. Reputation: ${this.campaign.reputation}.`;
-
-      this.state = 'SHIFT_END';
-      this.ui.showShiftEnd(recap, decision, (choiceIdx) => {
-        Audio.playClick();
-        this.handleCampaignDecision(choiceIdx);
-      });
+      this.advanceCampaignNode();
     }, 2000);
   }
 
-  handleCampaignDecision(choiceIndex) {
-    this.campaign.applyDecision(choiceIndex);
-    this.ui.hideShiftEnd();
-
-    if (this.campaign.advanceDay()) {
-      this.showDayIntro();
+  // Advance to next campaign node and process it
+  advanceCampaignNode() {
+    if (this.campaign.advanceToNextNode()) {
+      this.processCampaignNode();
     } else {
-      // Campaign complete
-      const endMsg = this.campaign.getCampaignEndMessage();
-      const summary = this.campaign.getCampaignSummary();
-      this.ui.showCampaignEnd(endMsg, summary);
-      this.state = 'CAMPAIGN_END';
+      this.showCampaignEnding();
     }
   }
 
-  advanceCampaignDay() {
-    if (this.campaign.advanceDay()) {
-      this.showDayIntro();
-    } else {
-      const endMsg = this.campaign.getCampaignEndMessage();
-      const summary = this.campaign.getCampaignSummary();
-      this.ui.showCampaignEnd(endMsg, summary);
-      this.state = 'CAMPAIGN_END';
+  showCampaignEnding() {
+    const endMsg = this.campaign.getCampaignEndMessage();
+    const summary = this.campaign.getCampaignSummary();
+    this.ui.showCampaignEnd(endMsg, summary);
+    this.state = 'CAMPAIGN_END';
+  }
+
+  // Legacy compat — kept for keyboard handler routing
+  handleCampaignDecision(choiceIndex) {
+    // Delegate to node decision handler if current node is a decision
+    const node = this.campaign.getCurrentNode();
+    if (node && node.type === 'decision') {
+      this.handleCampaignNodeDecision(node, choiceIndex);
+      return;
     }
+    // Fallback: apply from decision pool (legacy between-shift decisions)
+    this.campaign.applyDecision(choiceIndex);
+    this.ui.hideShiftEnd();
+    this.advanceCampaignNode();
   }
 
   // ========== ENDLESS MODE ==========
@@ -1820,7 +1907,7 @@ export class Game {
     this.ui.hideTutorial();
     this.ui.hidePause();
     this.ui.hideCombo();
-    this.ui.showCampaignHud(this.endless.segment, '∞');
+    this.ui.showCampaignHud(`Segment ${this.endless.segment}`, '∞');
 
     this.state = 'PLAYING';
     this.renderer.setOverview(false);

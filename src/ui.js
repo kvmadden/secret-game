@@ -575,11 +575,11 @@ export class UI {
 
   // ========== CAMPAIGN UI ==========
 
-  showCampaignHud(day, totalDays) {
+  showCampaignHud(label1, label2) {
     const el = document.getElementById('campaign-hud');
     if (el) {
       el.style.display = 'block';
-      el.textContent = `DAY ${day} / ${totalDays}`;
+      el.textContent = label2 ? `${label1} — ${label2}` : `${label1}`;
     }
   }
 
@@ -588,17 +588,20 @@ export class UI {
     if (el) el.style.display = 'none';
   }
 
-  showDayIntro(day, dayName, narrative, shiftDay, weather, modifierTags) {
+  showDayIntro(day, dayName, narrative, shiftDay, weather, modifierTags, isStory) {
     const overlay = document.getElementById('day-intro');
     if (!overlay) return;
 
-    document.getElementById('day-intro-number').textContent = `DAY ${day}`;
+    document.getElementById('day-intro-number').textContent = typeof day === 'number' ? `DAY ${day}` : (day || '');
     document.getElementById('day-intro-name').textContent = dayName;
     document.getElementById('day-intro-text').textContent = narrative.intro;
     document.getElementById('day-intro-flavor').textContent = narrative.flavor;
 
     const modsEl = document.getElementById('day-intro-modifiers');
-    let modsHtml = `<span class="day-modifier-tag">${shiftDay.modifier}: ${shiftDay.desc}</span>`;
+    let modsHtml = '';
+    if (shiftDay && shiftDay.modifier && shiftDay.desc) {
+      modsHtml += `<span class="day-modifier-tag">${shiftDay.modifier}: ${shiftDay.desc}</span>`;
+    }
     if (weather) {
       modsHtml += `<span class="day-modifier-tag">${weather.name} — ${weather.desc}</span>`;
     }
@@ -608,6 +611,10 @@ export class UI {
       }
     }
     modsEl.innerHTML = modsHtml;
+
+    // Update button text based on context
+    const btn = document.getElementById('day-start-btn');
+    if (btn) btn.textContent = isStory ? 'CONTINUE' : 'START SHIFT';
 
     overlay.style.display = 'flex';
   }
@@ -663,20 +670,28 @@ export class UI {
     // Summary stats
     document.getElementById('campaign-summary').innerHTML = `
       <div class="campaign-stat">
-        <div class="campaign-stat-value">${summary.wins}</div>
+        <div class="campaign-stat-value">${summary.wins}/${summary.days}</div>
         <div class="campaign-stat-label">SHIFTS WON</div>
-      </div>
-      <div class="campaign-stat">
-        <div class="campaign-stat-value">${summary.losses}</div>
-        <div class="campaign-stat-label">SHIFTS LOST</div>
       </div>
       <div class="campaign-stat">
         <div class="campaign-stat-value">${summary.reputation}</div>
         <div class="campaign-stat-label">REPUTATION</div>
       </div>
       <div class="campaign-stat">
-        <div class="campaign-stat-value">${summary.morale}</div>
-        <div class="campaign-stat-label">MORALE</div>
+        <div class="campaign-stat-value">${summary.burnout}</div>
+        <div class="campaign-stat-label">BURNOUT</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.clinicalIntegrity}</div>
+        <div class="campaign-stat-label">INTEGRITY</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.teamStrength}</div>
+        <div class="campaign-stat-label">TEAM</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.storeReadiness}</div>
+        <div class="campaign-stat-label">STORE</div>
       </div>
     `;
 

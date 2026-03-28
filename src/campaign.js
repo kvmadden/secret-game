@@ -5,7 +5,13 @@
  */
 
 import { SHIFT_DAYS, WEATHER_TYPES } from './constants.js';
-import { CAMPAIGN_NODES, CHAPTERS, ENDING_LANES } from './campaign-nodes.js';
+import { CAMPAIGN_NODES as CAMPAIGN_NODES_ARR, CHAPTERS, ENDING_LANES } from './campaign-nodes.js';
+
+// Convert array to id-keyed lookup map
+const CAMPAIGN_NODES = {};
+for (const node of CAMPAIGN_NODES_ARR) {
+  CAMPAIGN_NODES[node.id] = node;
+}
 
 // ========== BETWEEN-SHIFT DECISIONS ==========
 // Each decision has 3 choices whose effects modify the 6 persistent variables.
@@ -367,13 +373,16 @@ export class Campaign {
     if (typeof node.next === 'string') {
       nextId = node.next;
     } else if (Array.isArray(node.next)) {
-      // Multiple possible nexts -- pick based on conditions
+      // Array of strings or {condition, id} branch objects
       for (const branch of node.next) {
+        if (typeof branch === 'string') {
+          nextId = branch;
+          break;
+        }
         if (branch.condition && !this._evaluateCondition(branch.condition)) {
           continue;
         }
-        nextId = branch.id || branch.next || branch;
-        if (typeof nextId === 'object') nextId = nextId.id;
+        nextId = branch.id || branch.next;
         break;
       }
       // Fallback to last entry if no condition matched
