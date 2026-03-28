@@ -940,14 +940,50 @@ export class Renderer {
   }
 
   renderDriveThruCars(ctx, state) {
-    if (state.driveThruCars > 0) {
-      const carColors = ['#6a7a98', '#a85848', '#5a8a5a'];
-      for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
-        const car = Sprites.car(carColors[i % carColors.length]);
+    // Support both numeric driveThruCars and array-of-objects driveThruCars
+    const carCount = Array.isArray(state.driveThruCars)
+      ? state.driveThruCars.length
+      : (state.driveThruCars || 0);
+
+    if (carCount > 0) {
+      const defaultCarColors = ['#6a7a98', '#a85848', '#5a8a5a'];
+
+      for (let i = 0; i < Math.min(carCount, 3); i++) {
+        const carData = Array.isArray(state.driveThruCars) ? state.driveThruCars[i] : null;
+        const carColor = carData?.color || defaultCarColors[i % defaultCarColors.length];
+        const isWaiting = carData ? carData.waiting : true;
+
+        // If car data has its own sprite, use it; otherwise use Sprites.car
+        let carSprite;
+        if (typeof Sprites.car === 'function') {
+          carSprite = Sprites.car(carColor);
+        } else {
+          // Fallback: draw car as colored rectangle with details
+          carSprite = null;
+        }
+
         const bob = Math.sin(state.time * 2 + i * 1.5) * 0.3;
         const cx = 14 * TILE_SIZE;
         const cy = (8 + i * 2) * TILE_SIZE + bob;
-        ctx.drawImage(car, cx, cy);
+
+        if (carSprite) {
+          ctx.drawImage(carSprite, cx, cy);
+        } else {
+          // Draw car manually: colored rectangle (28x10) with window and wheels
+          ctx.fillStyle = carColor;
+          ctx.fillRect(cx, cy + 2, 28, 10);
+          // Window (dark rect)
+          ctx.fillStyle = 'rgba(40, 50, 70, 0.7)';
+          ctx.fillRect(cx + 4, cy + 3, 8, 5);
+          // Wheels (2 circles)
+          ctx.fillStyle = '#333';
+          ctx.beginPath();
+          ctx.arc(cx + 6, cy + 13, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(cx + 22, cy + 13, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         // Honk lines from first car if drive-thru event active
         if (i === 0 && state.stationManager.getStation('drive')?.hasEvent) {
@@ -965,14 +1001,20 @@ export class Renderer {
           }
         }
 
-        // Exhaust puff from rear of waiting cars
-        if (Math.sin(state.time * 1.5 + i * 3) > 0.8) {
-          ctx.fillStyle = 'rgba(160, 150, 140, 0.15)';
-          const puffX = cx + 22 + Math.sin(state.time * 2 + i) * 2;
-          const puffY = cy + 6 + Math.cos(state.time * 1.5 + i) * 1;
-          ctx.beginPath();
-          ctx.arc(puffX, puffY, 2 + Math.sin(state.time + i) * 0.5, 0, Math.PI * 2);
-          ctx.fill();
+        // Exhaust puff from rear of waiting cars (gray particles)
+        if (isWaiting && Math.sin(state.time * 1.5 + i * 3) > 0.6) {
+          const puffCount = 2;
+          for (let p = 0; p < puffCount; p++) {
+            const puffAge = (state.time * 1.2 + i * 2 + p * 0.5) % 1.5;
+            const puffAlpha = Math.max(0, 0.15 * (1 - puffAge / 1.5));
+            ctx.fillStyle = `rgba(160, 155, 145, ${puffAlpha})`;
+            const puffX = cx + 26 + puffAge * 6 + Math.sin(state.time * 2 + i + p) * 2;
+            const puffY = cy + 6 + Math.cos(state.time * 1.5 + i + p) * 1 - puffAge * 2;
+            const puffR = 1.5 + puffAge * 2;
+            ctx.beginPath();
+            ctx.arc(puffX, puffY, puffR, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
     }
