@@ -212,8 +212,9 @@ html, body {
 .event-card {
   background: #1e1e32;
   border: 1px solid #3a3a5a;
+  border-left: 4px solid #3a3a5a;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 10px 12px 10px 10px;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -222,6 +223,13 @@ html, body {
   position: relative;
   overflow: visible;
 }
+
+/* Station color stripes on left border */
+.event-card.station-verify  { border-left-color: #00d4ff; }
+.event-card.station-pickup  { border-left-color: #00cc66; }
+.event-card.station-consult { border-left-color: #aa66ff; }
+.event-card.station-phone   { border-left-color: #ff8800; }
+.event-card.station-drive   { border-left-color: #ff4466; }
 
 @keyframes cardSlideIn {
   from { transform: translateY(20px); opacity: 0; }
@@ -254,6 +262,17 @@ html, body {
   background: #1e1e22;
   border-color: #555522;
   border-style: dashed;
+}
+
+/* Positive cards (rare breathers) */
+.positive-card {
+  background: #1a2e1a;
+  border-color: #44aa44;
+  border-left-color: #44ff88 !important;
+}
+
+.positive-card .card-title {
+  color: #44ff88;
 }
 
 .card-header {
@@ -319,7 +338,8 @@ html, body {
 
 .card-btn {
   flex: 1;
-  padding: 10px;
+  padding: 12px 8px;
+  min-height: 44px;
   border: none;
   border-radius: 6px;
   font-family: 'Courier New', monospace;
@@ -328,8 +348,14 @@ html, body {
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 1px;
-  transition: transform 0.1s, opacity 0.1s, background 0.1s;
+  transition: transform 0.1s, opacity 0.2s, background 0.1s;
   -webkit-tap-highlight-color: transparent;
+}
+
+.card-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
 }
 
 .card-btn:active {
@@ -360,7 +386,7 @@ html, body {
 
 /* Card age indicator bar */
 .card-age-bar {
-  height: 2px;
+  height: 3px;
   background: #222;
   border-radius: 1px;
   overflow: hidden;

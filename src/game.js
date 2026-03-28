@@ -39,6 +39,9 @@ export class Game {
   reset() {
     this.state = 'TITLE';
     this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
+    this.renderer.setOverview(false);
+    const zoomBtn = document.getElementById('zoom-btn');
+    if (zoomBtn) zoomBtn.textContent = '🔍';
     this.time = 0;
     this.elapsed = 0;
     this.lastTimestamp = null;
@@ -280,6 +283,9 @@ export class Game {
 
     this.renderer.updateCamera(this.pharmacist, dt, this.getState());
     this.renderer.render(this.getState());
+
+    // Disable action buttons when pharmacist is busy
+    this.ui.setCardsBusy(this.pharmacist.state !== 'IDLE');
 
     this.ui.updateTimer(this.elapsed);
     this.ui.updatePhase(this.phase);

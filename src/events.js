@@ -43,6 +43,17 @@ const EVENT_POOL = {
       canDefer: false,
     },
     {
+      id: 'controlled_count',
+      title: 'CONTROLLED COUNT',
+      desc: 'Narcotics count is off by two.',
+      station: 'verify',
+      duration: 10,
+      effects: { queue: -3, rage: -2, burnout: 7 },
+      ignoreEffects: { burnout: 5, queue: 3 },
+      canDefer: true,
+      escalatesTo: 'controlled_audit',
+    },
+    {
       id: 'wrong_drug',
       title: 'WRONG DRUG',
       desc: 'Prescriber sent wrong med.',
@@ -88,6 +99,17 @@ const EVENT_POOL = {
       ignoreEffects: { rage: 3, queue: 4 },
       canDefer: true,
       escalatesTo: 'still_going',
+    },
+    {
+      id: 'refund_dispute',
+      title: 'REFUND DISPUTE',
+      desc: '"I returned this last week."',
+      station: 'pickup',
+      duration: 8,
+      effects: { queue: -4, rage: -9, burnout: 4 },
+      ignoreEffects: { rage: 7, queue: 3 },
+      canDefer: true,
+      escalatesTo: 'refund_manager',
     },
     {
       id: 'pinpad_confusion',
@@ -228,6 +250,50 @@ const EVENT_POOL = {
       effects: { queue: -7, rage: -6, burnout: 4 },
       ignoreEffects: { rage: 6, queue: 6 },
       canDefer: false,
+    },
+    {
+      id: 'honking',
+      title: 'HONKING',
+      desc: 'Car behind is laying on the horn.',
+      station: 'drive',
+      duration: 4,
+      effects: { queue: -3, rage: -6, burnout: 3 },
+      ignoreEffects: { rage: 5, burnout: 2 },
+      canDefer: false,
+    },
+    {
+      id: 'wrong_window_drive',
+      title: 'WRONG PHARMACY',
+      desc: '"This isn\'t the Walgreens?"',
+      station: 'drive',
+      duration: 3,
+      effects: { queue: -1, rage: -2, burnout: 1 },
+      ignoreEffects: { rage: 2 },
+      canDefer: false,
+    },
+  ],
+
+  // ========== POSITIVE EVENTS (rare breather) ==========
+  positive: [
+    {
+      id: 'patient_thanks',
+      title: 'PATIENT THANK-YOU',
+      desc: '"You\'re the only one who helps me."',
+      station: 'pickup',
+      duration: 3,
+      effects: { rage: -4, burnout: -3 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'batch_ready',
+      title: 'BATCH VERIFY',
+      desc: 'Quick batch — 3 scripts ready at once.',
+      station: 'verify',
+      duration: 5,
+      effects: { queue: -8, burnout: 1 },
+      canDefer: false,
+      isPositive: true,
     },
   ],
 
@@ -427,6 +493,28 @@ const ESCALATED_EVENTS = {
     isEscalated: true,
     addsScript: true,
   },
+  controlled_audit: {
+    id: 'controlled_audit',
+    title: 'CONTROLLED AUDIT',
+    desc: 'DEA paperwork trail. Cannot skip.',
+    station: 'verify',
+    duration: 12,
+    effects: { queue: -2, rage: -1, burnout: 10 },
+    ignoreEffects: { burnout: 8, rage: 4 },
+    canDefer: false,
+    isEscalated: true,
+  },
+  refund_manager: {
+    id: 'refund_manager',
+    title: 'WANTS A MANAGER',
+    desc: '"Get me your supervisor. NOW."',
+    station: 'pickup',
+    duration: 9,
+    effects: { queue: -4, rage: -12, burnout: 6 },
+    ignoreEffects: { rage: 10 },
+    canDefer: false,
+    isEscalated: true,
+  },
   delivery_angry: {
     id: 'delivery_angry',
     title: 'DELIVERY FURIOUS',
@@ -458,6 +546,12 @@ export function getRandomEventAny(phaseName) {
 
   if (Math.random() < interruptChance) {
     const pool = EVENT_POOL.interrupt;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Rare positive event (8% chance, not in opening or lunch)
+  if (Math.random() < 0.08 && phaseName !== 'OPENING' && phaseName !== 'LUNCH_CLOSE') {
+    const pool = EVENT_POOL.positive;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 

@@ -152,8 +152,8 @@ export const DIFFICULTY = {
 };
 
 // ========== COMBO ==========
-export const COMBO_WINDOW = 8; // seconds to chain another handle for combo
-export const COMBO_BONUS_PER_STACK = 1.5; // extra meter relief per combo stack
+export const COMBO_WINDOW = 10; // seconds to chain another handle for combo
+export const COMBO_BONUS_PER_STACK = 2.5; // extra meter relief per combo stack
 
 // ========== RESULTS ==========
 export const WIN_TITLES = [

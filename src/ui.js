@@ -139,10 +139,13 @@ export class UI {
     if (this.activeCards.has(event.uid)) return;
 
     const card = document.createElement('div');
+    const stationStripe = event.station && !event.isInterrupt ? ` station-${event.station}` : '';
     card.className = 'event-card' +
       (event.isEscalated ? ' escalated' : '') +
       (event.isPipeline ? ' pipeline-card' : '') +
-      (event.isInterrupt ? ' interrupt-card' : '');
+      (event.isInterrupt ? ' interrupt-card' : '') +
+      (event.isPositive ? ' positive-card' : '') +
+      stationStripe;
     card.dataset.uid = event.uid;
 
     const stationClass = event.isInterrupt ? 'interrupt' :
@@ -246,6 +249,14 @@ export class UI {
   clearCards() {
     this.cardContainer.innerHTML = '';
     this.activeCards.clear();
+  }
+
+  setCardsBusy(isBusy) {
+    const btns = this.cardContainer.querySelectorAll('.btn-handle, .btn-rush');
+    for (const btn of btns) {
+      btn.disabled = isBusy;
+      btn.style.opacity = isBusy ? '0.4' : '1';
+    }
   }
 
   renderEffects(effects) {
