@@ -161,6 +161,14 @@ export class Game {
       });
     });
 
+    // Zoom toggle
+    const zoomBtn = document.getElementById('zoom-btn');
+    zoomBtn.addEventListener('click', () => {
+      Audio.playClick();
+      this.renderer.toggleOverview();
+      zoomBtn.textContent = this.renderer.manualOverview ? '🔎' : '🔍';
+    });
+
     // Mute
     const muteBtn = document.getElementById('mute-btn');
     muteBtn.addEventListener('click', () => {
@@ -270,7 +278,7 @@ export class Game {
     const avgMeter = (this.meters.queue + this.meters.rage + this.meters.burnout) / 3;
     this.pharmacist.stress = Math.min(1, avgMeter / 70);
 
-    this.renderer.updateCamera(this.pharmacist.col, dt);
+    this.renderer.updateCamera(this.pharmacist, dt, this.getState());
     this.renderer.render(this.getState());
 
     this.ui.updateTimer(this.elapsed);
@@ -572,6 +580,17 @@ export class Game {
       (ev) => this.deferEvent(ev),
       (ev) => this.rushEvent(ev)
     );
+
+    // Auto-peek if event spawns far from pharmacist (off-screen drama)
+    const station = STATIONS[event.station];
+    if (station) {
+      const dx = station.col - this.pharmacist.col;
+      const dy = station.row - this.pharmacist.row;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 6) {
+        this.renderer.peek(1.5);
+      }
+    }
   }
 
   handleEvent(event) {
@@ -701,6 +720,7 @@ export class Game {
 
         Audio.playEscalation();
         this.renderer.shake(3);
+        this.renderer.peek(2.0); // Longer peek for escalations
         this.renderer.spawnParticles(
           STATIONS[escalated.station].col,
           STATIONS[escalated.station].row,

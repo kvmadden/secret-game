@@ -1,20 +1,44 @@
 /**
- * Canvas rendering - pharmacy view with camera follow.
+ * Canvas rendering — dynamic camera with zoom in/out.
+ *
+ * Camera modes:
+ *  - FOLLOW: zoomed in on pharmacist (~2.5x), smooth tracking
+ *  - OVERVIEW: zoomed out to show full map, triggered by button or auto
+ *  - PEEK: brief auto-zoom-out when events spawn off-screen
  */
 
-import { TILE_SIZE, MAP_COLS, MAP_ROWS, STATIONS, PATIENT_BARKS } from './constants.js';
+import { TILE_SIZE, MAP_COLS, MAP_ROWS, STATIONS } from './constants.js';
 import { renderMap } from './map.js';
 import { Sprites } from './sprites.js';
+
+const FOLLOW_ZOOM = 2.8;   // Zoomed-in scale (pharmacist detail view)
+const OVERVIEW_ZOOM = 0;    // 0 means "fit to screen" — calculated at resize
+const PEEK_DURATION = 1.8;  // How long auto-peek lasts
+const CAMERA_EASE = 3.5;    // Higher = snappier camera
 
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.mapCanvas = null;
-    this.cameraX = 0;
-    this.targetCameraX = 0;
-    this.scale = 2;
     this.dpr = window.devicePixelRatio || 1;
+
+    // Camera state
+    this.camX = 0;           // Current camera center (tile-space)
+    this.camY = 0;
+    this.camZoom = FOLLOW_ZOOM;
+    this.targetX = 0;
+    this.targetY = 0;
+    this.targetZoom = FOLLOW_ZOOM;
+    this.fitZoom = 1;        // Calculated: scale that fits full map on screen
+
+    // Camera mode
+    this.mode = 'FOLLOW';    // FOLLOW | OVERVIEW | PEEK
+    this.peekTimer = 0;
+    this.manualOverview = false;
+
+    // Off-screen event indicators
+    this.offScreenEvents = [];
 
     // Completion flash effects
     this.flashes = [];
@@ -42,16 +66,40 @@ export class Renderer {
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
 
-    // Fit entire map on screen — no scrolling needed
+    // Calculate the zoom level that fits the full map
     const mapPixelW = MAP_COLS * TILE_SIZE;
     const mapPixelH = MAP_ROWS * TILE_SIZE;
     const scaleX = this.canvas.width / mapPixelW;
     const scaleY = this.canvas.height / mapPixelH;
-    this.scale = Math.min(scaleX, scaleY);
+    this.fitZoom = Math.min(scaleX, scaleY) / this.dpr;
 
-    // Center the map if there's extra space
-    this.offsetX = (this.canvas.width - mapPixelW * this.scale) / 2;
-    this.offsetY = (this.canvas.height - mapPixelH * this.scale) / 2;
+    // Initialize camera to center of map
+    this.camX = MAP_COLS * TILE_SIZE / 2;
+    this.camY = MAP_ROWS * TILE_SIZE / 2;
+  }
+
+  // ========== CAMERA CONTROL ==========
+
+  setOverview(enabled) {
+    this.manualOverview = enabled;
+    if (enabled) {
+      this.mode = 'OVERVIEW';
+    } else if (this.peekTimer > 0) {
+      this.mode = 'PEEK';
+    } else {
+      this.mode = 'FOLLOW';
+    }
+  }
+
+  toggleOverview() {
+    this.setOverview(!this.manualOverview);
+  }
+
+  // Auto-peek: briefly zoom out to show something happening off-screen
+  peek(duration) {
+    if (this.manualOverview) return; // Already showing everything
+    this.peekTimer = duration || PEEK_DURATION;
+    this.mode = 'PEEK';
   }
 
   flashComplete(col, row) {
@@ -81,18 +129,97 @@ export class Renderer {
     }
   }
 
-  updateCamera(pharmacistCol, dt) {
-    // Portrait mode: entire map visible, no camera movement needed
-    // Camera offset stays at 0 — map is centered via offsetX/offsetY
+  updateCamera(pharmacist, dt, gameState) {
+    // Peek timer countdown
+    if (this.peekTimer > 0) {
+      this.peekTimer -= dt;
+      if (this.peekTimer <= 0 && !this.manualOverview) {
+        this.mode = 'FOLLOW';
+      }
+    }
+
+    // Determine target based on mode
+    const mapCenterX = MAP_COLS * TILE_SIZE / 2;
+    const mapCenterY = MAP_ROWS * TILE_SIZE / 2;
+    const pharmX = pharmacist.col * TILE_SIZE + 8;
+    const pharmY = pharmacist.row * TILE_SIZE + 8;
+
+    switch (this.mode) {
+      case 'FOLLOW':
+        this.targetX = pharmX;
+        this.targetY = pharmY;
+        this.targetZoom = FOLLOW_ZOOM;
+        break;
+
+      case 'OVERVIEW':
+        this.targetX = mapCenterX;
+        this.targetY = mapCenterY;
+        this.targetZoom = this.fitZoom;
+        break;
+
+      case 'PEEK': {
+        // Zoom out enough to show the pharmacy, but not as far as full overview
+        const peekZoom = (FOLLOW_ZOOM + this.fitZoom) / 2;
+        this.targetX = mapCenterX;
+        this.targetY = mapCenterY;
+        this.targetZoom = peekZoom;
+        break;
+      }
+    }
+
+    // Smooth easing
+    const ease = 1 - Math.exp(-CAMERA_EASE * dt);
+    this.camX += (this.targetX - this.camX) * ease;
+    this.camY += (this.targetY - this.camY) * ease;
+    this.camZoom += (this.targetZoom - this.camZoom) * ease;
+
+    // Build off-screen events list for indicators
+    this.updateOffScreenEvents(gameState);
+  }
+
+  updateOffScreenEvents(gameState) {
+    this.offScreenEvents = [];
+    if (!gameState || !gameState.stationManager) return;
+
+    const screenW = this.canvas.width / this.dpr;
+    const screenH = this.canvas.height / this.dpr;
+    const halfW = screenW / (2 * this.camZoom);
+    const halfH = screenH / (2 * this.camZoom);
+
+    for (const station of gameState.stationManager.getAll()) {
+      if (!station.hasEvent) continue;
+
+      const sx = station.col * TILE_SIZE + 8;
+      const sy = station.row * TILE_SIZE + 8;
+
+      // Check if station is off-screen
+      const relX = sx - this.camX;
+      const relY = sy - this.camY;
+
+      if (Math.abs(relX) > halfW + 8 || Math.abs(relY) > halfH + 8) {
+        // Calculate edge position for indicator
+        const angle = Math.atan2(relY, relX);
+        const edgeX = Math.cos(angle) * Math.min(Math.abs(relX), halfW - 10);
+        const edgeY = Math.sin(angle) * Math.min(Math.abs(relY), halfH - 10);
+
+        this.offScreenEvents.push({
+          screenX: screenW / 2 + edgeX * this.camZoom,
+          screenY: screenH / 2 + edgeY * this.camZoom,
+          color: station.color,
+          urgency: station.urgency,
+          angle,
+        });
+      }
+    }
   }
 
   render(gameState) {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
-    const dt = 1 / 60; // Approximate for flash decay
+    const dt = 1 / 60;
 
-    ctx.fillStyle = '#2a2a3a';
+    ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0, 0, w, h);
 
     // Screen shake
@@ -100,53 +227,27 @@ export class Renderer {
     if (this.shakeDecay > 0) {
       this.shakeDecay -= dt;
       const intensity = this.shakeIntensity * Math.max(0, this.shakeDecay / 0.4);
-      shakeX = (Math.random() - 0.5) * intensity * this.scale;
-      shakeY = (Math.random() - 0.5) * intensity * this.scale;
+      shakeX = (Math.random() - 0.5) * intensity * this.camZoom * this.dpr;
+      shakeY = (Math.random() - 0.5) * intensity * this.camZoom * this.dpr;
       if (this.shakeDecay <= 0) this.shakeIntensity = 0;
     }
 
+    // Camera transform: center on camX/camY at camZoom
+    const scale = this.camZoom * this.dpr;
+    const tx = w / 2 - this.camX * scale + shakeX;
+    const ty = h / 2 - this.camY * scale + shakeY;
+
     ctx.save();
-    ctx.translate((this.offsetX || 0) + shakeX, (this.offsetY || 0) + shakeY);
-    ctx.scale(this.scale, this.scale);
+    ctx.translate(tx, ty);
+    ctx.scale(scale, scale);
 
     // Draw map
     if (this.mapCanvas) {
       ctx.drawImage(this.mapCanvas, 0, 0);
     }
 
-    // Store area — warmer retail lighting
-    ctx.fillStyle = 'rgba(255, 240, 200, 0.04)';
-    ctx.fillRect(0, 0, 14 * TILE_SIZE, 2 * TILE_SIZE);
-
-    // Customer area — slightly exposed, public
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.04)';
-    ctx.fillRect(0, 2 * TILE_SIZE, 14 * TILE_SIZE, 5 * TILE_SIZE);
-
-    // Counter surface highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.fillRect(0, 7 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
-
-    // Fluorescent lighting — workspace band
-    ctx.fillStyle = 'rgba(255, 255, 240, 0.06)';
-    ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, 5 * TILE_SIZE);
-
-    // Back shelf area darker
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.08)';
-    ctx.fillRect(0, 14 * TILE_SIZE, 13 * TILE_SIZE, 6 * TILE_SIZE);
-
-    // Counter shadow on workspace
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-    ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
-
-    // Meter-based ambient tint — pharmacy gets redder as rage/burnout climb
-    if (gameState.meters) {
-      const urgency = Math.max(gameState.meters.rage, gameState.meters.burnout) / 100;
-      if (urgency > 0.5) {
-        const alpha = (urgency - 0.5) * 0.08;
-        ctx.fillStyle = `rgba(255, 50, 0, ${alpha})`;
-        ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE);
-      }
-    }
+    // Lighting zones
+    this.renderLighting(ctx, gameState);
 
     // Draw phone (animated if ringing)
     this.renderPhone(ctx, gameState);
@@ -175,12 +276,110 @@ export class Renderer {
 
     ctx.restore();
 
-    // Lunch overlay darkening
+    // Lunch overlay darkening (screen-space)
     if (gameState.phase === 'LUNCH_CLOSE') {
       ctx.fillStyle = 'rgba(10, 10, 20, 0.4)';
       ctx.fillRect(0, 0, w, h);
     }
+
+    // Off-screen event indicators (screen-space)
+    this.renderOffScreenIndicators(ctx);
+
+    // Zoom mode indicator
+    this.renderZoomHint(ctx, gameState);
   }
+
+  // ========== LIGHTING ==========
+
+  renderLighting(ctx, gameState) {
+    // Store area — warmer retail lighting
+    ctx.fillStyle = 'rgba(255, 240, 200, 0.04)';
+    ctx.fillRect(0, 0, 14 * TILE_SIZE, 2 * TILE_SIZE);
+
+    // Customer area — slightly exposed
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.04)';
+    ctx.fillRect(0, 2 * TILE_SIZE, 14 * TILE_SIZE, 5 * TILE_SIZE);
+
+    // Counter surface highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.fillRect(0, 7 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
+
+    // Fluorescent lighting — workspace band
+    ctx.fillStyle = 'rgba(255, 255, 240, 0.06)';
+    ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, 5 * TILE_SIZE);
+
+    // Back shelf area darker
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.08)';
+    ctx.fillRect(0, 14 * TILE_SIZE, 13 * TILE_SIZE, 6 * TILE_SIZE);
+
+    // Counter shadow on workspace
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+    ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
+
+    // Meter-based ambient tint
+    if (gameState.meters) {
+      const urgency = Math.max(gameState.meters.rage, gameState.meters.burnout) / 100;
+      if (urgency > 0.5) {
+        const alpha = (urgency - 0.5) * 0.08;
+        ctx.fillStyle = `rgba(255, 50, 0, ${alpha})`;
+        ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+      }
+    }
+  }
+
+  // ========== OFF-SCREEN INDICATORS ==========
+
+  renderOffScreenIndicators(ctx) {
+    if (this.offScreenEvents.length === 0) return;
+
+    for (const evt of this.offScreenEvents) {
+      const sx = evt.screenX * this.dpr;
+      const sy = evt.screenY * this.dpr;
+
+      // Pulsing arrow pointing toward the off-screen event
+      ctx.save();
+      ctx.translate(sx, sy);
+      ctx.rotate(evt.angle);
+
+      // Arrow
+      const size = evt.urgency >= 2 ? 12 : 8;
+      ctx.fillStyle = evt.color;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(size, 0);
+      ctx.lineTo(-size / 2, -size / 2);
+      ctx.lineTo(-size / 2, size / 2);
+      ctx.closePath();
+      ctx.fill();
+
+      // Urgency ring
+      if (evt.urgency >= 1) {
+        ctx.strokeStyle = evt.urgency >= 2 ? '#ff4444' : evt.color;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.arc(0, 0, size + 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+  }
+
+  // ========== ZOOM HINT ==========
+
+  renderZoomHint(ctx, gameState) {
+    // Small indicator showing current zoom mode
+    if (this.mode === 'OVERVIEW') {
+      ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+      ctx.font = `${10 * this.dpr}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText('OVERVIEW', this.canvas.width / 2, this.canvas.height - 8 * this.dpr);
+    }
+  }
+
+  // ========== ENTITIES ==========
 
   renderPhone(ctx, state) {
     const phoneStation = STATIONS.phone;
@@ -191,12 +390,10 @@ export class Renderer {
     const phoneSprite = Sprites.phone(ringing);
 
     if (ringing) {
-      // Vibration offset
       const vx = Math.sin(state.time * 30) * 1;
       const vy = Math.cos(state.time * 25) * 0.5;
       ctx.drawImage(phoneSprite, px + vx, py + vy);
 
-      // Ring waves
       ctx.strokeStyle = `rgba(255, 136, 0, ${0.3 + Math.sin(state.time * 8) * 0.2})`;
       ctx.lineWidth = 0.5;
       const ringRadius = 8 + Math.sin(state.time * 6) * 4;
@@ -216,7 +413,6 @@ export class Renderer {
       const carColors = ['#4466aa', '#aa4444', '#44aa66'];
       for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
         const car = Sprites.car(carColors[i % carColors.length]);
-        // Cars queue vertically in the drive lane
         const bob = Math.sin(state.time * 2 + i * 1.5) * 0.3;
         ctx.drawImage(car,
           14 * TILE_SIZE,
@@ -248,13 +444,11 @@ export class Renderer {
       ctx.fill();
 
       const progress = pharm.workTimer / pharm.workDuration;
-      // Background arc
       ctx.strokeStyle = 'rgba(0, 212, 255, 0.15)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 11, 0, Math.PI * 2);
       ctx.stroke();
-      // Progress arc
       ctx.strokeStyle = progress > 0.8 ? '#44ff88' : '#00d4ff';
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
@@ -292,14 +486,11 @@ export class Renderer {
       const px = patient.col * TILE_SIZE;
       const py = patient.row * TILE_SIZE;
 
-      // Apply opacity for fade out
       if (patient.opacity !== undefined && patient.opacity < 1) {
         ctx.globalAlpha = Math.max(0, patient.opacity);
       }
 
-      // Angry bobbing
       const bob = emotionLevel >= 2 ? Math.sin(state.time * 8 + patient.id) * 1 : 0;
-      // Walking bob
       const walkBob = patient.walking ? Math.sin(state.time * 10) * 0.5 : 0;
 
       ctx.drawImage(sprite, px, py - 4 + bob + walkBob);
@@ -325,7 +516,6 @@ export class Renderer {
       const px = patient.col * TILE_SIZE;
       const py = patient.row * TILE_SIZE;
 
-      // Fade in/out
       const fadeIn = Math.min(1, (3 - patient.bubbleTimer + 0.01) * 4);
       const fadeOut = Math.min(1, patient.bubbleTimer * 3);
       ctx.globalAlpha = Math.min(fadeIn, fadeOut);
@@ -342,9 +532,7 @@ export class Renderer {
       const px = station.col * TILE_SIZE;
       const py = station.row * TILE_SIZE;
 
-      // Pulsing exclamation
       const pulse = 0.5 + Math.sin(state.time * 6) * 0.3;
-
       ctx.globalAlpha = pulse;
       ctx.fillStyle = station.color;
       ctx.font = 'bold 10px monospace';
@@ -352,7 +540,6 @@ export class Renderer {
       ctx.fillText('!', px + 8, py - 2);
       ctx.globalAlpha = 1;
 
-      // Urgency ring
       if (station.urgency > 0) {
         const ringColor = station.urgency >= 2 ? '#ff4444' : '#ffaa00';
         const ringAlpha = 0.3 + Math.sin(state.time * 4) * 0.2;
@@ -364,7 +551,6 @@ export class Renderer {
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // Urgency level 2: inner ring too
         if (station.urgency >= 2) {
           ctx.strokeStyle = '#ff0000';
           ctx.globalAlpha = 0.2;
@@ -388,7 +574,7 @@ export class Renderer {
 
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 40 * dt; // gravity
+      p.vy += 40 * dt;
 
       const alpha = Math.min(1, p.life / (p.maxLife * 0.5));
       ctx.globalAlpha = alpha;
@@ -412,7 +598,6 @@ export class Renderer {
       const px = flash.col * TILE_SIZE + 8;
       const py = flash.row * TILE_SIZE + 4;
 
-      // Expanding green circle that fades
       const radius = 4 + progress * 16;
       const alpha = (1 - progress) * 0.4;
 
@@ -421,7 +606,6 @@ export class Renderer {
       ctx.arc(px, py, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Inner bright spark
       if (progress < 0.3) {
         ctx.fillStyle = `rgba(255, 255, 255, ${(0.3 - progress) * 2})`;
         ctx.beginPath();
@@ -429,7 +613,6 @@ export class Renderer {
         ctx.fill();
       }
 
-      // Checkmark
       if (progress > 0.1 && progress < 0.7) {
         ctx.strokeStyle = `rgba(68, 255, 136, ${(0.7 - progress) * 1.5})`;
         ctx.lineWidth = 1.5;
