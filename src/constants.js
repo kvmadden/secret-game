@@ -47,20 +47,22 @@ export const TILE_SIZE = 16;
 export const SCALE = 2;
 
 // ========== PHARMACY MAP DIMENSIONS (in tiles) ==========
-export const MAP_COLS = 40; // Wide pharmacy
-export const MAP_ROWS = 14; // Shallow
+// Portrait-friendly compressed board: everything visible at once
+export const MAP_COLS = 16;
+export const MAP_ROWS = 20;
 
 // ========== STATION POSITIONS (tile coords) ==========
+// Three-band layout: public (top), workspace (middle), drive (side)
 export const STATIONS = {
-  verify:  { col: 4,  row: 8, label: 'VERIFICATION', color: COLORS.VERIFY, icon: '💊' },
-  pickup:  { col: 10, row: 6, label: 'PICK UP',      color: COLORS.PICKUP, icon: '🛍' },
-  consult: { col: 17, row: 6, label: 'CONSULT',      color: COLORS.CONSULT, icon: '💬' },
-  phone:   { col: 24, row: 8, label: 'PHONE',        color: COLORS.PHONE, icon: '📞' },
-  drive:   { col: 35, row: 6, label: 'DRIVE THRU',   color: COLORS.DRIVE, icon: '🚗' },
+  pickup:  { col: 3,  row: 8,  label: 'PICK UP',      color: COLORS.PICKUP,  icon: '🛍' },
+  consult: { col: 10, row: 8,  label: 'CONSULT',      color: COLORS.CONSULT, icon: '💬' },
+  verify:  { col: 6,  row: 12, label: 'VERIFY',       color: COLORS.VERIFY,  icon: '💊' },
+  phone:   { col: 2,  row: 13, label: 'PHONE',        color: COLORS.PHONE,   icon: '📞' },
+  drive:   { col: 13, row: 12, label: 'DRIVE THRU',   color: COLORS.DRIVE,   icon: '🚗' },
 };
 
-// Pharmacist spawn position
-export const PHARMACIST_START = { col: 14, row: 9 };
+// Pharmacist spawn position (center of workspace)
+export const PHARMACIST_START = { col: 7, row: 11 };
 
 // ========== METER SETTINGS ==========
 export const METER_MAX = 100;

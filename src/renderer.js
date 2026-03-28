@@ -42,9 +42,16 @@ export class Renderer {
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
 
+    // Fit entire map on screen — no scrolling needed
+    const mapPixelW = MAP_COLS * TILE_SIZE;
     const mapPixelH = MAP_ROWS * TILE_SIZE;
-    this.scale = (this.canvas.height / mapPixelH);
-    if (this.scale < 1.5) this.scale = 1.5;
+    const scaleX = this.canvas.width / mapPixelW;
+    const scaleY = this.canvas.height / mapPixelH;
+    this.scale = Math.min(scaleX, scaleY);
+
+    // Center the map if there's extra space
+    this.offsetX = (this.canvas.width - mapPixelW * this.scale) / 2;
+    this.offsetY = (this.canvas.height - mapPixelH * this.scale) / 2;
   }
 
   flashComplete(col, row) {
@@ -75,14 +82,8 @@ export class Renderer {
   }
 
   updateCamera(pharmacistCol, dt) {
-    const mapPixelW = MAP_COLS * TILE_SIZE * this.scale;
-    const screenW = this.canvas.width;
-
-    this.targetCameraX = pharmacistCol * TILE_SIZE * this.scale - screenW / 2;
-    this.targetCameraX = Math.max(0, Math.min(this.targetCameraX, mapPixelW - screenW));
-
-    const ease = 1 - Math.pow(0.05, dt);
-    this.cameraX += (this.targetCameraX - this.cameraX) * ease;
+    // Portrait mode: entire map visible, no camera movement needed
+    // Camera offset stays at 0 — map is centered via offsetX/offsetY
   }
 
   render(gameState) {
@@ -105,7 +106,7 @@ export class Renderer {
     }
 
     ctx.save();
-    ctx.translate(-Math.round(this.cameraX) + shakeX, shakeY);
+    ctx.translate((this.offsetX || 0) + shakeX, (this.offsetY || 0) + shakeY);
     ctx.scale(this.scale, this.scale);
 
     // Draw map
@@ -113,23 +114,29 @@ export class Renderer {
       ctx.drawImage(this.mapCanvas, 0, 0);
     }
 
-    // Darken customer area slightly (different lighting zone)
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.06)';
-    ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, 4 * TILE_SIZE);
+    // Store area — warmer retail lighting
+    ctx.fillStyle = 'rgba(255, 240, 200, 0.04)';
+    ctx.fillRect(0, 0, 14 * TILE_SIZE, 2 * TILE_SIZE);
 
-    // Fluorescent lighting — bright band on workspace
-    ctx.fillStyle = 'rgba(255, 255, 240, 0.06)';
-    ctx.fillRect(0, 7 * TILE_SIZE, MAP_COLS * TILE_SIZE, 3 * TILE_SIZE);
-    // Strong highlight on counter surface
+    // Customer area — slightly exposed, public
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.04)';
+    ctx.fillRect(0, 2 * TILE_SIZE, 14 * TILE_SIZE, 5 * TILE_SIZE);
+
+    // Counter surface highlight
     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.fillRect(0, 4 * TILE_SIZE, 33 * TILE_SIZE, 2 * TILE_SIZE);
-    // Back shelf area is darker
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.08)';
-    ctx.fillRect(0, 10 * TILE_SIZE, MAP_COLS * TILE_SIZE, 4 * TILE_SIZE);
+    ctx.fillRect(0, 7 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
 
-    // Cast shadow from counter onto workspace floor
+    // Fluorescent lighting — workspace band
+    ctx.fillStyle = 'rgba(255, 255, 240, 0.06)';
+    ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, 5 * TILE_SIZE);
+
+    // Back shelf area darker
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.08)';
+    ctx.fillRect(0, 14 * TILE_SIZE, 13 * TILE_SIZE, 6 * TILE_SIZE);
+
+    // Counter shadow on workspace
     ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-    ctx.fillRect(0, 7 * TILE_SIZE, 33 * TILE_SIZE, TILE_SIZE);
+    ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
 
     // Meter-based ambient tint — pharmacy gets redder as rage/burnout climb
     if (gameState.meters) {
@@ -206,15 +213,14 @@ export class Renderer {
 
   renderDriveThruCars(ctx, state) {
     if (state.driveThruCars > 0) {
-      const driveStation = STATIONS.drive;
       const carColors = ['#4466aa', '#aa4444', '#44aa66'];
       for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
         const car = Sprites.car(carColors[i % carColors.length]);
-        // Cars idle-bob slightly
+        // Cars queue vertically in the drive lane
         const bob = Math.sin(state.time * 2 + i * 1.5) * 0.3;
         ctx.drawImage(car,
-          (driveStation.col - 1) * TILE_SIZE,
-          (1 + i * 1.5) * TILE_SIZE + bob
+          14 * TILE_SIZE,
+          (8 + i * 2) * TILE_SIZE + bob
         );
       }
     }

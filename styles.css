@@ -140,8 +140,8 @@ html, body {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  background: #2a2a3a;
-  max-height: 50%;
+  background: #1a1a2e;
+  max-height: 55%;
 }
 
 #pharmacy-canvas {
@@ -191,8 +191,8 @@ html, body {
 /* ========== ZONE 3: ACTION CARDS ========== */
 #action-zone {
   flex-shrink: 0;
-  min-height: 35%;
-  max-height: 50%;
+  min-height: 30%;
+  max-height: 45%;
   background: #12121f;
   border-top: 2px solid #2a2a4a;
   overflow-y: auto;

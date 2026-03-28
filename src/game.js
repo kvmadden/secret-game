@@ -900,15 +900,17 @@ export class Game {
     const offset = existing.length * 1.5;
 
     const targetCol = station.col + offset + (Math.random() * 0.5 - 0.25);
-    const targetRow = stationKey === 'drive' ? 2 : 3;
+    // Patients stand in the customer approach area (rows 4-6)
+    const targetRow = stationKey === 'drive' ? 5 : 5 + (existing.length * 0.5);
 
-    // Walk in from edge
-    const startCol = stationKey === 'drive' ? 39 : (Math.random() > 0.5 ? -1 : 20);
+    // Walk in from the top (portrait mode) or right for drive-thru
+    const startCol = stationKey === 'drive' ? 15 : targetCol;
+    const startRow = stationKey === 'drive' ? -1 : -1;
 
     const patient = {
       id: this.nextPatientId++,
       col: startCol,
-      row: targetRow,
+      row: startRow,
       targetCol,
       targetRow,
       walking: true,
@@ -955,17 +957,19 @@ export class Game {
         continue;
       }
 
-      // Walk to station
+      // Walk to station (vertical + horizontal)
       if (patient.walking) {
         const dx = patient.targetCol - patient.col;
-        const dist = Math.abs(dx);
+        const dy = patient.targetRow - patient.row;
+        const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 0.2) {
           patient.col = patient.targetCol;
           patient.row = patient.targetRow;
           patient.walking = false;
         } else {
           const speed = 4 * dt;
-          patient.col += Math.sign(dx) * speed;
+          patient.col += (dx / dist) * speed;
+          patient.row += (dy / dist) * speed;
         }
         continue;
       }
