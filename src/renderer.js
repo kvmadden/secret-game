@@ -49,6 +49,10 @@ export class Renderer {
 
     // Particles
     this.particles = [];
+
+    // Lunch gate animation (0 = open, 1 = fully closed)
+    this.gateProgress = 0;
+    this.gateTarget = 0;
   }
 
   init(tileMap) {
@@ -79,6 +83,10 @@ export class Renderer {
   }
 
   // ========== CAMERA CONTROL ==========
+
+  setGate(closed) {
+    this.gateTarget = closed ? 1 : 0;
+  }
 
   setOverview(enabled) {
     this.manualOverview = enabled;
@@ -172,6 +180,10 @@ export class Renderer {
     this.camX += (this.targetX - this.camX) * ease;
     this.camY += (this.targetY - this.camY) * ease;
     this.camZoom += (this.targetZoom - this.camZoom) * ease;
+
+    // Gate animation
+    const gateEase = 1 - Math.exp(-2 * dt);
+    this.gateProgress += (this.gateTarget - this.gateProgress) * gateEase;
 
     // Build off-screen events list for indicators
     this.updateOffScreenEvents(gameState);
@@ -270,6 +282,9 @@ export class Renderer {
 
     // Draw speech bubbles (on top of everything)
     this.renderBubbles(ctx, gameState, sortedPatients);
+
+    // Draw lunch gate (on top of counter, below UI)
+    this.renderLunchGate(ctx, gameState);
 
     // Draw station urgency indicators
     this.renderStationIndicators(ctx, gameState);
@@ -607,7 +622,7 @@ export class Renderer {
     for (const patient of sortedPatients) {
       if (!patient.visible) continue;
 
-      const emotionLevel = patient.patience < 0.3 ? 2 : patient.patience < 0.6 ? 1 : 0;
+      const emotionLevel = patient.stormingOut ? 2 : patient.patience < 0.3 ? 2 : patient.patience < 0.6 ? 1 : 0;
       const sprite = Sprites.patient(patient.paletteIndex, emotionLevel);
 
       const px = patient.col * TILE_SIZE;
@@ -685,6 +700,65 @@ export class Renderer {
       ctx.drawImage(bubble, px - bubble.width / 2 + 8, py - bubble.height - 6);
       ctx.globalAlpha = 1;
     }
+  }
+
+  renderLunchGate(ctx, state) {
+    if (this.gateProgress < 0.01) return;
+
+    const gateWidth = 13 * TILE_SIZE; // Counter width
+    const gateHeight = 2 * TILE_SIZE; // Two tiles tall
+    const gateX = 0;
+    const gateY = 7 * TILE_SIZE - gateHeight * this.gateProgress + gateHeight;
+
+    // Only draw the visible portion
+    const visibleH = gateHeight * this.gateProgress;
+    if (visibleH < 0.5) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(gateX, 7 * TILE_SIZE, gateWidth, gateHeight);
+    ctx.clip();
+
+    // Metal gate slats
+    const slotColor = '#7a7268';
+    const slotHighlight = '#8a8278';
+    const slotShadow = '#5a5248';
+
+    for (let sy = 0; sy < visibleH; sy += 3) {
+      const slotY = gateY + sy;
+      ctx.fillStyle = slotColor;
+      ctx.fillRect(gateX, slotY, gateWidth, 2.5);
+      ctx.fillStyle = slotHighlight;
+      ctx.fillRect(gateX, slotY, gateWidth, 0.5);
+      ctx.fillStyle = slotShadow;
+      ctx.fillRect(gateX, slotY + 2, gateWidth, 0.5);
+    }
+
+    // Vertical supports
+    ctx.fillStyle = '#6a6258';
+    ctx.fillRect(gateX, gateY, 2, visibleH);
+    ctx.fillRect(gateX + gateWidth - 2, gateY, 2, visibleH);
+    ctx.fillRect(gateX + gateWidth / 2 - 1, gateY, 2, visibleH);
+
+    // Handle at bottom
+    if (this.gateProgress > 0.5) {
+      ctx.fillStyle = '#4a4238';
+      ctx.fillRect(gateX + gateWidth / 2 - 4, gateY + visibleH - 3, 8, 2);
+      ctx.fillStyle = '#8a7a68';
+      ctx.fillRect(gateX + gateWidth / 2 - 3, gateY + visibleH - 2.5, 6, 1);
+    }
+
+    // "CLOSED" text when mostly shut
+    if (this.gateProgress > 0.8) {
+      ctx.fillStyle = '#cc2233';
+      ctx.font = 'bold 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = Math.min(1, (this.gateProgress - 0.8) * 5);
+      ctx.fillText('CLOSED FOR LUNCH', gateX + gateWidth / 2, gateY + visibleH / 2 + 2);
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
   }
 
   renderStationIndicators(ctx, state) {

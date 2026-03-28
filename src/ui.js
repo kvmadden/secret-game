@@ -281,18 +281,33 @@ export class UI {
 
   showPhaseAnnounce(label) {
     if (!this.phaseAnnounce) return;
-    this.phaseAnnounce.textContent = label;
-    this.phaseAnnounce.style.display = 'block';
+
+    const flavorText = {
+      'Opening': 'First customers arriving...',
+      'Building': 'Scripts piling up. Stay sharp.',
+      'Reopen Rush': 'They\'ve been waiting.',
+      'REOPEN RUSH': 'They\'ve been waiting.',
+      'Late Drag': 'Almost there. Hold it together.',
+    };
+
+    const flavor = flavorText[label] || '';
+    this.phaseAnnounce.innerHTML = `<div class="phase-label">${label.toUpperCase()}</div>${flavor ? `<div class="phase-flavor">${flavor}</div>` : ''}`;
+    this.phaseAnnounce.style.display = 'flex';
     this.phaseAnnounce.style.opacity = '1';
-    this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1)';
+    this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(0.8)';
+
+    // Pop in
+    requestAnimationFrame(() => {
+      this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
 
     setTimeout(() => {
       this.phaseAnnounce.style.opacity = '0';
-      this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1.2)';
-    }, 1500);
+      this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1.1)';
+    }, 2000);
     setTimeout(() => {
       this.phaseAnnounce.style.display = 'none';
-    }, 2000);
+    }, 2500);
   }
 
   hidePhaseAnnounce() {
@@ -350,7 +365,7 @@ export class UI {
     if (won) {
       const pick = WIN_TITLES[Math.floor(Math.random() * WIN_TITLES.length)];
       titleEl.textContent = pick.title;
-      titleEl.style.color = '#44ff88';
+      titleEl.style.color = '#f0d880';
       flavorEl.textContent = pick.flavor;
     } else {
       const info = LOSS_TITLES[lostMeter] || LOSS_TITLES.queue;
@@ -403,13 +418,34 @@ export class UI {
       }, 100);
     });
 
+    // Efficiency rating
+    const totalActions = stats.eventsHandled + stats.scriptsVerified + stats.patientsServed;
+    const totalAttempted = totalActions + stats.eventsDeferred + stats.eventsEscalated;
+    const efficiency = totalAttempted > 0 ? Math.round((totalActions / totalAttempted) * 100) : 0;
+
+    // Shift recap flavor
+    const recapLines = [];
+    if (stats.patientsLost === 0) recapLines.push('No patients walked out.');
+    else if (stats.patientsLost >= 3) recapLines.push(`${stats.patientsLost} patients stormed out. Ouch.`);
+    else recapLines.push(`${stats.patientsLost} patient${stats.patientsLost > 1 ? 's' : ''} lost patience.`);
+
+    if (stats.eventsEscalated === 0) recapLines.push('No escalations. Clean.');
+    else recapLines.push(`${stats.eventsEscalated} event${stats.eventsEscalated > 1 ? 's' : ''} escalated.`);
+
+    if (efficiency >= 90) recapLines.push('Highly efficient shift.');
+    else if (efficiency >= 70) recapLines.push('Solid work under pressure.');
+    else if (efficiency >= 50) recapLines.push('Survived, but barely.');
+
     statsEl.innerHTML = `
+      <div class="stat-section-label">SHIFT RECAP</div>
+      <div class="shift-recap">${recapLines.join(' ')}</div>
+      <div class="stat-section-label">STATS</div>
       <div class="stat-line"><span>Events Handled</span><span>${stats.eventsHandled}</span></div>
       <div class="stat-line"><span>Scripts Verified</span><span>${stats.scriptsVerified}</span></div>
       <div class="stat-line"><span>Patients Served</span><span>${stats.patientsServed}</span></div>
-      <div class="stat-line"><span>Events Deferred</span><span>${stats.eventsDeferred}</span></div>
-      <div class="stat-line"><span>Events Escalated</span><span>${stats.eventsEscalated}</span></div>
-      <div class="stat-line"><span>Patients Lost</span><span>${stats.patientsLost || 0}</span></div>
+      <div class="stat-line"><span>Deferred / Escalated</span><span>${stats.eventsDeferred} / ${stats.eventsEscalated}</span></div>
+      <div class="stat-line"><span>Patients Lost</span><span class="${stats.patientsLost > 0 ? 'stat-bad' : 'stat-good'}">${stats.patientsLost || 0}</span></div>
+      <div class="stat-line stat-highlight"><span>Efficiency</span><span>${efficiency}%</span></div>
     `;
   }
 
@@ -427,6 +463,51 @@ export class UI {
     if (score > 13) return 'B';
     if (score > 6) return 'C';
     return 'D';
+  }
+
+  checkAchievements(won, meters, stats) {
+    const achievements = [];
+
+    // Completion-based
+    if (won) achievements.push({ icon: '🏆', name: 'Shift Survivor', desc: 'Completed a full shift' });
+    if (won && meters.burnout < 20) achievements.push({ icon: '🧘', name: 'Cool Head', desc: 'Won with burnout under 20' });
+    if (won && meters.rage < 20) achievements.push({ icon: '😊', name: 'People Person', desc: 'Won with rage under 20' });
+    if (won && meters.queue < 20 && meters.rage < 20 && meters.burnout < 20)
+      achievements.push({ icon: '⭐', name: 'Flawless Shift', desc: 'All meters under 20' });
+
+    // Stat-based
+    if (stats.eventsHandled >= 15) achievements.push({ icon: '⚡', name: 'Workhorse', desc: 'Handled 15+ events' });
+    if (stats.scriptsVerified >= 10) achievements.push({ icon: '📋', name: 'Verification Pro', desc: 'Verified 10+ scripts' });
+    if (stats.patientsLost === 0 && won) achievements.push({ icon: '💎', name: 'Zero Walkouts', desc: 'No patients lost' });
+    if (stats.eventsDeferred === 0 && won) achievements.push({ icon: '🔥', name: 'No Deferrals', desc: 'Never deferred an event' });
+    if (stats.eventsEscalated === 0 && won) achievements.push({ icon: '🛡', name: 'De-escalator', desc: 'No escalations' });
+
+    // Save new achievements
+    try {
+      const saved = JSON.parse(localStorage.getItem('otb_achievements') || '[]');
+      const savedNames = new Set(saved);
+      const newOnes = achievements.filter(a => !savedNames.has(a.name));
+      for (const a of achievements) savedNames.add(a.name);
+      localStorage.setItem('otb_achievements', JSON.stringify([...savedNames]));
+      return newOnes; // Only return newly unlocked ones
+    } catch (e) {
+      return achievements;
+    }
+  }
+
+  showAchievements(achievements) {
+    if (!achievements || achievements.length === 0) return;
+
+    const container = document.getElementById('results-stats');
+    if (!container) return;
+
+    const html = achievements.map(a =>
+      `<div class="achievement-unlock"><span class="achievement-icon">${a.icon}</span><div><strong>${a.name}</strong><br><span class="achievement-desc">${a.desc}</span></div></div>`
+    ).join('');
+
+    container.insertAdjacentHTML('beforeend',
+      `<div class="stat-section-label" style="margin-top:10px">NEW ACHIEVEMENTS</div>${html}`
+    );
   }
 
   hideResults() {

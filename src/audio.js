@@ -176,6 +176,35 @@ export function stopAmbient() {
   }
 }
 
+// Footstep — soft tap
+let lastFootstepTime = 0;
+export function playFootstep() {
+  const now = Date.now();
+  if (now - lastFootstepTime < 180) return; // Throttle
+  lastFootstepTime = now;
+  tone(100 + Math.random() * 60, 0.03, 'sine', 0.012);
+}
+
+// Patient storm-out — angry stomp
+export function playStormOut() {
+  tone(150, 0.08, 'sawtooth', 0.03);
+  tone(120, 0.1, 'sawtooth', 0.03, 0.08);
+}
+
+// Gate close / open — metal rattling
+export function playGateClose() {
+  for (let i = 0; i < 6; i++) {
+    tone(100 + Math.random() * 80, 0.05, 'sawtooth', 0.015, i * 0.06);
+  }
+  tone(80, 0.3, 'sine', 0.02, 0.35);
+}
+
+export function playGateOpen() {
+  for (let i = 0; i < 4; i++) {
+    tone(120 + Math.random() * 60, 0.04, 'sawtooth', 0.012, i * 0.07);
+  }
+}
+
 // Mute toggle
 export function toggleMute() {
   muted = !muted;

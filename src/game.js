@@ -360,6 +360,8 @@ export class Game {
       Audio.playReopenRush();
       this.state = 'PLAYING';
       this.ui.hideLunch();
+      this.renderer.setGate(false); // Open the gate
+      Audio.playGateOpen();
       this.ui.showPhaseAnnounce('REOPEN RUSH');
       this.meters.queue = Math.min(METER_MAX, this.meters.queue + 15);
       this.meters.rage = Math.min(METER_MAX, this.meters.rage + 8);
@@ -384,6 +386,8 @@ export class Game {
     this.pharmacist.state = 'IDLE';
     this.pharmacist.path = [];
     this.phoneRinging = false;
+    this.renderer.setGate(true); // Close the gate
+    Audio.playGateClose();
   }
 
   // ========== LUNCH ==========
@@ -783,6 +787,7 @@ export class Game {
           pharm.col += (dx / dist) * speed;
           pharm.row += (dy / dist) * speed;
           pharm.facing = dx > 0 ? 'right' : dx < 0 ? 'left' : pharm.facing;
+          Audio.playFootstep();
         }
       } else {
         // Arrived
@@ -964,7 +969,7 @@ export class Game {
   }
 
   removePatientAtStation(stationKey) {
-    const idx = this.patients.findIndex(p => p.station === stationKey && p.visible && !p.fadeOut);
+    const idx = this.patients.findIndex(p => p.station === stationKey && p.visible && !p.fadeOut && !p.stormingOut);
     if (idx >= 0) {
       this.patients[idx].fadeOut = true;
       this.patients[idx].opacity = 1;
@@ -1009,16 +1014,40 @@ export class Game {
       patient.waitTime += dt;
       patient.patience = Math.max(0, patient.patience - dt * 0.025 * this.diff.patienceMult);
 
-      // Patient leaves when patience hits 0
-      if (patient.patience <= 0 && !patient.fadeOut) {
-        patient.fadeOut = true;
+      // Patient leaves when patience hits 0 — storm out
+      if (patient.patience <= 0 && !patient.fadeOut && !patient.stormingOut) {
+        patient.stormingOut = true;
+        patient.stormTarget = { col: patient.col < 8 ? -2 : 17, row: -2 };
         this.stats.patientsLost++;
         this.renderer.shake(2);
+        Audio.playStormOut();
+        // Angry speech bubble
+        patient.showBubble = true;
+        patient.bubbleText = Math.random() < 0.5 ? "I'M LEAVING!" : "UNBELIEVABLE!";
+        patient.bubbleTimer = 2;
+        Audio.playBark();
         // Rage spike when patient leaves angry
         this.meters.rage = Math.min(METER_MAX, this.meters.rage + 4);
         this.meters.queue = Math.min(METER_MAX, this.meters.queue + 2);
+        // Angry particles
+        this.renderer.spawnParticles(patient.col, patient.row, '#ff6644', 4);
         if (!this.tutorialShown.has('leaving')) {
           this.showTutorial('leaving');
+        }
+      }
+
+      // Storm-out walk animation
+      if (patient.stormingOut) {
+        const dx = patient.stormTarget.col - patient.col;
+        const dy = patient.stormTarget.row - patient.row;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.3 || patient.col < -2 || patient.col > 17 || patient.row < -2) {
+          patient.visible = false;
+        } else {
+          const speed = 5 * dt; // Fast angry walk
+          patient.col += (dx / dist) * speed;
+          patient.row += (dy / dist) * speed;
+          patient.walking = true; // For bob animation
         }
         continue;
       }
@@ -1156,11 +1185,19 @@ export class Game {
     this.ui.hideLunch();
     this.ui.hideTutorial();
 
-    this.ui.showResults(won, lostMeter, {
+    const meterSnapshot = {
       queue: this.meters.queue,
       rage: this.meters.rage,
       burnout: this.meters.burnout,
-    }, this.stats);
+    };
+
+    this.ui.showResults(won, lostMeter, meterSnapshot, this.stats);
+
+    // Achievements
+    const newAchievements = this.ui.checkAchievements(won, meterSnapshot, this.stats);
+    if (newAchievements.length > 0) {
+      setTimeout(() => this.ui.showAchievements(newAchievements), 800);
+    }
 
     // Save high score
     const grade = this.ui.calculateGrade(won, this.meters, this.stats);
