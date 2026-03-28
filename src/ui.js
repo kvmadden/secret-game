@@ -214,6 +214,9 @@ export class UI {
       });
     }
 
+    // Staggered entry delay based on current card count
+    card.style.animationDelay = `${cardIndex * 0.05}s`;
+
     this.cardContainer.appendChild(card);
     this.activeCards.set(event.uid, card);
 
@@ -224,9 +227,7 @@ export class UI {
   removeCard(uid) {
     const card = this.activeCards.get(uid);
     if (card) {
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(100px)';
-      card.style.transition = 'opacity 0.2s, transform 0.2s';
+      card.classList.add('card-removing');
       card.style.maxHeight = card.offsetHeight + 'px';
       setTimeout(() => {
         card.style.maxHeight = '0';
@@ -291,6 +292,12 @@ export class UI {
   showPhaseAnnounce(label) {
     if (!this.phaseAnnounce) return;
 
+    // Clear any pending timers
+    if (this._phaseTimers) {
+      this._phaseTimers.forEach(t => clearTimeout(t));
+    }
+    this._phaseTimers = [];
+
     const flavorText = {
       'Opening': 'First customers arriving...',
       'Building': 'Scripts piling up. Stay sharp.',
@@ -299,30 +306,38 @@ export class UI {
       'Late Drag': 'Almost there. Hold it together.',
     };
 
-    // Check if it's a day name
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const flavor = days.includes(label) ? '' : (flavorText[label] || '');
     this.phaseAnnounce.innerHTML = `<div class="phase-label">${label.toUpperCase()}</div>${flavor ? `<div class="phase-flavor">${flavor}</div>` : ''}`;
-    this.phaseAnnounce.style.display = 'flex';
-    this.phaseAnnounce.style.opacity = '1';
-    this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(0.8)';
 
-    // Pop in
-    requestAnimationFrame(() => {
-      this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1)';
-    });
+    // Phase 1: Enter (scale 0.8->1.0 + fade in, 0.4s)
+    this.phaseAnnounce.className = 'phase-enter';
 
-    setTimeout(() => {
-      this.phaseAnnounce.style.opacity = '0';
-      this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1.1)';
-    }, 2000);
-    setTimeout(() => {
+    // Phase 2: Hold (2s with glow pulse)
+    this._phaseTimers.push(setTimeout(() => {
+      this.phaseAnnounce.className = 'phase-hold';
+    }, 400));
+
+    // Phase 3: Exit (scale 1.0->1.1 + fade out, 0.5s)
+    this._phaseTimers.push(setTimeout(() => {
+      this.phaseAnnounce.className = 'phase-exit';
+    }, 2400));
+
+    // Phase 4: Hide
+    this._phaseTimers.push(setTimeout(() => {
+      this.phaseAnnounce.className = '';
       this.phaseAnnounce.style.display = 'none';
-    }, 2500);
+    }, 2900));
   }
 
   hidePhaseAnnounce() {
-    if (this.phaseAnnounce) this.phaseAnnounce.style.display = 'none';
+    if (!this.phaseAnnounce) return;
+    if (this._phaseTimers) {
+      this._phaseTimers.forEach(t => clearTimeout(t));
+      this._phaseTimers = [];
+    }
+    this.phaseAnnounce.className = '';
+    this.phaseAnnounce.style.display = 'none';
   }
 
   // ========== TUTORIAL ==========
@@ -344,28 +359,38 @@ export class UI {
 
   // ========== OVERLAYS ==========
 
+  _showOverlay(el) {
+    if (!el) return;
+    el.classList.add('overlay-visible');
+  }
+
+  _hideOverlay(el) {
+    if (!el) return;
+    el.classList.remove('overlay-visible');
+  }
+
   showTitle() {
-    this.titleScreen.style.display = 'flex';
-    this.lunchOverlay.style.display = 'none';
-    this.resultsScreen.style.display = 'none';
+    this._showOverlay(this.titleScreen);
+    this._hideOverlay(this.lunchOverlay);
+    this._hideOverlay(this.resultsScreen);
   }
 
   hideTitle() {
-    this.titleScreen.style.display = 'none';
+    this._hideOverlay(this.titleScreen);
   }
 
   showLunch(message, sub) {
-    this.lunchOverlay.style.display = 'flex';
+    this._showOverlay(this.lunchOverlay);
     if (message) this.lunchMessage.textContent = message;
     if (sub) this.lunchSub.textContent = sub;
   }
 
   hideLunch() {
-    this.lunchOverlay.style.display = 'none';
+    this._hideOverlay(this.lunchOverlay);
   }
 
   showResults(won, lostMeter, meters, stats, isCampaign = false) {
-    this.resultsScreen.style.display = 'flex';
+    this._showOverlay(this.resultsScreen);
 
     // Hide retry/title buttons during campaign (auto-advances)
     const retryBtn = document.getElementById('retry-btn');
@@ -523,7 +548,7 @@ export class UI {
   }
 
   hideResults() {
-    this.resultsScreen.style.display = 'none';
+    this._hideOverlay(this.resultsScreen);
   }
 
   // ========== COMBO ==========
@@ -544,11 +569,11 @@ export class UI {
   // ========== PAUSE ==========
 
   showPause() {
-    if (this.pauseOverlay) this.pauseOverlay.style.display = 'flex';
+    this._showOverlay(this.pauseOverlay);
   }
 
   hidePause() {
-    if (this.pauseOverlay) this.pauseOverlay.style.display = 'none';
+    this._hideOverlay(this.pauseOverlay);
   }
 
   // ========== HIGH SCORES ==========
@@ -616,12 +641,12 @@ export class UI {
     const btn = document.getElementById('day-start-btn');
     if (btn) btn.textContent = isStory ? 'CONTINUE' : 'START SHIFT';
 
-    overlay.style.display = 'flex';
+    this._showOverlay(overlay);
   }
 
   hideDayIntro() {
     const overlay = document.getElementById('day-intro');
-    if (overlay) overlay.style.display = 'none';
+    this._hideOverlay(overlay);
   }
 
   showShiftEnd(recap, decision, onChoose) {
@@ -647,12 +672,12 @@ export class UI {
       choicesEl.appendChild(card);
     });
 
-    overlay.style.display = 'flex';
+    this._showOverlay(overlay);
   }
 
   hideShiftEnd() {
     const overlay = document.getElementById('shift-end');
-    if (overlay) overlay.style.display = 'none';
+    this._hideOverlay(overlay);
   }
 
   showCampaignEnd(endMessage, summary) {
@@ -705,12 +730,12 @@ export class UI {
         </div>
       `).join('') + '</div>';
 
-    overlay.style.display = 'flex';
+    this._showOverlay(overlay);
   }
 
   hideCampaignEnd() {
     const overlay = document.getElementById('campaign-end');
-    if (overlay) overlay.style.display = 'none';
+    this._hideOverlay(overlay);
   }
 
   // ========== ENDLESS MODE UI ==========
@@ -723,12 +748,12 @@ export class UI {
     document.getElementById('endless-store-desc').textContent = segInfo.type.desc;
     document.getElementById('endless-store-flavor').textContent = segInfo.type.flavor;
     document.getElementById('endless-fatigue-display').innerHTML = this._fatigueBar(segInfo.fatigue, segInfo.hoursAwake);
-    overlay.style.display = 'flex';
+    this._showOverlay(overlay);
   }
 
   hideEndlessIntro() {
     const el = document.getElementById('endless-intro');
-    if (el) el.style.display = 'none';
+    this._hideOverlay(el);
   }
 
   showEndlessExtend(prompt, fatigue, hoursAwake, onStay, onLeave) {
@@ -748,12 +773,12 @@ export class UI {
     newStay.addEventListener('click', onStay);
     newLeave.addEventListener('click', onLeave);
 
-    overlay.style.display = 'flex';
+    this._showOverlay(overlay);
   }
 
   hideEndlessExtend() {
     const el = document.getElementById('endless-extend');
-    if (el) el.style.display = 'none';
+    this._hideOverlay(el);
   }
 
   showEndlessEnd(endMsg, summary) {
@@ -791,12 +816,12 @@ export class UI {
       </div>
     `).join('');
 
-    overlay.style.display = 'flex';
+    this._showOverlay(overlay);
   }
 
   hideEndlessEnd() {
     const el = document.getElementById('endless-end');
-    if (el) el.style.display = 'none';
+    this._hideOverlay(el);
   }
 
   _fatigueBar(fatigue, hours) {

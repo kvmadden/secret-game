@@ -860,7 +860,20 @@ export class Renderer {
     const px = pharm.col * TILE_SIZE;
     const py = pharm.row * TILE_SIZE;
 
-    ctx.drawImage(sprite, px, py - 4);
+    // Squash-and-stretch for walking
+    if (pharm.state === 'WALKING') {
+      const walkCos = Math.cos(state.time * 18);
+      const sX = 1 + walkCos * 0.03;
+      const sY = 1 - walkCos * 0.03;
+      ctx.save();
+      ctx.translate(px + 8, py + 12);
+      ctx.scale(sX, sY);
+      ctx.translate(-(px + 8), -(py + 12));
+      ctx.drawImage(sprite, px, py - 4);
+      ctx.restore();
+    } else {
+      ctx.drawImage(sprite, px, py - 4);
+    }
 
     // Walking dust particles — tiny warm-colored puffs
     if (pharm.state === 'WALKING' && Math.floor(state.time * 8) % 6 === 0) {
@@ -952,8 +965,31 @@ export class Renderer {
 
       const bob = emotionLevel >= 2 ? Math.sin(state.time * 8 + patient.id) * 1 : 0;
       const walkBob = patient.walking ? Math.sin(state.time * 10) * 0.5 : 0;
+      const drawY = py - 4 + bob + walkBob;
 
-      ctx.drawImage(sprite, px, py - 4 + bob + walkBob);
+      // Squash-and-stretch for patients
+      if (patient.walking) {
+        const pCos = Math.cos(state.time * 16 + patient.id * 2);
+        const psX = 1 + pCos * 0.025;
+        const psY = 1 - pCos * 0.025;
+        ctx.save();
+        ctx.translate(px + 8, drawY + 12);
+        ctx.scale(psX, psY);
+        ctx.translate(-(px + 8), -(drawY + 12));
+        ctx.drawImage(sprite, px, drawY);
+        ctx.restore();
+      } else {
+        // Subtle idle bob
+        const idleCos = Math.cos(state.time * 3 + patient.id);
+        const isX = 1 + idleCos * 0.008;
+        const isY = 1 - idleCos * 0.008;
+        ctx.save();
+        ctx.translate(px + 8, drawY + 12);
+        ctx.scale(isX, isY);
+        ctx.translate(-(px + 8), -(drawY + 12));
+        ctx.drawImage(sprite, px, drawY);
+        ctx.restore();
+      }
 
       // Idle behaviors (only when not walking)
       if (!patient.walking && !patient.fadeOut) {
@@ -1161,11 +1197,23 @@ export class Renderer {
       const fg = parseInt(fc.slice(3, 5), 16);
       const fb = parseInt(fc.slice(5, 7), 16);
 
+      // Expanding ring with glow (draw 3 times at different alphas/sizes)
+      for (let g = 2; g >= 0; g--) {
+        const glowR = radius + g * 3;
+        const glowA = alpha * (0.3 - g * 0.08);
+        ctx.fillStyle = `rgba(${fr}, ${fg}, ${fb}, ${Math.max(0, glowA)})`;
+        ctx.beginPath();
+        ctx.arc(px, py, glowR, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Main ring
       ctx.fillStyle = `rgba(${fr}, ${fg}, ${fb}, ${alpha})`;
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
       ctx.fill();
 
+      // Bright center flash
       if (progress < 0.3) {
         ctx.fillStyle = `rgba(255, 255, 255, ${(0.3 - progress) * 2})`;
         ctx.beginPath();
@@ -1173,14 +1221,38 @@ export class Renderer {
         ctx.fill();
       }
 
+      // Checkmark with spring bounce
       if (progress > 0.1 && progress < 0.7) {
-        ctx.strokeStyle = `rgba(${fr}, ${fg}, ${fb}, ${(0.7 - progress) * 1.5})`;
+        const checkProgress = (progress - 0.1) / 0.6;
+        const spring = 1 + Math.sin(checkProgress * Math.PI * 2) * 0.2 * (1 - checkProgress);
+        const checkAlpha = (0.7 - progress) * 1.5;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.scale(spring, spring);
+        ctx.strokeStyle = `rgba(${fr}, ${fg}, ${fb}, ${checkAlpha})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(px - 3, py);
-        ctx.lineTo(px - 1, py + 3);
-        ctx.lineTo(px + 4, py - 3);
+        ctx.moveTo(-3, 0);
+        ctx.lineTo(-1, 3);
+        ctx.lineTo(4, -3);
         ctx.stroke();
+        ctx.restore();
+      }
+
+      // Spiral particles outward
+      if (progress > 0.05 && progress < 0.6) {
+        const spiralAlpha = (0.6 - progress) * 1.2;
+        for (let sp = 0; sp < 5; sp++) {
+          const baseAngle = (Math.PI * 2 / 5) * sp;
+          const spiralAngle = baseAngle + progress * 4;
+          const dist = radius * 0.6 + progress * 12;
+          const sx = px + Math.cos(spiralAngle) * dist;
+          const sy = py + Math.sin(spiralAngle) * dist;
+          ctx.fillStyle = `rgba(${fr}, ${fg}, ${fb}, ${spiralAlpha * 0.6})`;
+          ctx.beginPath();
+          ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
   }
