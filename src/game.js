@@ -24,6 +24,17 @@ import { UI } from './ui.js';
 import { Campaign } from './campaign.js';
 import { EndlessMode } from './endless.js';
 import * as Audio from './audio.js';
+import { ParticleSystem } from './particles.js';
+import { MusicSystem } from './music.js';
+import { ScreenFX } from './screen-fx.js';
+import { EmotionSystem } from './emotions.js';
+import { DayNightCycle } from './day-night.js';
+import { MiniMap } from './mini-map.js';
+import { ToastSystem } from './toast.js';
+import { AchievementSystem } from './achievements.js';
+import { MeterVisuals } from './meter-visuals.js';
+import { CameraJuice } from './camera-juice.js';
+import { SeasonalDecorations } from './seasonal.js';
 
 let uidCounter = 0;
 function nextUid() { return ++uidCounter; }
@@ -37,6 +48,20 @@ export class Game {
     this.difficulty = 'NORMAL';
     this.campaign = new Campaign();
     this.endless = new EndlessMode();
+
+    // New visual systems
+    this.particles = new ParticleSystem();
+    this.music = new MusicSystem();
+    this.screenFX = new ScreenFX();
+    this.emotions = new EmotionSystem();
+    this.dayNight = new DayNightCycle();
+    this.miniMap = new MiniMap(16, 20, 16);
+    this.toasts = new ToastSystem();
+    this.achievements = new AchievementSystem();
+    this.meterVisuals = new MeterVisuals();
+    this.cameraJuice = new CameraJuice();
+    this.seasonal = new SeasonalDecorations();
+
     this.reset();
     this.setupListeners();
     this.loadHighScores();
@@ -442,6 +467,7 @@ export class Game {
     this.renderer.setOverview(false);
     this.lastTimestamp = performance.now();
     Audio.startAmbient();
+    this.music.start('OPENING');
     this.spawnInitialPatients();
     this.showTutorial('welcome');
 
@@ -616,8 +642,28 @@ export class Game {
     const avgMeter = (this.meters.queue + this.meters.safety + this.meters.rage + this.meters.burnout + this.meters.scrutiny) / 5;
     this.pharmacist.stress = Math.min(1, avgMeter / 70);
 
+    // Update new visual systems
+    this.particles.update(dt);
+    this.emotions.update(dt);
+    this.toasts.update(dt);
+    this.meterVisuals.update(this.meters, dt);
+    this.cameraJuice.update(dt);
+    this.dayNight.update(this.elapsed, GAME_DURATION, this.weather);
+    this.miniMap.update(this.getState());
+
     this.renderer.updateCamera(this.pharmacist, dt, this.getState());
     this.renderer.render(this.getState());
+
+    // Render new visual systems on top of game canvas
+    const ctx = this.renderer.ctx;
+    const w = this.renderer.canvas.width;
+    const h = this.renderer.canvas.height;
+    this.particles.render(ctx);
+    this.emotions.render(ctx);
+    this.toasts.render(ctx, w / (this.renderer.dpr || 1));
+    this.meterVisuals.render(ctx, w, h);
+    this.screenFX.applyEffects(ctx, w, h, this.getState());
+    this.miniMap.render(ctx, w / (this.renderer.dpr || 1), h / (this.renderer.dpr || 1), this.renderer.camZoom);
 
     // Disable action buttons when pharmacist is busy
     this.ui.setCardsBusy(this.pharmacist.state !== 'IDLE');
@@ -644,6 +690,7 @@ export class Game {
       ambientShoppers: this.ambientShoppers,
       shiftDay: this.shiftDay,
       weather: this.weather,
+      elapsed: this.elapsed,
     };
   }
 
@@ -674,6 +721,7 @@ export class Game {
 
   onPhaseChange(from, to) {
     Audio.playPhaseChange();
+    this.music.setPhase(to);
 
     const phase = PHASES.find(p => p.name === to);
     if (phase && to !== 'LUNCH_CLOSE') {
@@ -1693,6 +1741,7 @@ export class Game {
   endGame(won, lostMeter) {
     this.state = 'GAMEOVER';
     Audio.stopAmbient();
+    this.music.stop();
 
     if (won) {
       Audio.playWin();
