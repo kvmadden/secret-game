@@ -20,6 +20,7 @@
 
 import { MAP_COLS, MAP_ROWS, STATIONS, COLORS } from './constants.js';
 import { Sprites } from './sprites.js';
+import { SpriteFurniture } from './sprite-furniture.js';
 
 // Tile types
 export const TILE = {
@@ -696,7 +697,39 @@ export function renderMap(map, scale) {
   ctx.fillStyle = '#4a5a4a';
   ctx.fillRect(13 * tileSize + 5, 13 * tileSize + 2, 6, 1);
 
-  // --- 6. Lighting hints on floor ---
+  // --- 6. SpriteFurniture detail objects ---
+
+  // Wall clock above counter (row 6, visible to customers)
+  ctx.drawImage(SpriteFurniture.clockWall(), 9 * tileSize, 6 * tileSize);
+
+  // Magazine rack in waiting area
+  ctx.drawImage(SpriteFurniture.magazineRack(), 0 * tileSize, 3 * tileSize);
+
+  // Potted plant in waiting area corner
+  ctx.drawImage(SpriteFurniture.plantPot(), 12 * tileSize, 2 * tileSize);
+
+  // Hand sanitizer on wall near entrance
+  ctx.drawImage(SpriteFurniture.handSanitizer(), 5 * tileSize, 2 * tileSize);
+
+  // Filing cabinet in back area
+  ctx.drawImage(SpriteFurniture.filingCabinet(), 10 * tileSize, 15 * tileSize);
+
+  // Fridge unit in back area
+  ctx.drawImage(SpriteFurniture.fridgeUnit(), 5 * tileSize, 17 * tileSize);
+
+  // Controlled substance safe
+  ctx.drawImage(SpriteFurniture.safeBox(), 2 * tileSize, 17 * tileSize);
+
+  // Label printer near verify station
+  ctx.drawImage(SpriteFurniture.printerStation(), 7 * tileSize, 10 * tileSize);
+
+  // Bulletin board on back wall
+  ctx.drawImage(SpriteFurniture.bulletinBoard(), 10 * tileSize, 16 * tileSize);
+
+  // Fluorescent light fixture (ceiling detail in workspace)
+  ctx.drawImage(SpriteFurniture.fluorescent(), 6 * tileSize, 9 * tileSize);
+
+  // --- 7. Lighting hints on floor ---
 
   // Fluorescent light pools in workspace (rows 10-12)
   for (let lr = 10; lr <= 12; lr++) {

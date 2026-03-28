@@ -10,6 +10,8 @@
 import { TILE_SIZE, MAP_COLS, MAP_ROWS, STATIONS } from './constants.js';
 import { renderMap } from './map.js';
 import { Sprites } from './sprites.js';
+import { SpriteVehicles } from './sprite-vehicles.js';
+import { SpriteItems } from './sprite-items.js';
 
 const FOLLOW_ZOOM = 2.8;   // Zoomed-in scale (pharmacist detail view)
 const OVERVIEW_ZOOM = 0;    // 0 means "fit to screen" — calculated at resize
@@ -953,12 +955,15 @@ export class Renderer {
         const carColor = carData?.color || defaultCarColors[i % defaultCarColors.length];
         const isWaiting = carData ? carData.waiting : true;
 
-        // If car data has its own sprite, use it; otherwise use Sprites.car
+        // Use variety vehicle sprites based on index for visual diversity
+        const vehicleTypes = [SpriteVehicles.sedan, SpriteVehicles.suv, SpriteVehicles.minivan, SpriteVehicles.pickup, SpriteVehicles.sportsCar];
         let carSprite;
-        if (typeof Sprites.car === 'function') {
+        const vType = vehicleTypes[i % vehicleTypes.length];
+        if (vType) {
+          carSprite = vType(carColor);
+        } else if (typeof Sprites.car === 'function') {
           carSprite = Sprites.car(carColor);
         } else {
-          // Fallback: draw car as colored rectangle with details
           carSprite = null;
         }
 
