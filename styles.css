@@ -921,3 +921,230 @@ html, body {
     padding-bottom: max(6px, env(safe-area-inset-bottom));
   }
 }
+
+/* ========== CAMPAIGN BUTTON ========== */
+.campaign-btn {
+  background: #2a1a40;
+  color: #cc88ff;
+  border: 2px solid #6633aa;
+  margin-top: 6px;
+}
+.campaign-btn:active {
+  background: #3a2a50;
+}
+
+/* ========== DAY INTRO OVERLAY ========== */
+.day-intro-content {
+  text-align: center;
+  padding: 24px 20px;
+  max-width: 360px;
+}
+
+.day-number {
+  font-size: 14px;
+  color: #cc88ff;
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+
+.day-intro-content h2 {
+  font-size: 28px;
+  color: #f0d880;
+  margin-bottom: 10px;
+  text-shadow: 0 0 12px rgba(240, 216, 128, 0.3);
+}
+
+.day-intro-text {
+  font-size: 13px;
+  color: #c8b890;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.day-intro-flavor {
+  font-size: 11px;
+  color: #888;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+.day-modifiers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.day-modifier-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  color: #aaa;
+}
+
+.day-modifier-tag.buff { color: #80cc80; border-color: #336633; }
+.day-modifier-tag.debuff { color: #ff8866; border-color: #663322; }
+
+/* ========== SHIFT END / DECISION OVERLAY ========== */
+.shift-end-content {
+  text-align: center;
+  padding: 20px 16px;
+  max-width: 380px;
+}
+
+.shift-end-content h2 {
+  font-size: 22px;
+  color: #f0d880;
+  margin-bottom: 12px;
+}
+
+.shift-end-content .shift-recap {
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.decision-prompt {
+  font-size: 14px;
+  color: #e0d4c0;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.decision-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decision-card {
+  background: #1e1e32;
+  border: 1px solid #3a3a5a;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  min-height: 44px;
+}
+
+.decision-card:active {
+  background: #2a2a44;
+  border-color: #cc88ff;
+}
+
+.decision-card-label {
+  font-size: 13px;
+  font-weight: bold;
+  color: #f0d880;
+  margin-bottom: 4px;
+}
+
+.decision-card-desc {
+  font-size: 11px;
+  color: #999;
+}
+
+/* ========== CAMPAIGN END OVERLAY ========== */
+.campaign-end-content {
+  text-align: center;
+  padding: 20px 16px;
+  max-width: 400px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.campaign-end-content h2 {
+  font-size: 24px;
+  color: #f0d880;
+  margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(240, 216, 128, 0.3);
+}
+
+.campaign-flavor {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+.campaign-summary {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.campaign-stat {
+  text-align: center;
+}
+
+.campaign-stat-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: #f0d880;
+}
+
+.campaign-stat-label {
+  font-size: 9px;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.campaign-days {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.campaign-day-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.campaign-day-name {
+  color: #c8b890;
+  min-width: 60px;
+  text-align: left;
+}
+
+.campaign-day-grade {
+  font-weight: bold;
+  min-width: 24px;
+}
+
+.campaign-day-grade.grade-s { color: #ffdd00; }
+.campaign-day-grade.grade-a { color: #44ff88; }
+.campaign-day-grade.grade-b { color: #00d4ff; }
+.campaign-day-grade.grade-c { color: #ff8800; }
+.campaign-day-grade.grade-d { color: #ff4444; }
+.campaign-day-grade.grade-f { color: #ff2222; }
+
+.campaign-day-result {
+  color: #888;
+}
+
+.campaign-day-result.won { color: #80cc80; }
+.campaign-day-result.lost { color: #ff6644; }
+
+/* ========== CAMPAIGN HUD INDICATOR ========== */
+#campaign-hud {
+  display: none;
+  font-size: 9px;
+  color: #cc88ff;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 2px 0;
+}

@@ -21,6 +21,7 @@ import { findPath } from './pathfinding.js';
 import { createTileMap } from './map.js';
 import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
+import { Campaign } from './campaign.js';
 import * as Audio from './audio.js';
 
 let uidCounter = 0;
@@ -33,6 +34,7 @@ export class Game {
     this.tileMap = createTileMap();
     this.renderer.init(this.tileMap);
     this.difficulty = 'NORMAL';
+    this.campaign = new Campaign();
     this.reset();
     this.setupListeners();
     this.loadHighScores();
@@ -137,6 +139,10 @@ export class Game {
     this.ui.hideTutorial();
     this.ui.hidePause();
     this.ui.hideCombo();
+    this.ui.hideCampaignHud();
+    this.ui.hideDayIntro();
+    this.ui.hideShiftEnd();
+    this.ui.hideCampaignEnd();
 
     this.updatePipelineCards();
   }
@@ -155,7 +161,32 @@ export class Game {
 
     document.getElementById('title-btn').addEventListener('click', () => {
       Audio.playClick();
+      this.campaign.reset();
       this.reset();
+      this.ui.showTitle();
+      this.loadHighScores();
+      this.startTitleAnimation();
+    });
+
+    // Campaign mode button
+    document.getElementById('campaign-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.startCampaign();
+    });
+
+    // Day intro start button
+    document.getElementById('day-start-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.ui.hideDayIntro();
+      this.startShiftFromCampaign();
+    });
+
+    // Campaign end → title
+    document.getElementById('campaign-title-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.campaign.reset();
+      this.reset();
+      this.ui.hideCampaignEnd();
       this.ui.showTitle();
       this.loadHighScores();
       this.startTitleAnimation();
@@ -226,13 +257,35 @@ export class Game {
       return;
     }
 
-    // Game over: Enter/Space to retry
-    if (this.state === 'GAMEOVER') {
+    // Game over: Enter/Space to retry (only in quick shift mode)
+    if (this.state === 'GAMEOVER' && !this.campaign.isActive()) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         Audio.playClick();
         this.reset();
         this.startGame();
+      }
+      return;
+    }
+
+    // Day intro: Enter/Space to start shift
+    if (this.state === 'DAY_INTRO') {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        Audio.playClick();
+        this.ui.hideDayIntro();
+        this.startShiftFromCampaign();
+      }
+      return;
+    }
+
+    // Shift end decisions: 1-3 to choose
+    if (this.state === 'SHIFT_END') {
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= 3) {
+        e.preventDefault();
+        Audio.playClick();
+        this.handleCampaignDecision(num - 1);
       }
       return;
     }
@@ -412,7 +465,7 @@ export class Game {
         stationManager: this.stationManager,
         driveThruCars: 0,
         phoneRinging: false,
-        meters: { queue: 0, rage: 0, burnout: 0 },
+        meters: { queue: 0, safety: 0, rage: 0, burnout: 0, scrutiny: 0 },
         ambientShoppers: this.titleShoppers,
       }
     );
@@ -424,7 +477,7 @@ export class Game {
       stationManager: this.stationManager,
       driveThruCars: 0,
       phoneRinging: false,
-      meters: { queue: 0, rage: 0, burnout: 0 },
+      meters: { queue: 0, safety: 0, rage: 0, burnout: 0, scrutiny: 0 },
       ambientShoppers: this.titleShoppers,
     });
 
@@ -650,7 +703,8 @@ export class Game {
     const ambient = PHASE_AMBIENT[this.phase] || PHASE_AMBIENT.OPENING;
     const aMult = this.diff.ambientMult;
 
-    const dayRage = this.shiftDay?.rageMult || 1;
+    const campaignRageMult = this.campaign.isActive() ? this.campaign.getRageMult() : 1;
+    const dayRage = (this.shiftDay?.rageMult || 1) * campaignRageMult;
     const dayBurnout = this.shiftDay?.burnoutMult || 1;
 
     this.meters.queue += ambient.queue * aMult * dt;
@@ -1170,8 +1224,9 @@ export class Game {
     if (this.nextScriptTimer <= 0) {
       const interval = PHASE_SCRIPT_INTERVAL[this.phase] || PHASE_SCRIPT_INTERVAL.OPENING;
       const dayScript = this.shiftDay?.scriptMult || 1;
+      const campaignScript = this.campaign.isActive() ? this.campaign.getScriptSpeedMult() : 1;
       // Higher scriptMult = faster scripts, so divide interval
-      this.nextScriptTimer = (interval.min + Math.random() * (interval.max - interval.min)) / dayScript;
+      this.nextScriptTimer = (interval.min + Math.random() * (interval.max - interval.min)) / dayScript * campaignScript;
       this.pipeline.addScript(1);
       this.updatePipelineCards();
     }
@@ -1440,10 +1495,11 @@ export class Game {
     this.ui.hideWorkProgress();
     this.ui.hideLunch();
     this.ui.hideTutorial();
+    this.ui.hideCampaignHud();
 
     const meterSnapshot = { ...this.meters };
 
-    this.ui.showResults(won, lostMeter, meterSnapshot, this.stats);
+    this.ui.showResults(won, lostMeter, meterSnapshot, this.stats, this.campaign.isActive());
 
     // Achievements
     const newAchievements = this.ui.checkAchievements(won, meterSnapshot, this.stats);
@@ -1451,9 +1507,200 @@ export class Game {
       setTimeout(() => this.ui.showAchievements(newAchievements), 800);
     }
 
-    // Save high score
+    // Save high score (quick shift only)
+    if (!this.campaign.isActive()) {
+      const grade = this.ui.calculateGrade(won, this.meters, this.stats);
+      this.saveHighScore(grade, won);
+    }
+
+    // Campaign: route to between-shift flow
+    if (this.campaign.isActive()) {
+      this.handleCampaignShiftEnd(won, lostMeter);
+    }
+  }
+
+  // ========== CAMPAIGN MODE ==========
+
+  startCampaign() {
+    this.stopTitleAnimation();
+    this.campaign.start();
+    this.ui.hideTitle();
+    this.showDayIntro();
+  }
+
+  showDayIntro() {
+    this.state = 'DAY_INTRO';
+    const shiftDay = this.campaign.getShiftDay();
+    const weather = this.campaign.getWeather();
+    this.campaignWeather = weather;
+    const narrative = this.campaign.getDayNarrative();
+    const day = this.campaign.getCurrentDay();
+
+    // Build modifier tags from carry-over effects
+    const mods = this.campaign.shiftModifiers;
+    const modTags = [];
+    if (mods.burnoutStart > 5) modTags.push({ text: 'Starting tired', type: 'debuff' });
+    if (mods.burnoutStart < -3) modTags.push({ text: 'Well rested', type: 'buff' });
+    if (mods.safetyStart > 5) modTags.push({ text: 'Safety concerns', type: 'debuff' });
+    if (mods.safetyStart < -3) modTags.push({ text: 'Safety improved', type: 'buff' });
+    if (mods.scrutinyStart > 5) modTags.push({ text: 'Under watch', type: 'debuff' });
+    if (mods.scrutinyStart < -3) modTags.push({ text: 'Flying low', type: 'buff' });
+    if (mods.scriptSpeedMult < 1) modTags.push({ text: 'Extra help', type: 'buff' });
+    if (mods.scriptSpeedMult > 1) modTags.push({ text: 'Undertrained staff', type: 'debuff' });
+
+    this.ui.showDayIntro(day, shiftDay.name, narrative, shiftDay, weather, modTags);
+  }
+
+  startShiftFromCampaign() {
+    this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
+    this.shiftDay = this.campaign.getShiftDay();
+    this.weather = this.campaignWeather;
+
+    // Apply campaign starting meters
+    this.time = 0;
+    this.elapsed = 0;
+    this.lastTimestamp = null;
+    this.meters = this.campaign.getStartingMeters();
+    this.meterWarningCooldown = { queue: 0, safety: 0, rage: 0, burnout: 0, scrutiny: 0 };
+    this.phase = 'OPENING';
+    this.prevPhase = null;
+
+    this.pharmacist = {
+      col: PHARMACIST_START.col,
+      row: PHARMACIST_START.row,
+      state: 'IDLE',
+      facing: 'right',
+      path: [],
+      pathIndex: 0,
+      workTimer: 0,
+      workDuration: 0,
+      workEvent: null,
+      workLabel: '',
+      idleTimer: 0,
+      stress: 0,
+    };
+
+    this.pipeline = new Pipeline();
+    this.pipeline.addScript(2);
+    this.stationManager = new StationManager();
+    this.activeEvents = [];
+    this.deferredEvents = [];
+    this.patients = [];
+    this.nextPatientId = 0;
+    this.driveThruCars = 0;
+    this.ambientShoppers = [];
+    this.ambientShopperTimer = 2;
+    this.nextEventTimer = 3;
+    this.nextScriptTimer = 6;
+    this.lunchMessageTimer = 0;
+    this.lunchMessageIndex = 0;
+    this.phoneRinging = false;
+    this.phoneRingTimer = 0;
+    this.lunchGraceTimer = 0;
+    this.comboCount = 0;
+    this.comboTimer = 0;
+    this.tutorialShown = new Set();
+    this.tutorialTimer = 0;
+    this.stats = {
+      eventsHandled: 0,
+      scriptsVerified: 0,
+      patientsServed: 0,
+      eventsDeferred: 0,
+      eventsEscalated: 0,
+      patientsLost: 0,
+    };
+
+    this.ui.clearCards();
+    this.ui.hideWorkProgress();
+    this.ui.hideLunch();
+    this.ui.hideResults();
+    this.ui.hidePhaseAnnounce();
+    this.ui.hideTutorial();
+    this.ui.hidePause();
+    this.ui.hideCombo();
+    this.ui.showCampaignHud(this.campaign.getCurrentDay(), this.campaign.totalDays);
+
+    this.state = 'PLAYING';
+    this.renderer.setOverview(false);
+    this.lastTimestamp = performance.now();
+    Audio.startAmbient();
+    this.spawnInitialPatients();
+
+    this.ui.showPhaseAnnounce(this.shiftDay.name);
+    setTimeout(() => {
+      const weatherInfo = this.weather ? ` | ${this.weather.name}` : '';
+      this.ui.showTutorial(`${this.shiftDay.modifier}: ${this.shiftDay.desc}${weatherInfo}`);
+      this.tutorialTimer = 5;
+    }, 2600);
+
+    this.updatePipelineCards();
+    this.tick();
+  }
+
+  handleCampaignShiftEnd(won, lostMeter) {
+    // Record the result
     const grade = this.ui.calculateGrade(won, this.meters, this.stats);
-    this.saveHighScore(grade, won);
+    this.campaign.recordShiftResult(won, this.meters, this.stats, grade);
+
+    // Check if campaign is done (lost too many or completed all days)
+    if (this.campaign.getCurrentDay() >= this.campaign.totalDays) {
+      // Show campaign end
+      setTimeout(() => {
+        this.ui.hideResults();
+        const endMsg = this.campaign.getCampaignEndMessage();
+        const summary = this.campaign.getCampaignSummary();
+        this.ui.showCampaignEnd(endMsg, summary);
+        this.state = 'CAMPAIGN_END';
+      }, 2000);
+      return;
+    }
+
+    // Show between-shift decision
+    setTimeout(() => {
+      this.ui.hideResults();
+      const decision = this.campaign.getPendingDecision();
+      if (!decision) {
+        // No decision, just advance
+        this.advanceCampaignDay();
+        return;
+      }
+
+      const recap = won
+        ? `Day ${this.campaign.getCurrentDay()} complete. Grade: ${grade}. Reputation: ${this.campaign.reputation}.`
+        : `Day ${this.campaign.getCurrentDay()} failed. Keep going. Reputation: ${this.campaign.reputation}.`;
+
+      this.state = 'SHIFT_END';
+      this.ui.showShiftEnd(recap, decision, (choiceIdx) => {
+        Audio.playClick();
+        this.handleCampaignDecision(choiceIdx);
+      });
+    }, 2000);
+  }
+
+  handleCampaignDecision(choiceIndex) {
+    this.campaign.applyDecision(choiceIndex);
+    this.ui.hideShiftEnd();
+
+    if (this.campaign.advanceDay()) {
+      this.showDayIntro();
+    } else {
+      // Campaign complete
+      const endMsg = this.campaign.getCampaignEndMessage();
+      const summary = this.campaign.getCampaignSummary();
+      this.ui.showCampaignEnd(endMsg, summary);
+      this.state = 'CAMPAIGN_END';
+    }
+  }
+
+  advanceCampaignDay() {
+    if (this.campaign.advanceDay()) {
+      this.showDayIntro();
+    } else {
+      const endMsg = this.campaign.getCampaignEndMessage();
+      const summary = this.campaign.getCampaignSummary();
+      this.ui.showCampaignEnd(endMsg, summary);
+      this.state = 'CAMPAIGN_END';
+    }
   }
 
   // ========== HIGH SCORES ==========

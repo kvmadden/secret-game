@@ -364,8 +364,14 @@ export class UI {
     this.lunchOverlay.style.display = 'none';
   }
 
-  showResults(won, lostMeter, meters, stats) {
+  showResults(won, lostMeter, meters, stats, isCampaign = false) {
     this.resultsScreen.style.display = 'flex';
+
+    // Hide retry/title buttons during campaign (auto-advances)
+    const retryBtn = document.getElementById('retry-btn');
+    const titleBtn = document.getElementById('title-btn');
+    if (retryBtn) retryBtn.style.display = isCampaign ? 'none' : 'block';
+    if (titleBtn) titleBtn.style.display = isCampaign ? 'none' : 'block';
 
     const titleEl = document.getElementById('results-title');
     const flavorEl = document.getElementById('results-flavor');
@@ -565,5 +571,131 @@ export class UI {
         </div>
       `).join('')}
     `;
+  }
+
+  // ========== CAMPAIGN UI ==========
+
+  showCampaignHud(day, totalDays) {
+    const el = document.getElementById('campaign-hud');
+    if (el) {
+      el.style.display = 'block';
+      el.textContent = `DAY ${day} / ${totalDays}`;
+    }
+  }
+
+  hideCampaignHud() {
+    const el = document.getElementById('campaign-hud');
+    if (el) el.style.display = 'none';
+  }
+
+  showDayIntro(day, dayName, narrative, shiftDay, weather, modifierTags) {
+    const overlay = document.getElementById('day-intro');
+    if (!overlay) return;
+
+    document.getElementById('day-intro-number').textContent = `DAY ${day}`;
+    document.getElementById('day-intro-name').textContent = dayName;
+    document.getElementById('day-intro-text').textContent = narrative.intro;
+    document.getElementById('day-intro-flavor').textContent = narrative.flavor;
+
+    const modsEl = document.getElementById('day-intro-modifiers');
+    let modsHtml = `<span class="day-modifier-tag">${shiftDay.modifier}: ${shiftDay.desc}</span>`;
+    if (weather) {
+      modsHtml += `<span class="day-modifier-tag">${weather.name} — ${weather.desc}</span>`;
+    }
+    if (modifierTags) {
+      for (const tag of modifierTags) {
+        modsHtml += `<span class="day-modifier-tag ${tag.type}">${tag.text}</span>`;
+      }
+    }
+    modsEl.innerHTML = modsHtml;
+
+    overlay.style.display = 'flex';
+  }
+
+  hideDayIntro() {
+    const overlay = document.getElementById('day-intro');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  showShiftEnd(recap, decision, onChoose) {
+    const overlay = document.getElementById('shift-end');
+    if (!overlay) return;
+
+    document.getElementById('shift-end-recap').textContent = recap;
+    document.getElementById('decision-prompt').textContent = decision.prompt;
+
+    const choicesEl = document.getElementById('decision-choices');
+    choicesEl.innerHTML = '';
+
+    decision.choices.forEach((choice, i) => {
+      const card = document.createElement('div');
+      card.className = 'decision-card';
+      card.innerHTML = `
+        <div class="decision-card-label">${choice.label}</div>
+        <div class="decision-card-desc">${choice.desc}</div>
+      `;
+      card.addEventListener('click', () => {
+        onChoose(i);
+      });
+      choicesEl.appendChild(card);
+    });
+
+    overlay.style.display = 'flex';
+  }
+
+  hideShiftEnd() {
+    const overlay = document.getElementById('shift-end');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  showCampaignEnd(endMessage, summary) {
+    const overlay = document.getElementById('campaign-end');
+    if (!overlay) return;
+
+    document.getElementById('campaign-end-title').textContent = endMessage.title;
+    document.getElementById('campaign-end-title').style.color =
+      summary.grade === 'perfect' ? '#ffdd00' :
+      summary.grade === 'great' ? '#44ff88' :
+      summary.grade === 'decent' ? '#00d4ff' :
+      summary.grade === 'rough' ? '#ff8800' : '#ff4444';
+    document.getElementById('campaign-end-flavor').textContent = endMessage.flavor;
+
+    // Summary stats
+    document.getElementById('campaign-summary').innerHTML = `
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.wins}</div>
+        <div class="campaign-stat-label">SHIFTS WON</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.losses}</div>
+        <div class="campaign-stat-label">SHIFTS LOST</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.reputation}</div>
+        <div class="campaign-stat-label">REPUTATION</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.morale}</div>
+        <div class="campaign-stat-label">MORALE</div>
+      </div>
+    `;
+
+    // Day-by-day results
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const daysEl = document.getElementById('campaign-day-results');
+    daysEl.innerHTML = summary.results.map((r, i) => `
+      <div class="campaign-day-row">
+        <span class="campaign-day-name">${dayNames[i] || 'Day ' + (i + 1)}</span>
+        <span class="campaign-day-grade grade-${r.grade.toLowerCase()}">${r.grade}</span>
+        <span class="campaign-day-result ${r.won ? 'won' : 'lost'}">${r.won ? 'SURVIVED' : 'LOST'}</span>
+      </div>
+    `).join('');
+
+    overlay.style.display = 'flex';
+  }
+
+  hideCampaignEnd() {
+    const overlay = document.getElementById('campaign-end');
+    if (overlay) overlay.style.display = 'none';
   }
 }

@@ -543,6 +543,125 @@ const EVENT_POOL = {
       canDefer: false,
     },
   ],
+
+  // ========== REGULATORY / BOARD / SAFETY ==========
+  regulatory: [
+    {
+      id: 'board_inspection',
+      title: 'BOARD INSPECTION',
+      desc: 'State board inspector at the counter.',
+      station: 'verify',
+      duration: 12,
+      effects: { safety: -10, scrutiny: -8, burnout: 8 },
+      ignoreEffects: { safety: 12, scrutiny: 14 },
+      canDefer: false,
+    },
+    {
+      id: 'med_recall',
+      title: 'MEDICATION RECALL',
+      desc: 'FDA recall. Pull all stock immediately.',
+      station: 'verify',
+      duration: 10,
+      effects: { safety: -12, queue: -3, burnout: 6 },
+      ignoreEffects: { safety: 15, scrutiny: 8 },
+      canDefer: false,
+    },
+    {
+      id: 'expired_stock',
+      title: 'EXPIRED STOCK',
+      desc: 'Found expired meds on the shelf.',
+      station: 'verify',
+      duration: 7,
+      effects: { safety: -6, burnout: 4 },
+      ignoreEffects: { safety: 8, scrutiny: 4 },
+      canDefer: true,
+      escalatesTo: 'expired_audit',
+    },
+    {
+      id: 'hipaa_breach',
+      title: 'HIPAA CONCERN',
+      desc: 'Patient info visible at counter.',
+      station: 'pickup',
+      duration: 5,
+      effects: { safety: -5, scrutiny: -4, burnout: 3 },
+      ignoreEffects: { safety: 7, scrutiny: 8 },
+      canDefer: false,
+    },
+    {
+      id: 'wrong_patient',
+      title: 'WRONG PATIENT',
+      desc: 'Almost gave meds to wrong person.',
+      station: 'pickup',
+      duration: 8,
+      effects: { safety: -10, rage: -3, burnout: 5 },
+      ignoreEffects: { safety: 12, scrutiny: 6, rage: 4 },
+      canDefer: false,
+    },
+    {
+      id: 'allergy_flag',
+      title: 'ALLERGY FLAG',
+      desc: 'System caught a dangerous interaction.',
+      station: 'verify',
+      duration: 9,
+      effects: { safety: -8, queue: -2, burnout: 4 },
+      ignoreEffects: { safety: 14 },
+      canDefer: false,
+    },
+    {
+      id: 'temp_log',
+      title: 'FRIDGE TEMP LOG',
+      desc: 'Vaccine fridge reading is off.',
+      station: 'verify',
+      duration: 6,
+      effects: { safety: -5, scrutiny: -3, burnout: 3 },
+      ignoreEffects: { safety: 7, scrutiny: 5 },
+      canDefer: true,
+    },
+  ],
+
+  // ========== TECHNOLOGY / SYSTEM FAILURES ==========
+  tech: [
+    {
+      id: 'system_crash',
+      title: 'SYSTEM DOWN',
+      desc: 'Pharmacy software just crashed.',
+      station: 'verify',
+      duration: 8,
+      effects: { queue: 8, burnout: 6, safety: 4 },
+      ignoreEffects: { queue: 6, safety: 5 },
+      canDefer: false,
+    },
+    {
+      id: 'printer_jam',
+      title: 'PRINTER JAM',
+      desc: 'Label printer is jammed. Again.',
+      station: 'verify',
+      duration: 4,
+      effects: { queue: 3, burnout: 2 },
+      ignoreEffects: { queue: 4 },
+      canDefer: false,
+    },
+    {
+      id: 'register_freeze',
+      title: 'REGISTER FROZEN',
+      desc: 'POS system not responding.',
+      station: 'pickup',
+      duration: 5,
+      effects: { queue: 5, rage: 3, burnout: 2 },
+      ignoreEffects: { queue: 5, rage: 4 },
+      canDefer: false,
+    },
+    {
+      id: 'e_script_error',
+      title: 'E-SCRIPT ERROR',
+      desc: 'Electronic script came in garbled.',
+      station: 'verify',
+      duration: 7,
+      effects: { queue: -3, safety: -4, burnout: 4 },
+      ignoreEffects: { safety: 6, queue: 4 },
+      canDefer: true,
+    },
+  ],
 };
 
 // Escalated event variants
@@ -736,6 +855,17 @@ const ESCALATED_EVENTS = {
     canDefer: false,
     isEscalated: true,
   },
+  expired_audit: {
+    id: 'expired_audit',
+    title: 'EXPIRED STOCK AUDIT',
+    desc: 'Board wants a full shelf review.',
+    station: 'verify',
+    duration: 14,
+    effects: { safety: -10, scrutiny: -6, burnout: 10 },
+    ignoreEffects: { safety: 14, scrutiny: 12 },
+    canDefer: false,
+    isEscalated: true,
+  },
 };
 
 // Get a random event for a given station pool
@@ -785,6 +915,22 @@ export function getRandomEventAny(phaseName) {
   const staffingChance = phaseName === 'LATE_DRAG' ? 0.12 : 0.06;
   if (Math.random() < staffingChance && EVENT_POOL.staffing) {
     const pool = EVENT_POOL.staffing;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Regulatory / safety events (rare but impactful, ramp in later phases)
+  const regulatoryChance = phaseName === 'OPENING' ? 0.02 :
+                           phaseName === 'BUILDING' ? 0.05 :
+                           phaseName === 'REOPEN_RUSH' ? 0.08 :
+                           phaseName === 'LATE_DRAG' ? 0.10 : 0;
+  if (Math.random() < regulatoryChance && EVENT_POOL.regulatory) {
+    const pool = EVENT_POOL.regulatory;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Tech/system failure events (6% flat chance)
+  if (Math.random() < 0.06 && EVENT_POOL.tech) {
+    const pool = EVENT_POOL.tech;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 

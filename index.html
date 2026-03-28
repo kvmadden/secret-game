@@ -49,6 +49,7 @@
           <span class="meter-value" id="scrutiny-value">0</span>
         </div>
       </div>
+      <div id="campaign-hud"></div>
       <div id="pipeline-indicator">
         <span class="pipe-stage" id="pipe-unverified">📋 <span id="pipe-unverified-count">0</span></span>
         <span class="pipe-arrow">→</span>
@@ -85,7 +86,8 @@
           <button class="diff-btn" data-diff="EASY">EASY</button>
           <button class="diff-btn" data-diff="HARD">HARD</button>
         </div>
-        <button id="start-btn" class="big-btn">START SHIFT</button>
+        <button id="start-btn" class="big-btn">QUICK SHIFT</button>
+        <button id="campaign-btn" class="big-btn campaign-btn">CAMPAIGN WEEK</button>
         <div id="high-score-display"></div>
       </div>
     </div>
@@ -123,6 +125,39 @@
 
     <!-- Phase Announcement -->
     <div id="phase-announce" style="display:none;"></div>
+
+    <!-- Day Intro Overlay (campaign) -->
+    <div id="day-intro" class="overlay" style="display:none;">
+      <div class="day-intro-content">
+        <div id="day-intro-number" class="day-number">DAY 1</div>
+        <h2 id="day-intro-name">Monday</h2>
+        <p id="day-intro-text" class="day-intro-text"></p>
+        <p id="day-intro-flavor" class="day-intro-flavor"></p>
+        <div id="day-intro-modifiers" class="day-modifiers"></div>
+        <button id="day-start-btn" class="big-btn">START SHIFT</button>
+      </div>
+    </div>
+
+    <!-- Between-Shift Decision Overlay -->
+    <div id="shift-end" class="overlay" style="display:none;">
+      <div class="shift-end-content">
+        <h2>SHIFT OVER</h2>
+        <div id="shift-end-recap" class="shift-recap"></div>
+        <div id="decision-prompt" class="decision-prompt"></div>
+        <div id="decision-choices" class="decision-choices"></div>
+      </div>
+    </div>
+
+    <!-- Campaign End Overlay -->
+    <div id="campaign-end" class="overlay" style="display:none;">
+      <div class="campaign-end-content">
+        <h2 id="campaign-end-title">WEEK COMPLETE</h2>
+        <p id="campaign-end-flavor" class="campaign-flavor"></p>
+        <div id="campaign-summary" class="campaign-summary"></div>
+        <div id="campaign-day-results" class="campaign-days"></div>
+        <button id="campaign-title-btn" class="big-btn">BACK TO TITLE</button>
+      </div>
+    </div>
 
     <!-- Tutorial Hint -->
     <div id="tutorial-hint" style="display:none;"></div>
