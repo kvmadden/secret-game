@@ -43,6 +43,16 @@ export class UI {
     // Tutorial
     this.tutorialEl = document.getElementById('tutorial-hint');
 
+    // Pause
+    this.pauseOverlay = document.getElementById('pause-overlay');
+
+    // Combo
+    this.comboIndicator = document.getElementById('combo-indicator');
+    this.comboCount = document.getElementById('combo-count');
+
+    // High score
+    this.highScoreDisplay = document.getElementById('high-score-display');
+
     // Active card map: eventId -> DOM element
     this.activeCards = new Map();
   }
@@ -125,7 +135,7 @@ export class UI {
 
   // ========== EVENT CARDS ==========
 
-  addCard(event, onHandle, onDefer) {
+  addCard(event, onHandle, onDefer, onRush) {
     if (this.activeCards.has(event.uid)) return;
 
     const card = document.createElement('div');
@@ -155,6 +165,7 @@ export class UI {
       </div>
       <div class="card-buttons">
         <button class="card-btn btn-handle">HANDLE</button>
+        ${event.duration >= 4 && !event.isPipeline ? '<button class="card-btn btn-rush">RUSH</button>' : ''}
         ${event.canDefer ? '<button class="card-btn btn-defer">DEFER</button>' : ''}
       </div>
       ${!event.isPipeline ? '<div class="card-age-bar"><div class="card-age-fill"></div></div>' : ''}
@@ -167,6 +178,15 @@ export class UI {
       e.stopPropagation();
       onHandle(event);
     });
+
+    const rushBtn = card.querySelector('.btn-rush');
+    if (rushBtn && onRush) {
+      rushBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onRush(event);
+      });
+    }
 
     if (event.canDefer) {
       const deferBtn = card.querySelector('.btn-defer');
@@ -400,5 +420,52 @@ export class UI {
 
   hideResults() {
     this.resultsScreen.style.display = 'none';
+  }
+
+  // ========== COMBO ==========
+
+  showCombo(count) {
+    if (!this.comboIndicator) return;
+    this.comboCount.textContent = `x${count}`;
+    this.comboIndicator.style.display = 'inline-block';
+    this.comboIndicator.style.animation = 'none';
+    void this.comboIndicator.offsetHeight; // reflow
+    this.comboIndicator.style.animation = 'comboPop 0.3s ease-out';
+  }
+
+  hideCombo() {
+    if (this.comboIndicator) this.comboIndicator.style.display = 'none';
+  }
+
+  // ========== PAUSE ==========
+
+  showPause() {
+    if (this.pauseOverlay) this.pauseOverlay.style.display = 'flex';
+  }
+
+  hidePause() {
+    if (this.pauseOverlay) this.pauseOverlay.style.display = 'none';
+  }
+
+  // ========== HIGH SCORES ==========
+
+  showHighScores(scores) {
+    if (!this.highScoreDisplay) return;
+    if (!scores || scores.length === 0) {
+      this.highScoreDisplay.innerHTML = '';
+      return;
+    }
+    const top3 = scores.slice(0, 3);
+    this.highScoreDisplay.innerHTML = `
+      <div class="high-scores-title">BEST SHIFTS</div>
+      ${top3.map((s, i) => `
+        <div class="high-score-entry">
+          <span class="hs-rank">#${i + 1}</span>
+          <span class="hs-grade grade-${s.grade.toLowerCase()}">${s.grade}</span>
+          <span class="hs-diff">${s.difficulty}</span>
+          <span class="hs-handled">${s.handled} handled</span>
+        </div>
+      `).join('')}
+    `;
   }
 }

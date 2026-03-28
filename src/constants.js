@@ -142,6 +142,17 @@ export const PIPELINE_RAGE_PRESSURE_MULT = 0.03;  // per ready-but-unserved scri
 // ========== ESCALATION ==========
 export const MAX_ESCALATION_CHAIN = 3; // After 3 escalations, event expires with full penalty
 
+// ========== DIFFICULTY ==========
+export const DIFFICULTY = {
+  EASY:   { label: 'Easy',   meterMult: 0.7, eventMult: 1.3, ambientMult: 0.6, patienceMult: 0.6 },
+  NORMAL: { label: 'Normal', meterMult: 1.0, eventMult: 1.0, ambientMult: 1.0, patienceMult: 1.0 },
+  HARD:   { label: 'Hard',   meterMult: 1.4, eventMult: 0.7, ambientMult: 1.5, patienceMult: 1.4 },
+};
+
+// ========== COMBO ==========
+export const COMBO_WINDOW = 8; // seconds to chain another handle for combo
+export const COMBO_BONUS_PER_STACK = 1.5; // extra meter relief per combo stack
+
 // ========== RESULTS ==========
 export const WIN_TITLES = [
   { title: 'HELD TOGETHER', flavor: 'You kept the store open. That was the assignment.' },

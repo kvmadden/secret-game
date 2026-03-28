@@ -14,7 +14,11 @@
     <div id="hud">
       <div id="hud-top">
         <div id="phase-name">OPENING</div>
-        <div id="timer">9:00 AM</div>
+        <div id="combo-indicator" style="display:none;"><span id="combo-count">x2</span> COMBO</div>
+        <div id="hud-right">
+          <div id="timer">9:00 AM</div>
+          <button id="pause-btn">⏸</button>
+        </div>
       </div>
       <div id="meters">
         <div class="meter" id="meter-queue">
@@ -58,7 +62,13 @@
         <h1>ON THE BENCH</h1>
         <p class="subtitle">A Retail Pharmacy Survival Game</p>
         <p class="flavor">Solo Sunday shift. Six minutes. Three meters. One pharmacist.</p>
+        <div id="difficulty-select">
+          <button class="diff-btn selected" data-diff="NORMAL">NORMAL</button>
+          <button class="diff-btn" data-diff="EASY">EASY</button>
+          <button class="diff-btn" data-diff="HARD">HARD</button>
+        </div>
         <button id="start-btn" class="big-btn">START SHIFT</button>
+        <div id="high-score-display"></div>
       </div>
     </div>
 
@@ -81,6 +91,15 @@
         <div id="results-stats"></div>
         <button id="retry-btn" class="big-btn">RETRY</button>
         <button id="title-btn" class="big-btn secondary">TITLE</button>
+      </div>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="overlay" style="display:none;">
+      <div class="pause-content">
+        <h2>PAUSED</h2>
+        <p class="pause-flavor">Take a breath. They'll still be angry when you get back.</p>
+        <button id="resume-btn" class="big-btn">RESUME</button>
       </div>
     </div>
 

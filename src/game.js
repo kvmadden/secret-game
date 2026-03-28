@@ -10,6 +10,7 @@ import {
   PATIENT_PALETTES, PATIENT_BARKS, LUNCH_MESSAGES,
   MAX_PATIENTS_PER_STATION, PIPELINE_QUEUE_PRESSURE_MULT,
   PIPELINE_RAGE_PRESSURE_MULT, MAX_ESCALATION_CHAIN,
+  DIFFICULTY, COMBO_WINDOW, COMBO_BONUS_PER_STACK,
 } from './constants.js';
 import { Pipeline } from './pipeline.js';
 import { StationManager } from './stations.js';
@@ -29,12 +30,15 @@ export class Game {
     this.ui = new UI();
     this.tileMap = createTileMap();
     this.renderer.init(this.tileMap);
+    this.difficulty = 'NORMAL';
     this.reset();
     this.setupListeners();
+    this.loadHighScores();
   }
 
   reset() {
     this.state = 'TITLE';
+    this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
     this.time = 0;
     this.elapsed = 0;
     this.lastTimestamp = null;
@@ -96,6 +100,10 @@ export class Game {
     // Lunch grace period
     this.lunchGraceTimer = 0;
 
+    // Combo state
+    this.comboCount = 0;
+    this.comboTimer = 0;
+
     // Tutorial state
     this.tutorialShown = new Set();
     this.tutorialTimer = 0;
@@ -117,6 +125,8 @@ export class Game {
     this.ui.hideResults();
     this.ui.hidePhaseAnnounce();
     this.ui.hideTutorial();
+    this.ui.hidePause();
+    this.ui.hideCombo();
 
     this.updatePipelineCards();
   }
@@ -137,12 +147,50 @@ export class Game {
       Audio.playClick();
       this.reset();
       this.ui.showTitle();
+      this.loadHighScores();
+    });
+
+    // Difficulty buttons
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Audio.playClick();
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        this.difficulty = btn.dataset.diff;
+        this.loadHighScores();
+      });
+    });
+
+    // Pause
+    document.getElementById('pause-btn').addEventListener('click', () => {
+      if (this.state === 'PLAYING') {
+        Audio.playClick();
+        this.pauseGame();
+      }
+    });
+
+    document.getElementById('resume-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.resumeGame();
     });
 
     window.addEventListener('resize', () => this.renderer.resize());
   }
 
+  pauseGame() {
+    this.state = 'PAUSED';
+    this.ui.showPause();
+  }
+
+  resumeGame() {
+    this.state = 'PLAYING';
+    this.lastTimestamp = performance.now();
+    this.ui.hidePause();
+    this.tick();
+  }
+
   startGame() {
+    this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
     this.ui.hideTitle();
     this.state = 'PLAYING';
     this.lastTimestamp = performance.now();
@@ -180,6 +228,7 @@ export class Game {
 
   tick() {
     if (this.state !== 'PLAYING' && this.state !== 'LUNCH') return;
+    if (this.state === 'PAUSED') return;
 
     const now = performance.now();
     const dt = Math.min((now - this.lastTimestamp) / 1000, 0.1);
@@ -353,10 +402,20 @@ export class Game {
 
   updateMeters(dt) {
     const ambient = PHASE_AMBIENT[this.phase] || PHASE_AMBIENT.OPENING;
+    const aMult = this.diff.ambientMult;
 
-    this.meters.queue += ambient.queue * dt;
-    this.meters.rage += ambient.rage * dt;
-    this.meters.burnout += ambient.burnout * dt;
+    this.meters.queue += ambient.queue * aMult * dt;
+    this.meters.rage += ambient.rage * aMult * dt;
+    this.meters.burnout += ambient.burnout * aMult * dt;
+
+    // Combo timer
+    if (this.comboTimer > 0) {
+      this.comboTimer -= dt;
+      if (this.comboTimer <= 0) {
+        this.comboCount = 0;
+        this.ui.hideCombo();
+      }
+    }
 
     // Pipeline pressure — unverified scripts pressure queue harder
     const queuePressure = this.pipeline.unverified * PIPELINE_QUEUE_PRESSURE_MULT * dt;
@@ -404,9 +463,14 @@ export class Game {
 
   applyEffects(effects) {
     if (!effects) return;
-    if (effects.queue) this.meters.queue = Math.max(0, Math.min(METER_MAX, this.meters.queue + effects.queue));
-    if (effects.rage) this.meters.rage = Math.max(0, Math.min(METER_MAX, this.meters.rage + effects.rage));
-    if (effects.burnout) this.meters.burnout = Math.max(0, Math.min(METER_MAX, this.meters.burnout + effects.burnout));
+    const mMult = this.diff.meterMult;
+    for (const key of ['queue', 'rage', 'burnout']) {
+      if (effects[key]) {
+        // Positive (penalty) scales with difficulty; negative (relief) does not
+        const val = effects[key] > 0 ? effects[key] * mMult : effects[key];
+        this.meters[key] = Math.max(0, Math.min(METER_MAX, this.meters[key] + val));
+      }
+    }
   }
 
   // ========== PHONE RINGING ==========
@@ -437,10 +501,12 @@ export class Game {
     if (this.nextEventTimer <= 0 && nonPipelineEvents.length < 5) {
       this.spawnEvent();
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
-      this.nextEventTimer = interval.min + Math.random() * (interval.max - interval.min);
+      const eMult = this.diff.eventMult;
+      this.nextEventTimer = (interval.min + Math.random() * (interval.max - interval.min)) * eMult;
     } else if (this.nextEventTimer <= 0) {
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
-      this.nextEventTimer = interval.min + Math.random() * (interval.max - interval.min);
+      const eMult = this.diff.eventMult;
+      this.nextEventTimer = (interval.min + Math.random() * (interval.max - interval.min)) * eMult;
     }
 
     // Unhandled events apply gradual ignore penalties
@@ -495,7 +561,8 @@ export class Game {
 
     this.ui.addCard(event,
       (ev) => this.handleEvent(ev),
-      (ev) => this.deferEvent(ev)
+      (ev) => this.deferEvent(ev),
+      (ev) => this.rushEvent(ev)
     );
   }
 
@@ -527,6 +594,41 @@ export class Game {
       this.pharmacist.workEvent = event;
       this.pharmacist.workDuration = event.duration;
       this.pharmacist.workLabel = event.title;
+    }
+  }
+
+  rushEvent(event) {
+    // RUSH: handle at half duration, but costs burnout
+    if (this.pharmacist.state !== 'IDLE') {
+      this.showTutorial('busy');
+      return;
+    }
+
+    Audio.playDispatch();
+
+    this.ui.removeCard(event.uid);
+    this.activeEvents = this.activeEvents.filter(e => e.uid !== event.uid);
+
+    // Rush cost: immediate burnout
+    this.meters.burnout = Math.min(METER_MAX, this.meters.burnout + 6 * this.diff.meterMult);
+
+    const station = STATIONS[event.station];
+    const path = findPath(this.tileMap, Math.round(this.pharmacist.col), Math.round(this.pharmacist.row), station.col, station.row);
+    const rushedDuration = event.duration * 0.5;
+
+    if (path.length === 0) {
+      this.pharmacist.state = 'WORKING';
+      this.pharmacist.workTimer = 0;
+      this.pharmacist.workEvent = event;
+      this.pharmacist.workDuration = rushedDuration;
+      this.pharmacist.workLabel = '⚡ ' + event.title;
+    } else {
+      this.pharmacist.state = 'WALKING';
+      this.pharmacist.path = path;
+      this.pharmacist.pathIndex = 0;
+      this.pharmacist.workEvent = event;
+      this.pharmacist.workDuration = rushedDuration;
+      this.pharmacist.workLabel = '⚡ ' + event.title;
     }
   }
 
@@ -599,7 +701,8 @@ export class Game {
 
         this.ui.addCard(escalated,
           (ev) => this.handleEvent(ev),
-          (ev) => this.deferEvent(ev)
+          (ev) => this.deferEvent(ev),
+          (ev) => this.rushEvent(ev)
         );
       }
     }
@@ -660,6 +763,22 @@ export class Game {
     Audio.playComplete();
 
     if (event) {
+      // Combo system — rapid handling chains give bonus relief
+      if (this.comboTimer > 0) {
+        this.comboCount++;
+      } else {
+        this.comboCount = 1;
+      }
+      this.comboTimer = COMBO_WINDOW;
+
+      if (this.comboCount >= 2) {
+        this.ui.showCombo(this.comboCount);
+        // Bonus meter relief for combos
+        const bonus = (this.comboCount - 1) * COMBO_BONUS_PER_STACK;
+        this.meters.queue = Math.max(0, this.meters.queue - bonus);
+        this.meters.rage = Math.max(0, this.meters.rage - bonus * 0.5);
+      }
+
       this.applyEffects(event.effects);
 
       if (event.addsScript) {
@@ -833,7 +952,7 @@ export class Game {
       }
 
       patient.waitTime += dt;
-      patient.patience = Math.max(0, patient.patience - dt * 0.025);
+      patient.patience = Math.max(0, patient.patience - dt * 0.025 * this.diff.patienceMult);
 
       // Patient leaves when patience hits 0
       if (patient.patience <= 0 && !patient.fadeOut) {
@@ -909,5 +1028,43 @@ export class Game {
       rage: this.meters.rage,
       burnout: this.meters.burnout,
     }, this.stats);
+
+    // Save high score
+    const grade = this.ui.calculateGrade(won, this.meters, this.stats);
+    this.saveHighScore(grade, won);
+  }
+
+  // ========== HIGH SCORES ==========
+
+  loadHighScores() {
+    try {
+      const data = localStorage.getItem('otb_highscores');
+      const scores = data ? JSON.parse(data) : [];
+      const filtered = scores.filter(s => s.difficulty === this.difficulty);
+      this.ui.showHighScores(filtered);
+    } catch (e) {
+      // localStorage unavailable
+    }
+  }
+
+  saveHighScore(grade, won) {
+    try {
+      const data = localStorage.getItem('otb_highscores');
+      const scores = data ? JSON.parse(data) : [];
+      scores.push({
+        grade,
+        won,
+        difficulty: this.difficulty,
+        handled: this.stats.eventsHandled + this.stats.scriptsVerified + this.stats.patientsServed,
+        date: Date.now(),
+      });
+      // Sort: S > A > B > C > D > F, then by handled count
+      const gradeOrder = { S: 6, A: 5, B: 4, C: 3, D: 2, F: 1 };
+      scores.sort((a, b) => (gradeOrder[b.grade] || 0) - (gradeOrder[a.grade] || 0) || b.handled - a.handled);
+      // Keep top 10
+      localStorage.setItem('otb_highscores', JSON.stringify(scores.slice(0, 10)));
+    } catch (e) {
+      // localStorage unavailable
+    }
   }
 }

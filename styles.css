@@ -624,6 +624,150 @@ html, body {
   border-radius: 2px;
 }
 
+/* ========== DIFFICULTY SELECT ========== */
+#difficulty-select {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.diff-btn {
+  padding: 8px 16px;
+  border: 1px solid #444;
+  background: transparent;
+  color: #888;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.diff-btn.selected {
+  border-color: #00d4ff;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+}
+
+.diff-btn:active {
+  transform: scale(0.95);
+}
+
+/* ========== HIGH SCORES ========== */
+#high-score-display {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.high-scores-title {
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.high-score-entry {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+.hs-rank {
+  color: #666;
+  width: 24px;
+}
+
+.hs-grade {
+  font-weight: bold;
+  width: 20px;
+}
+
+.hs-diff {
+  color: #555;
+  width: 50px;
+}
+
+.hs-handled {
+  color: #777;
+}
+
+/* ========== PAUSE BUTTON ========== */
+#hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#pause-btn {
+  background: none;
+  border: 1px solid #444;
+  color: #888;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+#pause-btn:active {
+  background: rgba(255,255,255,0.1);
+}
+
+/* ========== PAUSE OVERLAY ========== */
+.pause-content {
+  text-align: center;
+  padding: 30px;
+  max-width: 380px;
+}
+
+.pause-content h2 {
+  font-size: 28px;
+  color: #ffffff;
+  letter-spacing: 6px;
+  margin-bottom: 12px;
+}
+
+.pause-flavor {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* ========== COMBO INDICATOR ========== */
+#combo-indicator {
+  font-size: 11px;
+  font-weight: bold;
+  color: #ffdd00;
+  letter-spacing: 1px;
+  text-shadow: 0 0 8px rgba(255, 221, 0, 0.5);
+}
+
+#combo-count {
+  font-size: 14px;
+}
+
+@keyframes comboPop {
+  0% { transform: scale(1.4); opacity: 0.5; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ========== RUSH BUTTON ========== */
+.btn-rush {
+  background: #3a2200;
+  color: #ff8800;
+}
+
+.btn-rush:active {
+  background: #4a3300;
+}
+
 /* Safe area padding for notch phones */
 @supports (padding: env(safe-area-inset-top)) {
   #hud {
