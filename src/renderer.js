@@ -712,6 +712,47 @@ export class Renderer {
       ctx.fillStyle = '#a0b0c8';
       ctx.fillRect(0, 0, w, h);
 
+      // ---- WINDOW CONDENSATION DROPLETS (on counter row 7 area) ----
+      // These are rendered in screen-space, so we approximate the counter region
+      const scale = this.camZoom * this.dpr;
+      const txOff = w / 2 - this.camX * scale;
+      const tyOff = h / 2 - this.camY * scale;
+      for (const drop of this.condensationDrops) {
+        // Slow downward drift simulating gravity on condensation
+        drop.y += drop.drift / 60;
+        if (drop.y > 8 * TILE_SIZE) {
+          drop.y = 7 * TILE_SIZE + Math.random() * TILE_SIZE * 0.3;
+          drop.x = (Math.random() * 13) * TILE_SIZE + Math.random() * TILE_SIZE;
+        }
+        const sx = drop.x * scale + txOff;
+        const sy = drop.y * scale + tyOff;
+        // Tiny translucent water drop with white highlight
+        ctx.globalAlpha = drop.alpha;
+        ctx.fillStyle = '#8898bc';
+        ctx.beginPath();
+        ctx.arc(sx, sy, drop.r * scale * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        // White highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(sx - drop.r * scale * 0.1, sy - drop.r * scale * 0.1, drop.r * scale * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ---- PUDDLE REFLECTIONS near entrance (rows 2-3) ----
+      // Subtle lighter rectangles on floor tiles to simulate wet floor
+      ctx.globalAlpha = 0.06;
+      ctx.fillStyle = '#a0b8d0';
+      for (let col = 2; col < 12; col += 2) {
+        for (let row = 2; row <= 3; row++) {
+          const prx = col * TILE_SIZE * scale + txOff;
+          const pry = row * TILE_SIZE * scale + tyOff;
+          const pw = TILE_SIZE * scale * 0.8;
+          const ph = TILE_SIZE * scale * 0.3;
+          ctx.fillRect(prx + TILE_SIZE * scale * 0.1, pry + TILE_SIZE * scale * 0.6, pw, ph);
+        }
+      }
+
       ctx.globalAlpha = 1;
       ctx.restore();
     }
