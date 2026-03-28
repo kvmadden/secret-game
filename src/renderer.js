@@ -73,12 +73,33 @@ export class Renderer {
       ctx.drawImage(this.mapCanvas, 0, 0);
     }
 
-    // Fluorescent lighting effect — bright band across workspace
-    ctx.fillStyle = 'rgba(255, 255, 240, 0.04)';
+    // Darken customer area slightly (different lighting zone)
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.06)';
+    ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, 4 * TILE_SIZE);
+
+    // Fluorescent lighting — bright band on workspace
+    ctx.fillStyle = 'rgba(255, 255, 240, 0.06)';
     ctx.fillRect(0, 7 * TILE_SIZE, MAP_COLS * TILE_SIZE, 3 * TILE_SIZE);
-    // Subtle highlight on counter
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    // Strong highlight on counter surface
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.fillRect(0, 4 * TILE_SIZE, 33 * TILE_SIZE, 2 * TILE_SIZE);
+    // Back shelf area is darker
+    ctx.fillStyle = 'rgba(0, 0, 20, 0.08)';
+    ctx.fillRect(0, 10 * TILE_SIZE, MAP_COLS * TILE_SIZE, 4 * TILE_SIZE);
+
+    // Cast shadow from counter onto workspace floor
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+    ctx.fillRect(0, 7 * TILE_SIZE, 33 * TILE_SIZE, TILE_SIZE);
+
+    // Meter-based ambient tint — pharmacy gets redder as rage/burnout climb
+    if (state.meters) {
+      const urgency = Math.max(state.meters.rage, state.meters.burnout) / 100;
+      if (urgency > 0.5) {
+        const alpha = (urgency - 0.5) * 0.08;
+        ctx.fillStyle = `rgba(255, 50, 0, ${alpha})`;
+        ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+      }
+    }
 
     // Draw phone (animated if ringing)
     this.renderPhone(ctx, gameState);
@@ -160,37 +181,39 @@ export class Renderer {
     const pharm = state.pharmacist;
     const frame = pharm.state === 'WALKING'
       ? (Math.floor(state.time * 6) % 3)
-      : pharm.state === 'IDLE'
-        ? 0
-        : 0;
+      : 0;
     const facing = pharm.facing || 'right';
-    const sprite = Sprites.pharmacist(facing, frame);
+    const sprite = Sprites.pharmacist(facing, frame, pharm.stress || 0);
 
     const px = pharm.col * TILE_SIZE;
     const py = pharm.row * TILE_SIZE;
 
     ctx.drawImage(sprite, px, py - 4);
 
-    // Working indicator — animated glow
+    // Working indicator — animated glow + progress arc
     if (pharm.state === 'WORKING') {
-      const pulse = 0.1 + Math.sin(state.time * 4) * 0.05;
+      const pulse = 0.08 + Math.sin(state.time * 4) * 0.04;
       ctx.fillStyle = `rgba(0, 212, 255, ${pulse})`;
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 14, 0, Math.PI * 2);
       ctx.fill();
 
-      // Progress arc around pharmacist
       const progress = pharm.workTimer / pharm.workDuration;
-      ctx.strokeStyle = '#00d4ff';
+      // Background arc
+      ctx.strokeStyle = 'rgba(0, 212, 255, 0.15)';
       ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(px + 8, py + 6, 11, 0, Math.PI * 2);
+      ctx.stroke();
+      // Progress arc
+      ctx.strokeStyle = progress > 0.8 ? '#44ff88' : '#00d4ff';
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
       ctx.stroke();
     }
 
-    // Idle breathing animation
+    // Idle thought bubble
     if (pharm.state === 'IDLE' && pharm.idleTimer > 2) {
-      // Tiny "..." thought bubble when idle for a while
       const dotPhase = Math.floor(state.time * 2) % 4;
       ctx.fillStyle = '#888';
       for (let d = 0; d < Math.min(dotPhase, 3); d++) {
@@ -198,6 +221,15 @@ export class Renderer {
         ctx.arc(px + 14 + d * 3, py - 6, 1, 0, Math.PI * 2);
         ctx.fill();
       }
+    }
+
+    // Stress sweat particles when meters are high
+    if (pharm.stress > 0.7 && pharm.state !== 'WORKING') {
+      const sweatAlpha = 0.3 + Math.sin(state.time * 5) * 0.2;
+      ctx.fillStyle = `rgba(136, 204, 255, ${sweatAlpha})`;
+      ctx.beginPath();
+      ctx.arc(px + 13, py - 2 + Math.sin(state.time * 3) * 2, 1, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 

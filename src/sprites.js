@@ -32,8 +32,10 @@ function rect(ctx, x, y, w, h, color) {
 }
 
 // ========== PHARMACIST SPRITE (16x16) ==========
-function drawPharmacistFrame(facing, frame) {
-  const key = getCacheKey('pharmacist', facing, frame);
+function drawPharmacistFrame(facing, frame, stress) {
+  // stress: 0-1, affects visual appearance
+  const stressLevel = Math.floor((stress || 0) * 2); // 0, 1, 2
+  const key = getCacheKey('pharmacist', facing, frame, stressLevel);
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const c = createSpriteCanvas(16, 16);
@@ -41,61 +43,96 @@ function drawPharmacistFrame(facing, frame) {
   const flip = facing === 'left';
 
   // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
   ctx.beginPath();
   ctx.ellipse(8, 15, 4, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Legs (dark pants)
-  const legOffset = frame === 1 ? 1 : frame === 2 ? -1 : 0;
-  rect(ctx, 5, 12, 2, 3, '#2a2a3a'); // left leg
-  rect(ctx, 9, 12, 2, 3, '#2a2a3a'); // right leg
-  if (frame === 1) {
-    rect(ctx, flip ? 9 : 5, 12, 2, 3, '#2a2a3a');
-    rect(ctx, flip ? 5 : 9, 13, 2, 2, '#2a2a3a');
+  // Legs (dark pants) with walk animation
+  if (frame === 0) {
+    // Standing
+    rect(ctx, 5, 12, 2, 3, '#2a2a3a');
+    rect(ctx, 9, 12, 2, 3, '#2a2a3a');
+  } else if (frame === 1) {
+    // Walk frame 1 — stride
+    rect(ctx, flip ? 7 : 4, 12, 2, 3, '#2a2a3a');
+    rect(ctx, flip ? 10 : 7, 13, 2, 2, '#2a2a3a');
+    // Arm swing
+    rect(ctx, flip ? 12 : 2, 7, 1, 5, '#f0f0f0');
+    rect(ctx, flip ? 3 : 13, 8, 1, 3, '#f0f0f0');
   } else if (frame === 2) {
-    rect(ctx, flip ? 5 : 9, 12, 2, 3, '#2a2a3a');
-    rect(ctx, flip ? 9 : 5, 13, 2, 2, '#2a2a3a');
+    // Walk frame 2 — opposite stride
+    rect(ctx, flip ? 10 : 7, 12, 2, 3, '#2a2a3a');
+    rect(ctx, flip ? 7 : 4, 13, 2, 2, '#2a2a3a');
+    rect(ctx, flip ? 3 : 13, 7, 1, 5, '#f0f0f0');
+    rect(ctx, flip ? 12 : 2, 8, 1, 3, '#f0f0f0');
   }
 
   // Shoes
-  rect(ctx, 5, 14, 2, 1, '#1a1a1a');
-  rect(ctx, 9, 14, 2, 1, '#1a1a1a');
-
-  // Lab coat body (white!)
-  rect(ctx, 4, 6, 8, 7, '#f0f0f0'); // main coat
-  rect(ctx, 3, 7, 1, 4, '#f0f0f0'); // left sleeve
-  rect(ctx, 12, 7, 1, 4, '#f0f0f0'); // right sleeve
-  // Coat details
-  rect(ctx, 8, 7, 1, 5, '#e0e0e0'); // center line (buttons)
-  rect(ctx, 4, 6, 8, 1, '#e8e8e8'); // collar line
-  // Coat shadow
-  rect(ctx, 4, 12, 8, 1, '#ddd');
-
-  // Hands (skin)
-  rect(ctx, 3, 11, 1, 1, '#e8b88a');
-  rect(ctx, 12, 11, 1, 1, '#e8b88a');
-
-  // Name badge (green lanyard)
-  if (!flip) {
-    rect(ctx, 5, 8, 2, 2, '#22aa44');
-    rect(ctx, 5, 7, 1, 1, '#22aa44'); // lanyard
+  if (frame === 0) {
+    rect(ctx, 5, 14, 2, 1, '#1a1a1a');
+    rect(ctx, 9, 14, 2, 1, '#1a1a1a');
+  } else if (frame === 1) {
+    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#1a1a1a');
+    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#1a1a1a');
   } else {
-    rect(ctx, 9, 8, 2, 2, '#22aa44');
-    rect(ctx, 10, 7, 1, 1, '#22aa44');
+    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#1a1a1a');
+    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#1a1a1a');
   }
 
-  // Head
-  rect(ctx, 5, 2, 6, 5, '#e8b88a'); // face
-  // Hair
-  rect(ctx, 5, 1, 6, 2, '#4a3020'); // top hair
-  rect(ctx, 4, 2, 1, 2, '#4a3020'); // side hair left
-  rect(ctx, 11, 2, 1, 2, '#4a3020'); // side hair right
+  // Lab coat body
+  const coatColor = stressLevel >= 2 ? '#e8e8e8' : '#f0f0f0';
+  rect(ctx, 4, 6, 8, 7, coatColor);
+  if (frame === 0) {
+    rect(ctx, 3, 7, 1, 4, coatColor); // left sleeve
+    rect(ctx, 12, 7, 1, 4, coatColor); // right sleeve
+  }
 
-  // Eyes
+  // Coat details — buttons, seams, pockets
+  rect(ctx, 8, 7, 1, 5, '#e0e0e0'); // center button line
+  px(ctx, 8, 8, '#ccc'); // button
+  px(ctx, 8, 10, '#ccc'); // button
+  rect(ctx, 4, 6, 8, 1, '#e8e8e8'); // collar
+  // Collar V-neck
+  px(ctx, 7, 6, '#e8b88a');
+  px(ctx, 8, 6, '#e8b88a');
+  // Lab coat pockets
+  rect(ctx, 5, 9, 2, 2, '#e4e4e4');
+  rect(ctx, 9, 9, 2, 2, '#e4e4e4');
+  // Coat hem shadow
+  rect(ctx, 4, 12, 8, 1, '#d8d8d8');
+
+  // Hands
+  if (frame === 0) {
+    rect(ctx, 3, 11, 1, 1, '#e8b88a');
+    rect(ctx, 12, 11, 1, 1, '#e8b88a');
+  }
+
+  // Name badge (green) with lanyard
+  const badgeSide = flip ? 9 : 5;
+  rect(ctx, badgeSide, 8, 2, 2, '#22aa44');
+  px(ctx, badgeSide, 7, '#22aa44');
+  px(ctx, badgeSide, 6, '#228833');
+
+  // Head
+  rect(ctx, 5, 2, 6, 5, '#e8b88a');
+  // Ears
+  px(ctx, 4, 3, '#e0b080');
+  px(ctx, 11, 3, '#e0b080');
+  // Hair — fuller
+  rect(ctx, 5, 1, 6, 2, '#4a3020');
+  rect(ctx, 4, 1, 1, 3, '#4a3020');
+  rect(ctx, 11, 1, 1, 3, '#4a3020');
+  px(ctx, 5, 1, '#5a4030'); // hair highlight
+
+  // Eyes — direction-aware with stress
   if (facing === 'left') {
     px(ctx, 6, 4, '#222');
     px(ctx, 8, 4, '#222');
+    if (stressLevel >= 1) {
+      px(ctx, 6, 4, '#333'); // bags under eyes
+      px(ctx, 8, 4, '#333');
+    }
   } else if (facing === 'right') {
     px(ctx, 7, 4, '#222');
     px(ctx, 9, 4, '#222');
@@ -103,6 +140,24 @@ function drawPharmacistFrame(facing, frame) {
     px(ctx, 6, 4, '#222');
     px(ctx, 9, 4, '#222');
   }
+
+  // Eyebrows — show stress
+  if (stressLevel >= 1) {
+    px(ctx, 6, 3, '#5a4030');
+    px(ctx, 9, 3, '#5a4030');
+  }
+  if (stressLevel >= 2) {
+    // Furrowed brows
+    px(ctx, 5, 3, '#4a3020');
+    px(ctx, 10, 3, '#4a3020');
+    // Sweat drop
+    px(ctx, 12, 2, '#88ccff');
+    px(ctx, 12, 3, '#aaddff');
+  }
+
+  // Mouth
+  px(ctx, 7, 5, stressLevel >= 2 ? '#c88060' : '#d09070');
+  px(ctx, 8, 5, stressLevel >= 2 ? '#c88060' : '#d09070');
 
   spriteCache.set(key, c);
   return c;
@@ -115,58 +170,132 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   if (spriteCache.has(key)) return spriteCache.get(key);
 
   const palette = PATIENT_PALETTES[paletteIndex % PATIENT_PALETTES.length];
+  const skin = palette.skin || '#e8b88a';
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Tint for emotion
-  const tints = ['', '#ffff0033', '#ff000044'];
-
   // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.beginPath();
   ctx.ellipse(8, 15, 3.5, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Legs
-  rect(ctx, 5, 12, 2, 3, '#444466');
-  rect(ctx, 9, 12, 2, 3, '#444466');
-  rect(ctx, 5, 14, 2, 1, '#333');
-  rect(ctx, 9, 14, 2, 1, '#333');
+  // Legs (jeans/pants)
+  const pantsColor = paletteIndex % 3 === 0 ? '#3a3a55' : paletteIndex % 3 === 1 ? '#4a4a3a' : '#444466';
+  rect(ctx, 5, 12, 2, 3, pantsColor);
+  rect(ctx, 9, 12, 2, 3, pantsColor);
+  // Shoes
+  const shoeColor = paletteIndex % 2 === 0 ? '#2a2a2a' : '#5a3a2a';
+  rect(ctx, 5, 14, 2, 1, shoeColor);
+  rect(ctx, 9, 14, 2, 1, shoeColor);
 
-  // Body (shirt)
+  // Body (shirt) with shading
   rect(ctx, 4, 6, 8, 7, palette.shirt);
+  // Shirt shadow on sides
+  rect(ctx, 4, 6, 1, 7, darkenColor(palette.shirt));
+  rect(ctx, 11, 6, 1, 7, darkenColor(palette.shirt));
+  // Sleeves
   rect(ctx, 3, 7, 1, 3, palette.shirt);
   rect(ctx, 12, 7, 1, 3, palette.shirt);
+  // Collar
+  rect(ctx, 6, 6, 4, 1, darkenColor(palette.shirt));
+  px(ctx, 7, 6, skin); // neck visible
 
-  // Head
-  const skinTones = ['#e8b88a', '#d4a574', '#c49060', '#8b6240', '#e8c8a0'];
-  const skin = skinTones[paletteIndex % skinTones.length];
+  // Hands
+  px(ctx, 3, 10, skin);
+  px(ctx, 12, 10, skin);
+
+  // Head with more shape
   rect(ctx, 5, 2, 6, 5, skin);
+  // Chin highlight
+  px(ctx, 7, 6, darkenColor(skin));
+  px(ctx, 8, 6, darkenColor(skin));
+  // Ears
+  px(ctx, 4, 3, darkenColor(skin));
+  px(ctx, 11, 3, darkenColor(skin));
 
-  // Hair
+  // Hair — varied styles based on palette
+  const hairStyle = paletteIndex % 4;
   rect(ctx, 5, 1, 6, 2, palette.hair);
-  rect(ctx, 4, 2, 1, 1, palette.hair);
-  rect(ctx, 11, 2, 1, 1, palette.hair);
+  if (hairStyle === 0) {
+    // Full hair
+    rect(ctx, 4, 1, 1, 3, palette.hair);
+    rect(ctx, 11, 1, 1, 3, palette.hair);
+    px(ctx, 5, 1, lightenColor(palette.hair));
+  } else if (hairStyle === 1) {
+    // Short sides
+    rect(ctx, 4, 2, 1, 1, palette.hair);
+    rect(ctx, 11, 2, 1, 1, palette.hair);
+  } else if (hairStyle === 2) {
+    // Longer hair
+    rect(ctx, 4, 1, 1, 4, palette.hair);
+    rect(ctx, 11, 1, 1, 4, palette.hair);
+    rect(ctx, 5, 1, 6, 1, lightenColor(palette.hair));
+  } else {
+    // Buzz cut
+    rect(ctx, 5, 1, 6, 1, palette.hair);
+  }
 
   // Eyes
   px(ctx, 6, 4, '#222');
   px(ctx, 9, 4, '#222');
 
-  // Emotion overlay
-  if (emotionLevel >= 1) {
-    ctx.fillStyle = 'rgba(255, 200, 0, 0.15)';
+  // Emotion-specific details
+  if (emotionLevel === 0) {
+    // Calm — small smile
+    px(ctx, 7, 5, darkenColor(skin));
+    px(ctx, 8, 5, darkenColor(skin));
+  } else if (emotionLevel === 1) {
+    // Impatient — frown, crossed arms look
+    px(ctx, 7, 5, '#aa7755');
+    px(ctx, 8, 5, '#aa7755');
+    // Slight yellow tinge
+    ctx.fillStyle = 'rgba(255, 200, 0, 0.08)';
     ctx.fillRect(0, 0, 16, 16);
-  }
-  if (emotionLevel >= 2) {
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-    ctx.fillRect(0, 0, 16, 16);
+    // Furrowed brows
+    px(ctx, 5, 3, palette.hair);
+    px(ctx, 10, 3, palette.hair);
+  } else {
+    // Angry — red face, wide mouth
+    // Angry tint on skin
+    rect(ctx, 5, 2, 6, 5, blendColor(skin, '#ff4444', 0.15));
+    // Re-draw eyes (angrier)
+    px(ctx, 6, 4, '#111');
+    px(ctx, 9, 4, '#111');
     // Angry eyebrows
-    rect(ctx, 5, 3, 2, 1, '#222');
-    rect(ctx, 9, 3, 2, 1, '#222');
+    px(ctx, 5, 3, '#222');
+    px(ctx, 6, 3, '#222');
+    px(ctx, 9, 3, '#222');
+    px(ctx, 10, 3, '#222');
+    // Open mouth
+    rect(ctx, 7, 5, 2, 1, '#993333');
+    // Red tint on whole sprite
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+    ctx.fillRect(0, 0, 16, 16);
   }
 
   spriteCache.set(key, c);
   return c;
+}
+
+function lightenColor(hex) {
+  const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + 30);
+  const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + 30);
+  const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + 30);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+}
+
+function blendColor(hex1, hex2, amount) {
+  const r1 = parseInt(hex1.slice(1, 3), 16);
+  const g1 = parseInt(hex1.slice(3, 5), 16);
+  const b1 = parseInt(hex1.slice(5, 7), 16);
+  const r2 = parseInt(hex2.slice(1, 3), 16);
+  const g2 = parseInt(hex2.slice(3, 5), 16);
+  const b2 = parseInt(hex2.slice(5, 7), 16);
+  const r = Math.round(r1 + (r2 - r1) * amount);
+  const g = Math.round(g1 + (g2 - g1) * amount);
+  const b = Math.round(b1 + (b2 - b1) * amount);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
 
 // ========== SPEECH BUBBLE ==========

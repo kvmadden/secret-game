@@ -24,15 +24,15 @@ export const COLORS = {
   BURNOUT: '#ff8800',
 
   // Pharmacy palette
-  FLOOR: '#d4cfc4',
-  FLOOR_DARK: '#c4bfb4',
-  COUNTER_TOP: '#e8e4dc',
-  COUNTER_FRONT: '#5a4a3a',
-  SHELF: '#8b7355',
-  SHELF_DARK: '#6b5335',
-  WALL: '#e0dcd4',
-  CEILING: '#f0ece4',
-  BACK_WALL: '#d8d4cc',
+  FLOOR: '#ccc8ba',
+  FLOOR_DARK: '#c0bcae',
+  COUNTER_TOP: '#e0dcd4',
+  COUNTER_FRONT: '#4a3a2a',
+  SHELF: '#7a6545',
+  SHELF_DARK: '#5a4525',
+  WALL: '#d8d4cc',
+  CEILING: '#e8e4dc',
+  BACK_WALL: '#d0ccc4',
 
   // Station accents
   VERIFY: '#00d4ff',
@@ -44,7 +44,7 @@ export const COLORS = {
 
 // ========== TILE SIZE ==========
 export const TILE_SIZE = 16;
-export const SCALE = 2; // Render at 2x
+export const SCALE = 2;
 
 // ========== PHARMACY MAP DIMENSIONS (in tiles) ==========
 export const MAP_COLS = 40; // Wide pharmacy
@@ -67,48 +67,53 @@ export const METER_MAX = 100;
 
 // Phase-based event intervals (seconds between events)
 export const PHASE_EVENT_INTERVAL = {
-  OPENING:     { min: 5, max: 8 },
-  BUILDING:    { min: 3, max: 5.5 },
-  LUNCH_CLOSE: { min: 999, max: 999 }, // No events during lunch
-  REOPEN_RUSH: { min: 1.8, max: 3.5 },
-  LATE_DRAG:   { min: 3.5, max: 6 },
+  OPENING:     { min: 4, max: 7 },
+  BUILDING:    { min: 2.5, max: 4.5 },
+  LUNCH_CLOSE: { min: 999, max: 999 },
+  REOPEN_RUSH: { min: 1.5, max: 3 },
+  LATE_DRAG:   { min: 3, max: 5.5 },
 };
 
 // Phase-based ambient meter pressure per second
 export const PHASE_AMBIENT = {
-  OPENING:     { queue: 0.15, rage: 0.1,  burnout: 0.05 },
-  BUILDING:    { queue: 0.3,  rage: 0.2,  burnout: 0.1 },
-  LUNCH_CLOSE: { queue: 0.6,  rage: 0.8,  burnout: -0.15 },
-  REOPEN_RUSH: { queue: 0.5,  rage: 0.35, burnout: 0.2 },
-  LATE_DRAG:   { queue: 0.2,  rage: 0.15, burnout: 0.15 },
+  OPENING:     { queue: 0.2,  rage: 0.15, burnout: 0.08 },
+  BUILDING:    { queue: 0.4,  rage: 0.3,  burnout: 0.15 },
+  LUNCH_CLOSE: { queue: 0.7,  rage: 0.9,  burnout: -0.12 },
+  REOPEN_RUSH: { queue: 0.6,  rage: 0.45, burnout: 0.25 },
+  LATE_DRAG:   { queue: 0.25, rage: 0.2,  burnout: 0.2 },
 };
 
 // Script pipeline intervals (seconds between new scripts entering)
 export const PHASE_SCRIPT_INTERVAL = {
-  OPENING:     { min: 8, max: 14 },
-  BUILDING:    { min: 5, max: 9 },
+  OPENING:     { min: 7, max: 12 },
+  BUILDING:    { min: 4, max: 7 },
   LUNCH_CLOSE: { min: 999, max: 999 },
-  REOPEN_RUSH: { min: 3, max: 6 },
-  LATE_DRAG:   { min: 6, max: 10 },
+  REOPEN_RUSH: { min: 2.5, max: 5 },
+  LATE_DRAG:   { min: 5, max: 9 },
 };
 
 // ========== DEFER SETTINGS ==========
-export const DEFER_RETURN_MIN = 15;
-export const DEFER_RETURN_MAX = 25;
+export const DEFER_RETURN_MIN = 12;
+export const DEFER_RETURN_MAX = 22;
 
 // ========== PHARMACIST MOVEMENT ==========
-export const PHARMACIST_SPEED = 6; // tiles per second
+export const PHARMACIST_SPEED = 5; // tiles per second (slowed for strategy)
 
-// ========== PATIENT COLORS ==========
+// ========== PATIENT SETTINGS ==========
+export const MAX_PATIENTS_PER_STATION = 3;
+export const PATIENT_LEAVE_THRESHOLD = 0; // patience at which they leave
+
 export const PATIENT_PALETTES = [
-  { hair: '#3a2a1a', shirt: '#4466aa' },
-  { hair: '#8b6914', shirt: '#aa4444' },
-  { hair: '#1a1a1a', shirt: '#44aa66' },
-  { hair: '#cc8833', shirt: '#6644aa' },
-  { hair: '#555555', shirt: '#aa6644' },
-  { hair: '#2a1a0a', shirt: '#44aaaa' },
-  { hair: '#994422', shirt: '#888844' },
-  { hair: '#1a2a1a', shirt: '#aa4488' },
+  { hair: '#3a2a1a', shirt: '#4466aa', skin: '#e8b88a' },
+  { hair: '#8b6914', shirt: '#aa4444', skin: '#d4a574' },
+  { hair: '#1a1a1a', shirt: '#44aa66', skin: '#c49060' },
+  { hair: '#cc8833', shirt: '#6644aa', skin: '#e8c8a0' },
+  { hair: '#555555', shirt: '#aa6644', skin: '#8b6240' },
+  { hair: '#2a1a0a', shirt: '#44aaaa', skin: '#d4a574' },
+  { hair: '#994422', shirt: '#888844', skin: '#e8b88a' },
+  { hair: '#1a2a1a', shirt: '#aa4488', skin: '#c49060' },
+  { hair: '#443322', shirt: '#5588aa', skin: '#e0c090' },
+  { hair: '#111111', shirt: '#cc6644', skin: '#8b6240' },
 ];
 
 export const PATIENT_BARKS = [
@@ -124,13 +129,25 @@ export const PATIENT_BARKS = [
   "How much longer?",
   "This never happened at Walgreens.",
   "I'm too old for this app.",
+  "I have somewhere to be.",
+  "Can you hurry up?",
+  "My insurance covers this.",
+  "I drove 30 minutes for this.",
 ];
+
+// ========== PIPELINE DANGER THRESHOLDS ==========
+export const PIPELINE_QUEUE_PRESSURE_MULT = 0.06; // per unverified script per second
+export const PIPELINE_RAGE_PRESSURE_MULT = 0.03;  // per ready-but-unserved script
+
+// ========== ESCALATION ==========
+export const MAX_ESCALATION_CHAIN = 3; // After 3 escalations, event expires with full penalty
 
 // ========== RESULTS ==========
 export const WIN_TITLES = [
   { title: 'HELD TOGETHER', flavor: 'You kept the store open. That was the assignment.' },
   { title: 'SURVIVED', flavor: "Someone is writing a Google review right now." },
   { title: 'STILL STANDING', flavor: "You'll do it again tomorrow." },
+  { title: 'SHIFT COMPLETE', flavor: "Clock out. Don't look back." },
 ];
 
 export const LOSS_TITLES = {
@@ -148,4 +165,7 @@ export const LUNCH_MESSAGES = [
   '"Can\'t you just open early?"',
   'The line is growing.',
   '"I\'ll just wait here."',
+  'The phone is ringing.',
+  'Someone knocked on the gate.',
+  '"This is unacceptable."',
 ];

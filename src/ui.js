@@ -378,21 +378,23 @@ export class UI {
       <div class="stat-line"><span>Patients Served</span><span>${stats.patientsServed}</span></div>
       <div class="stat-line"><span>Events Deferred</span><span>${stats.eventsDeferred}</span></div>
       <div class="stat-line"><span>Events Escalated</span><span>${stats.eventsEscalated}</span></div>
+      <div class="stat-line"><span>Patients Lost</span><span>${stats.patientsLost || 0}</span></div>
     `;
   }
 
   calculateGrade(won, meters, stats) {
     if (!won) return 'F';
     const avgMeter = (meters.queue + meters.rage + meters.burnout) / 3;
-    const efficiency = stats.eventsHandled + stats.scriptsVerified + stats.patientsServed;
-    const penalty = stats.eventsEscalated * 3;
+    const handled = stats.eventsHandled + stats.scriptsVerified + stats.patientsServed;
+    const penalties = stats.eventsEscalated * 4 + (stats.patientsLost || 0) * 5;
+    const meterPenalty = avgMeter * 0.6;
 
-    const score = Math.max(0, efficiency - penalty - avgMeter * 0.5);
+    const score = Math.max(0, handled - penalties - meterPenalty);
 
-    if (score > 30) return 'S';
-    if (score > 22) return 'A';
-    if (score > 15) return 'B';
-    if (score > 8) return 'C';
+    if (score > 28) return 'S';
+    if (score > 20) return 'A';
+    if (score > 13) return 'B';
+    if (score > 6) return 'C';
     return 'D';
   }
 
