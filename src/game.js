@@ -16,6 +16,7 @@ import { findPath } from './pathfinding.js';
 import { createTileMap } from './map.js';
 import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
+import * as Audio from './audio.js';
 
 let uidCounter = 0;
 function nextUid() { return ++uidCounter; }
@@ -41,6 +42,10 @@ export class Game {
 
     // Phase
     this.phase = 'OPENING';
+    this.prevPhase = null;
+
+    // Meter warning cooldowns
+    this.meterWarningCooldown = { queue: 0, rage: 0, burnout: 0 };
 
     // Pharmacist
     this.pharmacist = {
@@ -54,6 +59,7 @@ export class Game {
       workDuration: 0,
       workEvent: null,
       workLabel: '',
+      idleTimer: 0,
     };
 
     // Pipeline
@@ -82,6 +88,15 @@ export class Game {
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
 
+    // Phone ringing state
+    this.phoneRinging = false;
+    this.phoneRingTimer = 0;
+
+    // Tutorial state
+    this.tutorialStep = 0;
+    this.tutorialTimer = 0;
+    this.tutorialShown = new Set();
+
     // Stats
     this.stats = {
       eventsHandled: 0,
@@ -96,6 +111,8 @@ export class Game {
     this.ui.hideWorkProgress();
     this.ui.hideLunch();
     this.ui.hideResults();
+    this.ui.hidePhaseAnnounce();
+    this.ui.hideTutorial();
 
     // Add pipeline cards
     this.updatePipelineCards();
@@ -103,16 +120,21 @@ export class Game {
 
   setupListeners() {
     // Start button
-    document.getElementById('start-btn').addEventListener('click', () => this.startGame());
+    document.getElementById('start-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.startGame();
+    });
 
     // Retry button
     document.getElementById('retry-btn').addEventListener('click', () => {
+      Audio.playClick();
       this.reset();
       this.startGame();
     });
 
     // Title button
     document.getElementById('title-btn').addEventListener('click', () => {
+      Audio.playClick();
       this.reset();
       this.ui.showTitle();
     });
@@ -126,13 +148,32 @@ export class Game {
     this.state = 'PLAYING';
     this.lastTimestamp = performance.now();
     this.spawnInitialPatients();
+    this.showTutorial('welcome');
     this.tick();
   }
 
   spawnInitialPatients() {
-    // A couple patients already waiting
     this.spawnPatient('pickup');
     setTimeout(() => this.spawnPatient('consult'), 500);
+  }
+
+  // ========== TUTORIAL ==========
+
+  showTutorial(step) {
+    if (this.tutorialShown.has(step)) return;
+    this.tutorialShown.add(step);
+
+    const tips = {
+      welcome: 'Tap HANDLE on cards below to send the pharmacist to work. DEFER buys time but problems come back worse.',
+      pipeline: 'Scripts need VERIFYING before patients can pick them up. Keep the pipeline moving.',
+      busy: "The pharmacist is busy! Queue up your next action when they're free.",
+      pressure: 'Meters climbing — prioritize the most urgent cards first.',
+    };
+
+    if (tips[step]) {
+      this.ui.showTutorial(tips[step]);
+      this.tutorialTimer = 6;
+    }
   }
 
   // ========== MAIN GAME LOOP ==========
@@ -141,15 +182,22 @@ export class Game {
     if (this.state !== 'PLAYING' && this.state !== 'LUNCH') return;
 
     const now = performance.now();
-    const dt = Math.min((now - this.lastTimestamp) / 1000, 0.1); // Cap at 100ms
+    const dt = Math.min((now - this.lastTimestamp) / 1000, 0.1);
     this.lastTimestamp = now;
     this.time += dt;
     this.elapsed += dt;
 
+    // Update tutorial timer
+    if (this.tutorialTimer > 0) {
+      this.tutorialTimer -= dt;
+      if (this.tutorialTimer <= 0) {
+        this.ui.hideTutorial();
+      }
+    }
+
     // Update phase
     this.updatePhase();
 
-    // Update based on state
     if (this.state === 'PLAYING') {
       this.updateMeters(dt);
       this.updateEvents(dt);
@@ -157,6 +205,8 @@ export class Game {
       this.updatePatients(dt);
       this.updatePipeline(dt);
       this.updateDeferred(dt);
+      this.updatePhoneRing(dt);
+      this.checkMeterWarnings(dt);
       this.checkGameOver();
     } else if (this.state === 'LUNCH') {
       this.updateLunch(dt);
@@ -183,6 +233,7 @@ export class Game {
       patients: this.patients,
       stationManager: this.stationManager,
       driveThruCars: this.driveThruCars,
+      phoneRinging: this.phoneRinging,
     };
   }
 
@@ -192,7 +243,6 @@ export class Game {
     const progress = this.elapsed / GAME_DURATION;
 
     if (progress >= 1) {
-      // Game won!
       this.endGame(true);
       return;
     }
@@ -213,7 +263,16 @@ export class Game {
   }
 
   onPhaseChange(from, to) {
+    Audio.playPhaseChange();
+
+    // Show phase announcement
+    const phase = PHASES.find(p => p.name === to);
+    if (phase && to !== 'LUNCH_CLOSE') {
+      this.ui.showPhaseAnnounce(phase.label);
+    }
+
     if (to === 'LUNCH_CLOSE') {
+      Audio.playLunchStart();
       this.state = 'LUNCH';
       this.lunchMessageIndex = 0;
       this.lunchMessageTimer = 0;
@@ -221,22 +280,24 @@ export class Game {
       this.ui.clearCards();
       this.pharmacist.state = 'IDLE';
       this.pharmacist.path = [];
+      this.phoneRinging = false;
     } else if (to === 'REOPEN_RUSH' && from === 'LUNCH_CLOSE') {
+      Audio.playReopenRush();
       this.state = 'PLAYING';
       this.ui.hideLunch();
+      this.ui.showPhaseAnnounce('REOPEN RUSH');
       // Reopen surge
       this.meters.queue = Math.min(METER_MAX, this.meters.queue + 15);
       this.meters.rage = Math.min(METER_MAX, this.meters.rage + 8);
-      // Dump scripts
       this.pipeline.addScript(4);
-      // Spawn patients
       this.spawnPatient('pickup');
       this.spawnPatient('pickup');
       this.spawnPatient('drive');
       this.driveThruCars = 2;
-      // Reset event timer for quick events
       this.nextEventTimer = 1;
       this.updatePipelineCards();
+    } else if (to === 'BUILDING') {
+      this.showTutorial('pipeline');
     }
   }
 
@@ -249,7 +310,6 @@ export class Game {
     this.meters.rage = Math.min(METER_MAX, Math.max(0, this.meters.rage + ambient.rage * dt));
     this.meters.burnout = Math.max(0, this.meters.burnout + ambient.burnout * dt);
 
-    // Cycle through lunch messages
     if (this.lunchMessageTimer > 3) {
       this.lunchMessageTimer = 0;
       this.lunchMessageIndex = (this.lunchMessageIndex + 1) % LUNCH_MESSAGES.length;
@@ -259,7 +319,6 @@ export class Game {
       );
     }
 
-    // Add scripts during lunch
     if (Math.random() < 0.005) {
       this.pipeline.addScript(1);
     }
@@ -270,7 +329,6 @@ export class Game {
   updateMeters(dt) {
     const ambient = PHASE_AMBIENT[this.phase] || PHASE_AMBIENT.OPENING;
 
-    // Ambient pressure
     this.meters.queue += ambient.queue * dt;
     this.meters.rage += ambient.rage * dt;
     this.meters.burnout += ambient.burnout * dt;
@@ -292,6 +350,19 @@ export class Game {
     this.meters.burnout = Math.max(0, Math.min(METER_MAX, this.meters.burnout));
   }
 
+  checkMeterWarnings(dt) {
+    for (const key of ['queue', 'rage', 'burnout']) {
+      this.meterWarningCooldown[key] -= dt;
+      if (this.meters[key] > 75 && this.meterWarningCooldown[key] <= 0) {
+        Audio.playMeterWarning();
+        this.meterWarningCooldown[key] = 8; // Don't spam warnings
+        if (!this.tutorialShown.has('pressure')) {
+          this.showTutorial('pressure');
+        }
+      }
+    }
+  }
+
   applyEffects(effects) {
     if (!effects) return;
     if (effects.queue) this.meters.queue = Math.max(0, Math.min(METER_MAX, this.meters.queue + effects.queue));
@@ -299,19 +370,38 @@ export class Game {
     if (effects.burnout) this.meters.burnout = Math.max(0, Math.min(METER_MAX, this.meters.burnout + effects.burnout));
   }
 
+  // ========== PHONE RINGING ==========
+
+  updatePhoneRing(dt) {
+    // Phone rings when there's a phone event active
+    const hasPhoneEvent = this.activeEvents.some(e => e.station === 'phone' && !e.isPipeline);
+    if (hasPhoneEvent && !this.phoneRinging) {
+      this.phoneRinging = true;
+      this.phoneRingTimer = 0;
+      Audio.playPhoneRing();
+    } else if (hasPhoneEvent) {
+      this.phoneRingTimer += dt;
+      // Ring again every 4 seconds
+      if (this.phoneRingTimer > 4) {
+        this.phoneRingTimer = 0;
+        Audio.playPhoneRing();
+      }
+    } else {
+      this.phoneRinging = false;
+    }
+  }
+
   // ========== EVENTS ==========
 
   updateEvents(dt) {
     this.nextEventTimer -= dt;
 
-    // Limit active non-pipeline events to 5
     const nonPipelineEvents = this.activeEvents.filter(e => !e.isPipeline);
     if (this.nextEventTimer <= 0 && nonPipelineEvents.length < 5) {
       this.spawnEvent();
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
       this.nextEventTimer = interval.min + Math.random() * (interval.max - interval.min);
     } else if (this.nextEventTimer <= 0) {
-      // Still reset timer even if at cap
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
       this.nextEventTimer = interval.min + Math.random() * (interval.max - interval.min);
     }
@@ -322,10 +412,14 @@ export class Game {
       event.ageTimer = (event.ageTimer || 0) + dt;
       // After 10 seconds unhandled, start applying ignore effects slowly
       if (event.ageTimer > 10 && event.ignoreEffects) {
-        const factor = dt * 0.1; // 10% of ignore effects per second
+        const factor = dt * 0.1;
         if (event.ignoreEffects.rage) this.meters.rage += event.ignoreEffects.rage * factor;
         if (event.ignoreEffects.queue) this.meters.queue += event.ignoreEffects.queue * factor;
         if (event.ignoreEffects.burnout) this.meters.burnout += event.ignoreEffects.burnout * factor;
+      }
+      // Update card aging visual
+      if (event.ageTimer > 8) {
+        this.ui.ageCard(event.uid, event.ageTimer);
       }
     }
   }
@@ -335,20 +429,26 @@ export class Game {
     if (!event) return;
 
     event.uid = nextUid();
+    event.ageTimer = 0;
     this.activeEvents.push(event);
     this.stationManager.setEvent(event.station, true);
 
-    // Spawn a patient for visual feedback (if station-related)
+    // Audio feedback
+    if (event.isEscalated) {
+      Audio.playEscalation();
+    } else {
+      Audio.playEventSpawn();
+    }
+
+    // Spawn patient
     if (!event.isInterrupt && event.station !== 'phone') {
       this.spawnPatient(event.station);
     }
 
-    // Drive-thru events add cars
     if (event.station === 'drive') {
       this.driveThruCars = Math.min(3, this.driveThruCars + 1);
     }
 
-    // Add card
     this.ui.addCard(event,
       (ev) => this.handleEvent(ev),
       (ev) => this.deferEvent(ev)
@@ -356,7 +456,13 @@ export class Game {
   }
 
   handleEvent(event) {
-    if (this.pharmacist.state !== 'IDLE') return; // Can't handle while busy
+    if (this.pharmacist.state !== 'IDLE') {
+      // Show tutorial about being busy
+      this.showTutorial('busy');
+      return;
+    }
+
+    Audio.playDispatch();
 
     // Remove card
     this.ui.removeCard(event.uid);
@@ -364,11 +470,7 @@ export class Game {
 
     // Walk to station then work
     const station = STATIONS[event.station];
-    const targetCol = station.col;
-    const targetRow = station.row;
-
-    // Find path
-    const path = findPath(this.tileMap, Math.round(this.pharmacist.col), Math.round(this.pharmacist.row), targetCol, targetRow);
+    const path = findPath(this.tileMap, Math.round(this.pharmacist.col), Math.round(this.pharmacist.row), station.col, station.row);
 
     this.pharmacist.state = 'WALKING';
     this.pharmacist.path = path;
@@ -381,12 +483,12 @@ export class Game {
   deferEvent(event) {
     if (!event.canDefer) return;
 
-    // Remove card
+    Audio.playDefer();
+
     this.ui.removeCard(event.uid);
     this.activeEvents = this.activeEvents.filter(e => e.uid !== event.uid);
     this.stationManager.setEvent(event.station, false);
 
-    // Schedule return as escalated version
     const returnTime = getDeferTime();
     this.deferredEvents.push({
       originalEvent: event,
@@ -394,8 +496,6 @@ export class Game {
     });
 
     this.stats.eventsDeferred++;
-
-    // Remove associated patient (they leave temporarily)
     this.removePatientAtStation(event.station);
   }
 
@@ -406,18 +506,18 @@ export class Game {
         const { originalEvent } = this.deferredEvents[i];
         this.deferredEvents.splice(i, 1);
 
-        // Return as escalated
         const escalated = getEscalatedEvent(originalEvent);
         escalated.uid = nextUid();
+        escalated.ageTimer = 0;
         this.activeEvents.push(escalated);
         this.stationManager.setEvent(escalated.station, true);
         this.stationManager.setUrgency(escalated.station, 2);
         this.stats.eventsEscalated++;
 
-        // Spawn angry patient
+        Audio.playEscalation();
+
         this.spawnPatient(escalated.station, 0.3);
 
-        // Add card
         this.ui.addCard(escalated,
           (ev) => this.handleEvent(ev),
           (ev) => this.deferEvent(ev)
@@ -430,6 +530,12 @@ export class Game {
 
   updatePharmacist(dt) {
     const pharm = this.pharmacist;
+
+    if (pharm.state === 'IDLE') {
+      pharm.idleTimer += dt;
+    } else {
+      pharm.idleTimer = 0;
+    }
 
     if (pharm.state === 'WALKING') {
       if (pharm.pathIndex < pharm.path.length) {
@@ -473,16 +579,15 @@ export class Game {
     const pharm = this.pharmacist;
     const event = pharm.workEvent;
 
+    Audio.playComplete();
+
     if (event) {
-      // Apply positive effects (handling resolves the event)
       this.applyEffects(event.effects);
 
-      // Special: adds script to pipeline
       if (event.addsScript) {
         this.pipeline.addScript(1);
       }
 
-      // Special: pipeline actions
       if (event.isPipeline && event.pipelineAction === 'verify') {
         this.pipeline.verify();
         this.stats.scriptsVerified++;
@@ -495,11 +600,9 @@ export class Game {
         this.stats.eventsHandled++;
       }
 
-      // Clear station
       this.stationManager.setEvent(event.station, false);
       this.stationManager.setUrgency(event.station, 0);
 
-      // Remove patient from station
       if (event.station === 'drive') {
         this.driveThruCars = Math.max(0, this.driveThruCars - 1);
       }
@@ -511,14 +614,15 @@ export class Game {
     pharm.workTimer = 0;
     this.ui.hideWorkProgress();
 
-    // Update pipeline cards
+    // Flash completion effect on canvas
+    this.renderer.flashComplete(pharm.col, pharm.row);
+
     this.updatePipelineCards();
   }
 
   // ========== PIPELINE CARDS ==========
 
   updatePipelineCards() {
-    // Remove existing pipeline cards
     for (const ev of this.activeEvents) {
       if (ev.isPipeline) {
         this.ui.removeCard(ev.uid);
@@ -526,7 +630,6 @@ export class Game {
     }
     this.activeEvents = this.activeEvents.filter(e => !e.isPipeline);
 
-    // Add verify card if scripts available
     if (this.pipeline.canVerify()) {
       const verifyEvent = {
         uid: nextUid(),
@@ -546,7 +649,6 @@ export class Game {
       );
     }
 
-    // Add serve card if ready scripts available
     if (this.pipeline.canServe()) {
       const serveEvent = {
         uid: nextUid(),
@@ -585,18 +687,26 @@ export class Game {
     const station = STATIONS[stationKey];
     if (!station) return;
 
-    // Position patient on customer side of counter
-    let col = station.col + (Math.random() * 2 - 1);
-    let row = stationKey === 'drive' ? 2 : 3; // Customer area
+    // Spawn at entrance then walk to station
+    const targetCol = station.col + (Math.random() * 2 - 1);
+    const targetRow = stationKey === 'drive' ? 2 : 3;
+
+    // Start position: walk in from edge
+    const startCol = stationKey === 'drive' ? 39 : (Math.random() > 0.5 ? -1 : 20);
+    const startRow = targetRow;
 
     const patient = {
       id: this.nextPatientId++,
-      col,
-      row,
+      col: startCol,
+      row: startRow,
+      targetCol,
+      targetRow,
+      walking: true,
       station: stationKey,
       paletteIndex: Math.floor(Math.random() * PATIENT_PALETTES.length),
-      patience: startPatience !== undefined ? startPatience : 1.0, // 1.0 = calm, 0 = leaving
+      patience: startPatience !== undefined ? startPatience : 1.0,
       visible: true,
+      opacity: 1,
       showBubble: false,
       bubbleText: '',
       bubbleTimer: 0,
@@ -611,23 +721,51 @@ export class Game {
   removePatientAtStation(stationKey) {
     const idx = this.patients.findIndex(p => p.station === stationKey && p.visible);
     if (idx >= 0) {
-      this.patients[idx].visible = false;
-      // Clean up after animation
-      setTimeout(() => {
-        this.patients = this.patients.filter(p => p.visible);
-      }, 500);
+      // Fade out instead of instant removal
+      this.patients[idx].fadeOut = true;
+      this.patients[idx].opacity = 1;
     }
     this.stationManager.clearPatient(stationKey);
   }
 
   updatePatients(dt) {
-    for (const patient of this.patients) {
-      if (!patient.visible) continue;
+    for (let i = this.patients.length - 1; i >= 0; i--) {
+      const patient = this.patients[i];
+      if (!patient.visible) {
+        this.patients.splice(i, 1);
+        continue;
+      }
+
+      // Fade out animation
+      if (patient.fadeOut) {
+        patient.opacity -= dt * 2;
+        if (patient.opacity <= 0) {
+          patient.visible = false;
+        }
+        continue;
+      }
+
+      // Walk to station
+      if (patient.walking) {
+        const dx = patient.targetCol - patient.col;
+        const dy = patient.targetRow - patient.row;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.2) {
+          patient.col = patient.targetCol;
+          patient.row = patient.targetRow;
+          patient.walking = false;
+        } else {
+          const speed = 4 * dt;
+          patient.col += (dx / dist) * speed;
+          patient.row += (dy / dist) * speed;
+        }
+        continue;
+      }
 
       patient.waitTime += dt;
       patient.patience = Math.max(0, patient.patience - dt * 0.02);
 
-      // Update bubble
+      // Bubble management
       if (patient.showBubble) {
         patient.bubbleTimer -= dt;
         if (patient.bubbleTimer <= 0) {
@@ -642,9 +780,10 @@ export class Game {
         patient.bubbleText = PATIENT_BARKS[Math.floor(Math.random() * PATIENT_BARKS.length)];
         patient.bubbleTimer = 3;
         patient.nextBarkTime = 6 + Math.random() * 10;
+        Audio.playBark();
       }
 
-      // Update station urgency based on patience
+      // Update station urgency
       if (patient.patience < 0.3) {
         this.stationManager.setUrgency(patient.station, 2);
       } else if (patient.patience < 0.6) {
@@ -668,9 +807,16 @@ export class Game {
   endGame(won, lostMeter) {
     this.state = 'GAMEOVER';
 
+    if (won) {
+      Audio.playWin();
+    } else {
+      Audio.playGameOver();
+    }
+
     this.ui.clearCards();
     this.ui.hideWorkProgress();
     this.ui.hideLunch();
+    this.ui.hideTutorial();
 
     this.ui.showResults(won, lostMeter, {
       queue: this.meters.queue,

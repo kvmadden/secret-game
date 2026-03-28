@@ -37,6 +37,12 @@ export class UI {
     this.lunchSub = document.getElementById('lunch-sub');
     this.resultsScreen = document.getElementById('results-screen');
 
+    // Phase announce
+    this.phaseAnnounce = document.getElementById('phase-announce');
+
+    // Tutorial
+    this.tutorialEl = document.getElementById('tutorial-hint');
+
     // Active card map: eventId -> DOM element
     this.activeCards = new Map();
   }
@@ -50,8 +56,15 @@ export class UI {
     const hours = Math.floor(currentHour);
     const minutes = Math.floor((currentHour - hours) * 60);
     const ampm = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours > 12 ? hours - 12 : hours;
+    const displayHour = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
     this.timerEl.textContent = `${displayHour}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+
+    // Time running low warning
+    if (progress > 0.85) {
+      this.timerEl.style.color = '#ff8800';
+    } else {
+      this.timerEl.style.color = '#ffffff';
+    }
   }
 
   updatePhase(phaseName) {
@@ -68,15 +81,25 @@ export class UI {
     this.burnoutValue.textContent = Math.round(burnout);
 
     // Flash when high
-    this.queueFill.style.opacity = queue > 75 ? (0.7 + Math.sin(Date.now() / 200) * 0.3) : 1;
-    this.rageFill.style.opacity = rage > 75 ? (0.7 + Math.sin(Date.now() / 200) * 0.3) : 1;
-    this.burnoutFill.style.opacity = burnout > 75 ? (0.7 + Math.sin(Date.now() / 200) * 0.3) : 1;
+    const now = Date.now();
+    this.queueFill.style.opacity = queue > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
+    this.rageFill.style.opacity = rage > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
+    this.burnoutFill.style.opacity = burnout > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
+
+    // Change value text color when critical
+    this.queueValue.style.color = queue > 75 ? '#ff4444' : queue > 50 ? '#ffaa00' : '#aaa';
+    this.rageValue.style.color = rage > 75 ? '#ff4444' : rage > 50 ? '#ffaa00' : '#aaa';
+    this.burnoutValue.style.color = burnout > 75 ? '#ff4444' : burnout > 50 ? '#ffaa00' : '#aaa';
   }
 
   updatePipeline(unverified, ready, served) {
     this.pipeUnverified.textContent = unverified;
     this.pipeReady.textContent = ready;
     this.pipeServed.textContent = served;
+
+    // Highlight when backed up
+    this.pipeUnverified.parentElement.style.borderColor =
+      unverified > 5 ? '#ff4444' : unverified > 3 ? '#ffaa00' : '#333';
   }
 
   // ========== WORK PROGRESS ==========
@@ -84,7 +107,16 @@ export class UI {
   showWorkProgress(label, progress) {
     this.workProgress.style.display = 'block';
     this.workLabel.textContent = label;
-    this.workBarFill.style.width = `${progress * 100}%`;
+    this.workBarFill.style.width = `${Math.min(100, progress * 100)}%`;
+
+    // Color changes with progress
+    if (progress > 0.8) {
+      this.workBarFill.style.background = '#44ff88';
+    } else if (progress > 0.5) {
+      this.workBarFill.style.background = '#88ddff';
+    } else {
+      this.workBarFill.style.background = '#00d4ff';
+    }
   }
 
   hideWorkProgress() {
@@ -97,19 +129,23 @@ export class UI {
     if (this.activeCards.has(event.uid)) return;
 
     const card = document.createElement('div');
-    card.className = 'event-card' + (event.isEscalated ? ' escalated' : '') +
-                     (event.isPipeline ? ' pipeline-card' : '');
+    card.className = 'event-card' +
+      (event.isEscalated ? ' escalated' : '') +
+      (event.isPipeline ? ' pipeline-card' : '') +
+      (event.isInterrupt ? ' interrupt-card' : '');
+    card.dataset.uid = event.uid;
 
     const stationClass = event.isInterrupt ? 'interrupt' :
+                         event.isPipeline ? 'station-verify' :
                          `station-${event.station}`;
+
+    const stationLabel = event.isInterrupt ? '⚠ NOT MY PROBLEM' :
+      event.isPipeline ? '📋 PIPELINE' :
+      event.station.toUpperCase();
 
     card.innerHTML = `
       <div class="card-header">
-        <span class="card-station ${stationClass}">${
-          event.isInterrupt ? '⚠ NOT MY PROBLEM' :
-          event.isPipeline ? '📋 PIPELINE' :
-          event.station.toUpperCase()
-        }</span>
+        <span class="card-station ${stationClass}">${stationLabel}</span>
         <span class="card-time">${event.duration}s</span>
       </div>
       <div class="card-title">${event.title}</div>
@@ -121,16 +157,14 @@ export class UI {
         <button class="card-btn btn-handle">HANDLE</button>
         ${event.canDefer ? '<button class="card-btn btn-defer">DEFER</button>' : ''}
       </div>
+      ${!event.isPipeline ? '<div class="card-age-bar"><div class="card-age-fill"></div></div>' : ''}
     `;
 
-    // Button handlers
+    // Button handlers — use click only, prevent double-fire
     const handleBtn = card.querySelector('.btn-handle');
     handleBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      onHandle(event);
-    });
-    handleBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
+      e.stopPropagation();
       onHandle(event);
     });
 
@@ -138,16 +172,16 @@ export class UI {
       const deferBtn = card.querySelector('.btn-defer');
       deferBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        onDefer(event);
-      });
-      deferBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
+        e.stopPropagation();
         onDefer(event);
       });
     }
 
     this.cardContainer.appendChild(card);
     this.activeCards.set(event.uid, card);
+
+    // Scroll to show new card
+    this.cardContainer.parentElement.scrollTop = this.cardContainer.parentElement.scrollHeight;
   }
 
   removeCard(uid) {
@@ -156,10 +190,36 @@ export class UI {
       card.style.opacity = '0';
       card.style.transform = 'translateX(100px)';
       card.style.transition = 'opacity 0.2s, transform 0.2s';
+      card.style.maxHeight = card.offsetHeight + 'px';
+      setTimeout(() => {
+        card.style.maxHeight = '0';
+        card.style.padding = '0';
+        card.style.margin = '0';
+        card.style.overflow = 'hidden';
+      }, 150);
       setTimeout(() => {
         card.remove();
-      }, 200);
+      }, 350);
       this.activeCards.delete(uid);
+    }
+  }
+
+  ageCard(uid, age) {
+    const card = this.activeCards.get(uid);
+    if (!card) return;
+
+    // Fill the age bar
+    const ageFill = card.querySelector('.card-age-fill');
+    if (ageFill) {
+      const progress = Math.min(1, (age - 8) / 20); // 8s to 28s
+      ageFill.style.width = `${progress * 100}%`;
+
+      if (progress > 0.6) {
+        ageFill.style.background = '#ff4444';
+        card.classList.add('card-urgent');
+      } else if (progress > 0.3) {
+        ageFill.style.background = '#ffaa00';
+      }
     }
   }
 
@@ -184,6 +244,45 @@ export class UI {
       html += `<span class="effect-tag effect-burnout">BURN ${val > 0 ? '+' : ''}${Math.round(val)}</span>`;
     }
     return html;
+  }
+
+  // ========== PHASE ANNOUNCEMENT ==========
+
+  showPhaseAnnounce(label) {
+    if (!this.phaseAnnounce) return;
+    this.phaseAnnounce.textContent = label;
+    this.phaseAnnounce.style.display = 'block';
+    this.phaseAnnounce.style.opacity = '1';
+    this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1)';
+
+    setTimeout(() => {
+      this.phaseAnnounce.style.opacity = '0';
+      this.phaseAnnounce.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    }, 1500);
+    setTimeout(() => {
+      this.phaseAnnounce.style.display = 'none';
+    }, 2000);
+  }
+
+  hidePhaseAnnounce() {
+    if (this.phaseAnnounce) this.phaseAnnounce.style.display = 'none';
+  }
+
+  // ========== TUTORIAL ==========
+
+  showTutorial(text) {
+    if (!this.tutorialEl) return;
+    this.tutorialEl.textContent = text;
+    this.tutorialEl.style.display = 'block';
+    this.tutorialEl.style.opacity = '1';
+  }
+
+  hideTutorial() {
+    if (!this.tutorialEl) return;
+    this.tutorialEl.style.opacity = '0';
+    setTimeout(() => {
+      if (this.tutorialEl) this.tutorialEl.style.display = 'none';
+    }, 300);
   }
 
   // ========== OVERLAYS ==========
@@ -215,6 +314,7 @@ export class UI {
     const flavorEl = document.getElementById('results-flavor');
     const metersEl = document.getElementById('results-meters');
     const statsEl = document.getElementById('results-stats');
+    const gradeEl = document.getElementById('results-grade');
 
     if (won) {
       const pick = WIN_TITLES[Math.floor(Math.random() * WIN_TITLES.length)];
@@ -228,29 +328,49 @@ export class UI {
       flavorEl.textContent = info.flavor;
     }
 
+    // Calculate grade
+    const grade = this.calculateGrade(won, meters, stats);
+    if (gradeEl) {
+      gradeEl.textContent = grade;
+      gradeEl.className = 'results-grade grade-' + grade.toLowerCase();
+    }
+
+    // Animated meter fill
     metersEl.innerHTML = `
       <div class="result-meter">
         <span class="result-meter-label" style="color:#00d4ff">QUEUE</span>
         <div class="result-meter-bar">
-          <div class="result-meter-fill" style="width:${meters.queue}%;background:#00d4ff"></div>
+          <div class="result-meter-fill" id="rq-fill" style="width:0%;background:#00d4ff"></div>
         </div>
         <span class="result-meter-val">${Math.round(meters.queue)}</span>
       </div>
       <div class="result-meter">
         <span class="result-meter-label" style="color:#ff4444">RAGE</span>
         <div class="result-meter-bar">
-          <div class="result-meter-fill" style="width:${meters.rage}%;background:#ff4444"></div>
+          <div class="result-meter-fill" id="rr-fill" style="width:0%;background:#ff4444"></div>
         </div>
         <span class="result-meter-val">${Math.round(meters.rage)}</span>
       </div>
       <div class="result-meter">
         <span class="result-meter-label" style="color:#ff8800">BURNOUT</span>
         <div class="result-meter-bar">
-          <div class="result-meter-fill" style="width:${meters.burnout}%;background:#ff8800"></div>
+          <div class="result-meter-fill" id="rb-fill" style="width:0%;background:#ff8800"></div>
         </div>
         <span class="result-meter-val">${Math.round(meters.burnout)}</span>
       </div>
     `;
+
+    // Animate meter fills
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const qf = document.getElementById('rq-fill');
+        const rf = document.getElementById('rr-fill');
+        const bf = document.getElementById('rb-fill');
+        if (qf) qf.style.width = `${Math.min(100, meters.queue)}%`;
+        if (rf) rf.style.width = `${Math.min(100, meters.rage)}%`;
+        if (bf) bf.style.width = `${Math.min(100, meters.burnout)}%`;
+      }, 100);
+    });
 
     statsEl.innerHTML = `
       <div class="stat-line"><span>Events Handled</span><span>${stats.eventsHandled}</span></div>
@@ -259,6 +379,21 @@ export class UI {
       <div class="stat-line"><span>Events Deferred</span><span>${stats.eventsDeferred}</span></div>
       <div class="stat-line"><span>Events Escalated</span><span>${stats.eventsEscalated}</span></div>
     `;
+  }
+
+  calculateGrade(won, meters, stats) {
+    if (!won) return 'F';
+    const avgMeter = (meters.queue + meters.rage + meters.burnout) / 3;
+    const efficiency = stats.eventsHandled + stats.scriptsVerified + stats.patientsServed;
+    const penalty = stats.eventsEscalated * 3;
+
+    const score = Math.max(0, efficiency - penalty - avgMeter * 0.5);
+
+    if (score > 30) return 'S';
+    if (score > 22) return 'A';
+    if (score > 15) return 'B';
+    if (score > 8) return 'C';
+    return 'D';
   }
 
   hideResults() {

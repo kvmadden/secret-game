@@ -20,6 +20,7 @@ html, body {
 #game-container {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   max-width: 500px;
   margin: 0 auto;
   display: flex;
@@ -33,6 +34,7 @@ html, body {
   flex-shrink: 0;
   background: #0d0d1a;
   padding: 4px 8px;
+  padding-top: env(safe-area-inset-top, 4px);
   border-bottom: 2px solid #2a2a4a;
   z-index: 10;
 }
@@ -55,6 +57,7 @@ html, body {
   font-size: 14px;
   font-weight: bold;
   color: #ffffff;
+  transition: color 0.3s;
 }
 
 #meters {
@@ -106,6 +109,7 @@ html, body {
   width: 22px;
   text-align: right;
   flex-shrink: 0;
+  transition: color 0.3s;
 }
 
 #pipeline-indicator {
@@ -122,6 +126,7 @@ html, body {
   background: #1a1a2e;
   border-radius: 3px;
   border: 1px solid #333;
+  transition: border-color 0.3s;
 }
 
 .pipe-arrow {
@@ -158,6 +163,7 @@ html, body {
   text-align: center;
   z-index: 15;
   min-width: 160px;
+  border: 1px solid #333;
 }
 
 #work-bar-bg {
@@ -173,7 +179,7 @@ html, body {
   height: 100%;
   background: #00d4ff;
   border-radius: 3px;
-  transition: width 0.1s linear;
+  transition: width 0.15s linear, background 0.3s;
   width: 0%;
 }
 
@@ -192,6 +198,7 @@ html, body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px;
+  padding-bottom: env(safe-area-inset-bottom, 6px);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -201,6 +208,7 @@ html, body {
   gap: 6px;
 }
 
+/* ========== EVENT CARDS ========== */
 .event-card {
   background: #1e1e32;
   border: 1px solid #3a3a5a;
@@ -208,8 +216,11 @@ html, body {
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   animation: cardSlideIn 0.25s ease-out;
+  transition: max-height 0.2s, padding 0.2s, margin 0.2s, opacity 0.2s, transform 0.2s;
+  position: relative;
+  overflow: visible;
 }
 
 @keyframes cardSlideIn {
@@ -220,6 +231,29 @@ html, body {
 .event-card.escalated {
   border-color: #ff4444;
   background: #2a1020;
+  animation: cardSlideIn 0.25s ease-out, escalatedPulse 2s ease-in-out infinite;
+}
+
+@keyframes escalatedPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(255, 68, 68, 0.3); }
+}
+
+.event-card.card-urgent {
+  animation: urgentShake 0.3s ease-in-out;
+}
+
+@keyframes urgentShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* Interrupt cards */
+.interrupt-card {
+  background: #1e1e22;
+  border-color: #555522;
+  border-style: dashed;
 }
 
 .card-header {
@@ -242,7 +276,7 @@ html, body {
 .station-consult { background: #220033; color: #aa66ff; }
 .station-phone { background: #332200; color: #ff8800; }
 .station-drive { background: #330011; color: #ff4466; }
-.station-interrupt { background: #222200; color: #aaaa44; }
+.interrupt { background: #2a2a11; color: #cccc44; border: 1px solid #555522; }
 
 .card-time {
   font-size: 10px;
@@ -263,8 +297,9 @@ html, body {
 
 .card-effects {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   font-size: 10px;
+  flex-wrap: wrap;
 }
 
 .effect-tag {
@@ -293,12 +328,12 @@ html, body {
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 1px;
-  transition: transform 0.1s, opacity 0.1s;
+  transition: transform 0.1s, opacity 0.1s, background 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
 
 .card-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 .btn-handle {
@@ -306,13 +341,38 @@ html, body {
   color: #44ff88;
 }
 
+.btn-handle:active {
+  background: #227744;
+}
+
 .btn-defer {
   background: #3a3a22;
   color: #aaaa44;
 }
 
+.btn-defer:active {
+  background: #4a4a33;
+}
+
 .btn-defer:disabled {
   opacity: 0.3;
+}
+
+/* Card age indicator bar */
+.card-age-bar {
+  height: 2px;
+  background: #222;
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.card-age-fill {
+  height: 100%;
+  width: 0%;
+  background: #555;
+  border-radius: 1px;
+  transition: width 0.5s linear, background 0.3s;
 }
 
 /* Pipeline action cards */
@@ -323,6 +383,49 @@ html, body {
 
 .pipeline-card .card-title {
   color: #00d4ff;
+}
+
+.pipeline-card .btn-handle {
+  background: #0d3355;
+  color: #44bbff;
+}
+
+/* ========== PHASE ANNOUNCEMENT ========== */
+#phase-announce {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.5), 0 2px 10px rgba(0, 0, 0, 0.8);
+  z-index: 50;
+  pointer-events: none;
+  transition: opacity 0.5s, transform 0.5s;
+  white-space: nowrap;
+}
+
+/* ========== TUTORIAL HINT ========== */
+#tutorial-hint {
+  position: absolute;
+  bottom: 38%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 30, 60, 0.92);
+  border: 1px solid #00d4ff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 11px;
+  color: #88ccff;
+  max-width: 320px;
+  text-align: center;
+  z-index: 45;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  line-height: 1.4;
 }
 
 /* ========== OVERLAYS ========== */
@@ -382,11 +485,12 @@ html, body {
   cursor: pointer;
   margin-bottom: 10px;
   border-radius: 4px;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.1s;
 }
 
 .big-btn:active {
   background: rgba(0, 212, 255, 0.15);
+  transform: scale(0.98);
 }
 
 .big-btn.secondary {
@@ -394,11 +498,18 @@ html, body {
   color: #888;
 }
 
+/* ========== LUNCH ========== */
 .lunch-content h2 {
   font-size: 24px;
   color: #ff4444;
   letter-spacing: 3px;
   margin-bottom: 16px;
+  animation: lunchPulse 3s ease-in-out infinite;
+}
+
+@keyframes lunchPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .lunch-content p {
@@ -410,18 +521,35 @@ html, body {
 
 .lunch-sub {
   font-style: italic;
+  color: #ff8800 !important;
 }
 
+/* ========== RESULTS ========== */
 .results-content h2 {
-  font-size: 22px;
-  letter-spacing: 2px;
-  margin-bottom: 8px;
+  font-size: 24px;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
 }
+
+.results-grade {
+  font-size: 48px;
+  font-weight: bold;
+  margin: 8px 0 12px;
+  letter-spacing: 4px;
+}
+
+.grade-s { color: #ffdd00; text-shadow: 0 0 20px rgba(255, 221, 0, 0.5); }
+.grade-a { color: #44ff88; text-shadow: 0 0 15px rgba(68, 255, 136, 0.3); }
+.grade-b { color: #00d4ff; }
+.grade-c { color: #ff8800; }
+.grade-d { color: #ff6644; }
+.grade-f { color: #ff4444; text-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
 
 #results-flavor {
   font-size: 12px;
   color: #888;
   margin-bottom: 20px;
+  line-height: 1.5;
 }
 
 #results-meters {
@@ -436,7 +564,7 @@ html, body {
 }
 
 .result-meter-label {
-  width: 50px;
+  width: 55px;
   font-size: 10px;
   text-align: right;
   font-weight: bold;
@@ -453,6 +581,7 @@ html, body {
 .result-meter-fill {
   height: 100%;
   border-radius: 5px;
+  transition: width 1s ease-out;
 }
 
 .result-meter-val {
@@ -476,6 +605,11 @@ html, body {
   justify-content: space-between;
 }
 
+.stat-line span:last-child {
+  color: #ccc;
+  font-weight: bold;
+}
+
 /* Scrollbar styling */
 #action-zone::-webkit-scrollbar {
   width: 4px;
@@ -488,4 +622,14 @@ html, body {
 #action-zone::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 2px;
+}
+
+/* Safe area padding for notch phones */
+@supports (padding: env(safe-area-inset-top)) {
+  #hud {
+    padding-top: max(4px, env(safe-area-inset-top));
+  }
+  #action-zone {
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
 }

@@ -15,6 +15,9 @@ export class Renderer {
     this.targetCameraX = 0;
     this.scale = 2;
     this.dpr = window.devicePixelRatio || 1;
+
+    // Completion flash effects
+    this.flashes = [];
   }
 
   init(tileMap) {
@@ -32,26 +35,22 @@ export class Renderer {
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
 
-    // Calculate scale to fit map height
     const mapPixelH = MAP_ROWS * TILE_SIZE;
     this.scale = (this.canvas.height / mapPixelH);
-
-    // Ensure minimum scale
     if (this.scale < 1.5) this.scale = 1.5;
   }
 
-  // Camera follows pharmacist with easing
+  flashComplete(col, row) {
+    this.flashes.push({ col, row, timer: 0.6, maxTimer: 0.6 });
+  }
+
   updateCamera(pharmacistCol, dt) {
     const mapPixelW = MAP_COLS * TILE_SIZE * this.scale;
     const screenW = this.canvas.width;
 
-    // Target: center pharmacist horizontally
     this.targetCameraX = pharmacistCol * TILE_SIZE * this.scale - screenW / 2;
-
-    // Clamp
     this.targetCameraX = Math.max(0, Math.min(this.targetCameraX, mapPixelW - screenW));
 
-    // Ease toward target
     const ease = 1 - Math.pow(0.05, dt);
     this.cameraX += (this.targetCameraX - this.cameraX) * ease;
   }
@@ -60,14 +59,12 @@ export class Renderer {
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
+    const dt = 1 / 60; // Approximate for flash decay
 
-    // Clear
     ctx.fillStyle = '#2a2a3a';
     ctx.fillRect(0, 0, w, h);
 
     ctx.save();
-
-    // Apply camera transform
     ctx.translate(-Math.round(this.cameraX), 0);
     ctx.scale(this.scale, this.scale);
 
@@ -76,49 +73,136 @@ export class Renderer {
       ctx.drawImage(this.mapCanvas, 0, 0);
     }
 
-    // Draw patients
-    this.renderPatients(ctx, gameState);
+    // Fluorescent lighting effect — bright band across workspace
+    ctx.fillStyle = 'rgba(255, 255, 240, 0.04)';
+    ctx.fillRect(0, 7 * TILE_SIZE, MAP_COLS * TILE_SIZE, 3 * TILE_SIZE);
+    // Subtle highlight on counter
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.fillRect(0, 4 * TILE_SIZE, 33 * TILE_SIZE, 2 * TILE_SIZE);
+
+    // Draw phone (animated if ringing)
+    this.renderPhone(ctx, gameState);
+
+    // Draw drive-thru cars
+    this.renderDriveThruCars(ctx, gameState);
+
+    // Draw patients (sorted by row for depth)
+    const sortedPatients = [...gameState.patients].sort((a, b) => a.row - b.row);
+    this.renderPatients(ctx, gameState, sortedPatients);
 
     // Draw pharmacist
     this.renderPharmacist(ctx, gameState);
 
-    // Draw speech bubbles
-    this.renderBubbles(ctx, gameState);
+    // Draw speech bubbles (on top of everything)
+    this.renderBubbles(ctx, gameState, sortedPatients);
 
     // Draw station urgency indicators
     this.renderStationIndicators(ctx, gameState);
 
+    // Draw completion flashes
+    this.renderFlashes(ctx, dt);
+
     ctx.restore();
 
-    // Lunch overlay darkening on the canvas
+    // Lunch overlay darkening
     if (gameState.phase === 'LUNCH_CLOSE') {
       ctx.fillStyle = 'rgba(10, 10, 20, 0.4)';
       ctx.fillRect(0, 0, w, h);
     }
   }
 
+  renderPhone(ctx, state) {
+    const phoneStation = STATIONS.phone;
+    const px = phoneStation.col * TILE_SIZE;
+    const py = phoneStation.row * TILE_SIZE;
+
+    const ringing = state.phoneRinging;
+    const phoneSprite = Sprites.phone(ringing);
+
+    if (ringing) {
+      // Vibration offset
+      const vx = Math.sin(state.time * 30) * 1;
+      const vy = Math.cos(state.time * 25) * 0.5;
+      ctx.drawImage(phoneSprite, px + vx, py + vy);
+
+      // Ring waves
+      ctx.strokeStyle = `rgba(255, 136, 0, ${0.3 + Math.sin(state.time * 8) * 0.2})`;
+      ctx.lineWidth = 0.5;
+      const ringRadius = 8 + Math.sin(state.time * 6) * 4;
+      ctx.beginPath();
+      ctx.arc(px + 8, py + 8, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(px + 8, py + 8, ringRadius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.drawImage(phoneSprite, px, py);
+    }
+  }
+
+  renderDriveThruCars(ctx, state) {
+    if (state.driveThruCars > 0) {
+      const driveStation = STATIONS.drive;
+      const carColors = ['#4466aa', '#aa4444', '#44aa66'];
+      for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
+        const car = Sprites.car(carColors[i % carColors.length]);
+        // Cars idle-bob slightly
+        const bob = Math.sin(state.time * 2 + i * 1.5) * 0.3;
+        ctx.drawImage(car,
+          (driveStation.col - 1) * TILE_SIZE,
+          (1 + i * 1.5) * TILE_SIZE + bob
+        );
+      }
+    }
+  }
+
   renderPharmacist(ctx, state) {
     const pharm = state.pharmacist;
-    const frame = pharm.state === 'WALKING' ? (Math.floor(state.time * 6) % 3) : 0;
+    const frame = pharm.state === 'WALKING'
+      ? (Math.floor(state.time * 6) % 3)
+      : pharm.state === 'IDLE'
+        ? 0
+        : 0;
     const facing = pharm.facing || 'right';
     const sprite = Sprites.pharmacist(facing, frame);
 
     const px = pharm.col * TILE_SIZE;
     const py = pharm.row * TILE_SIZE;
 
-    ctx.drawImage(sprite, px, py - 4); // Slight up offset so feet align with tile
+    ctx.drawImage(sprite, px, py - 4);
 
-    // Working indicator - glow around pharmacist
+    // Working indicator — animated glow
     if (pharm.state === 'WORKING') {
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.15)';
+      const pulse = 0.1 + Math.sin(state.time * 4) * 0.05;
+      ctx.fillStyle = `rgba(0, 212, 255, ${pulse})`;
       ctx.beginPath();
-      ctx.arc(px + 8, py + 6, 12, 0, Math.PI * 2);
+      ctx.arc(px + 8, py + 6, 14, 0, Math.PI * 2);
       ctx.fill();
+
+      // Progress arc around pharmacist
+      const progress = pharm.workTimer / pharm.workDuration;
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(px + 8, py + 6, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
+      ctx.stroke();
+    }
+
+    // Idle breathing animation
+    if (pharm.state === 'IDLE' && pharm.idleTimer > 2) {
+      // Tiny "..." thought bubble when idle for a while
+      const dotPhase = Math.floor(state.time * 2) % 4;
+      ctx.fillStyle = '#888';
+      for (let d = 0; d < Math.min(dotPhase, 3); d++) {
+        ctx.beginPath();
+        ctx.arc(px + 14 + d * 3, py - 6, 1, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
-  renderPatients(ctx, state) {
-    for (const patient of state.patients) {
+  renderPatients(ctx, state, sortedPatients) {
+    for (const patient of sortedPatients) {
       if (!patient.visible) continue;
 
       const emotionLevel = patient.patience < 0.3 ? 2 : patient.patience < 0.6 ? 1 : 0;
@@ -127,23 +211,44 @@ export class Renderer {
       const px = patient.col * TILE_SIZE;
       const py = patient.row * TILE_SIZE;
 
-      // Slight bobbing when angry
-      const bob = emotionLevel >= 2 ? Math.sin(state.time * 8) * 1 : 0;
+      // Apply opacity for fade out
+      if (patient.opacity !== undefined && patient.opacity < 1) {
+        ctx.globalAlpha = Math.max(0, patient.opacity);
+      }
 
-      ctx.drawImage(sprite, px, py - 4 + bob);
+      // Angry bobbing
+      const bob = emotionLevel >= 2 ? Math.sin(state.time * 8 + patient.id) * 1 : 0;
+      // Walking bob
+      const walkBob = patient.walking ? Math.sin(state.time * 10) * 0.5 : 0;
+
+      ctx.drawImage(sprite, px, py - 4 + bob + walkBob);
+
+      // Impatient foot-tap indicator
+      if (emotionLevel >= 1 && !patient.walking) {
+        const tapFrame = Math.floor(state.time * 4 + patient.id) % 2;
+        if (tapFrame === 0) {
+          ctx.fillStyle = emotionLevel >= 2 ? '#ff4444' : '#ffaa00';
+          ctx.fillRect(px + 6, py + 12, 2, 1);
+        }
+      }
+
+      ctx.globalAlpha = 1;
     }
   }
 
-  renderBubbles(ctx, state) {
-    for (const patient of state.patients) {
+  renderBubbles(ctx, state, sortedPatients) {
+    for (const patient of sortedPatients) {
       if (!patient.visible || !patient.showBubble) continue;
 
       const bubble = Sprites.speechBubble(patient.bubbleText, 90);
       const px = patient.col * TILE_SIZE;
       const py = patient.row * TILE_SIZE;
 
-      // Draw bubble above patient
-      ctx.globalAlpha = Math.min(1, patient.bubbleTimer * 2);
+      // Fade in/out
+      const fadeIn = Math.min(1, (3 - patient.bubbleTimer + 0.01) * 4);
+      const fadeOut = Math.min(1, patient.bubbleTimer * 3);
+      ctx.globalAlpha = Math.min(fadeIn, fadeOut);
+
       ctx.drawImage(bubble, px - bubble.width / 2 + 8, py - bubble.height - 6);
       ctx.globalAlpha = 1;
     }
@@ -168,24 +273,69 @@ export class Renderer {
 
       // Urgency ring
       if (station.urgency > 0) {
-        ctx.strokeStyle = station.urgency >= 2 ? '#ff4444' : '#ffaa00';
-        ctx.lineWidth = 1;
+        const ringColor = station.urgency >= 2 ? '#ff4444' : '#ffaa00';
+        const ringAlpha = 0.3 + Math.sin(state.time * 4) * 0.2;
+        ctx.strokeStyle = ringColor;
+        ctx.globalAlpha = ringAlpha;
+        ctx.lineWidth = station.urgency >= 2 ? 1.5 : 1;
         ctx.beginPath();
         ctx.arc(px + 8, py + 8, 10 + Math.sin(state.time * 4) * 2, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Urgency level 2: inner ring too
+        if (station.urgency >= 2) {
+          ctx.strokeStyle = '#ff0000';
+          ctx.globalAlpha = 0.2;
+          ctx.beginPath();
+          ctx.arc(px + 8, py + 8, 6, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
       }
     }
+  }
 
-    // Draw cars at drive-thru
-    if (state.driveThruCars > 0) {
-      const driveStation = STATIONS.drive;
-      const carColors = ['#4466aa', '#aa4444', '#44aa66'];
-      for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
-        const car = Sprites.car(carColors[i % carColors.length]);
-        ctx.drawImage(car,
-          (driveStation.col - 1) * TILE_SIZE,
-          (1 + i * 1.5) * TILE_SIZE
-        );
+  renderFlashes(ctx, dt) {
+    for (let i = this.flashes.length - 1; i >= 0; i--) {
+      const flash = this.flashes[i];
+      flash.timer -= dt;
+
+      if (flash.timer <= 0) {
+        this.flashes.splice(i, 1);
+        continue;
+      }
+
+      const progress = 1 - (flash.timer / flash.maxTimer);
+      const px = flash.col * TILE_SIZE + 8;
+      const py = flash.row * TILE_SIZE + 4;
+
+      // Expanding green circle that fades
+      const radius = 4 + progress * 16;
+      const alpha = (1 - progress) * 0.4;
+
+      ctx.fillStyle = `rgba(68, 255, 136, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(px, py, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner bright spark
+      if (progress < 0.3) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${(0.3 - progress) * 2})`;
+        ctx.beginPath();
+        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Checkmark
+      if (progress > 0.1 && progress < 0.7) {
+        ctx.strokeStyle = `rgba(68, 255, 136, ${(0.7 - progress) * 1.5})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(px - 3, py);
+        ctx.lineTo(px - 1, py + 3);
+        ctx.lineTo(px + 4, py - 3);
+        ctx.stroke();
       }
     }
   }
