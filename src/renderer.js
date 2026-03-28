@@ -1004,12 +1004,9 @@ export class Renderer {
       ctx.drawImage(sprite, px, py - 4);
     }
 
-    // Walking dust particles — tiny warm-colored puffs
-    if (pharm.state === 'WALKING' && Math.floor(state.time * 8) % 6 === 0) {
-      const dustPhase = state.time * 12;
-      if (Math.sin(dustPhase) > 0.8) {
-        this.spawnParticles(pharm.col, pharm.row + 0.5, 'rgba(180,160,130,0.6)', 1);
-      }
+    // Walking dust particles — tiny warm-colored puffs (every 8th frame)
+    if (pharm.state === 'WALKING' && this._frameCounter % 8 === 0) {
+      this.spawnParticles(pharm.col, pharm.row + 0.5, 'rgba(180,160,130,0.5)', 1);
     }
 
     // Working indicator — animated glow + progress arc
@@ -1030,6 +1027,55 @@ export class Renderer {
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
       ctx.stroke();
+
+      // Spinning loading circle above pharmacist
+      const spinAngle = state.time * 6;
+      const spinX = px + 8;
+      const spinY = py - 10;
+      ctx.strokeStyle = 'rgba(240, 200, 100, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(spinX, spinY, 3, spinAngle, spinAngle + Math.PI * 1.5);
+      ctx.stroke();
+      // Dot at the leading edge
+      ctx.fillStyle = 'rgba(240, 200, 100, 0.7)';
+      ctx.beginPath();
+      ctx.arc(
+        spinX + Math.cos(spinAngle + Math.PI * 1.5) * 3,
+        spinY + Math.sin(spinAngle + Math.PI * 1.5) * 3,
+        0.8, 0, Math.PI * 2
+      );
+      ctx.fill();
+    }
+
+    // Stress exclamation marks floating up when stress > 0.5
+    if (pharm.stress > 0.5) {
+      // Spawn occasionally
+      if (Math.sin(state.time * 3.5) > 0.9 && this.stressExclamations.length < 5) {
+        this.stressExclamations.push({
+          x: px + 6 + Math.random() * 6,
+          y: py - 2,
+          life: 0.8,
+          maxLife: 0.8,
+          vx: (Math.random() - 0.5) * 6,
+        });
+      }
+      // Draw and age
+      for (let i = this.stressExclamations.length - 1; i >= 0; i--) {
+        const ex = this.stressExclamations[i];
+        ex.life -= 1 / 60;
+        ex.y -= 0.5;
+        ex.x += ex.vx / 60;
+        if (ex.life <= 0) {
+          this.stressExclamations.splice(i, 1);
+          continue;
+        }
+        const ea = (ex.life / ex.maxLife) * 0.7;
+        ctx.fillStyle = `rgba(255, 60, 40, ${ea})`;
+        ctx.font = 'bold 5px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('!', ex.x, ex.y);
+      }
     }
 
     // Idle thought bubble
