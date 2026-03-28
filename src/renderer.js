@@ -56,6 +56,51 @@ export class Renderer {
 
     // Receipt printer animation
     this.receiptProgress = 0; // 0 = idle, >0 = printing
+
+    // Ambient dust motes (floating particles in light zones)
+    this.dustMotes = [];
+    for (let i = 0; i < 14; i++) {
+      this.dustMotes.push({
+        x: (3 + Math.random() * 8) * TILE_SIZE,   // Within fluorescent zone
+        y: (9 + Math.random() * 5) * TILE_SIZE,
+        baseX: 0, // set below
+        baseY: 0,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.3 + Math.random() * 0.7,          // vertical drift px/sec
+        ampX: 4 + Math.random() * 8,               // horizontal sinusoidal amplitude
+        freqX: 0.4 + Math.random() * 0.6,          // horizontal frequency
+        alpha: 0.2 + Math.random() * 0.2,
+      });
+      this.dustMotes[i].baseX = this.dustMotes[i].x;
+      this.dustMotes[i].baseY = this.dustMotes[i].y;
+    }
+
+    // Rain splashes (persistent array, recycled)
+    this.rainSplashes = [];
+
+    // Rain drops (persistent, recycled each frame from seed)
+    this.rainDrops = [];
+    for (let i = 0; i < 70; i++) {
+      this.rainDrops.push({
+        seed: i,
+        xBase: Math.random(),         // 0-1 fraction of screen width
+        speed: 180 + Math.random() * 120,
+        length: 3 + Math.random() * 5,
+        alpha: 0.15 + Math.random() * 0.2,
+        windOffset: 0.6 + Math.random() * 0.4, // wind slant per drop
+      });
+    }
+
+    // Thunder flash state
+    this.thunderFrames = 0;
+    this.thunderDecay = 0;
+
+    // Fluorescent full-flicker state
+    this.flickerCooldown = 15 + Math.random() * 15; // seconds until next flicker
+    this.flickerFrames = 0; // remaining frames of active flicker
+
+    // Global time accumulator for ambient effects (not tied to game time)
+    this.ambientTime = 0;
   }
 
   init(tileMap) {
@@ -303,7 +348,14 @@ export class Renderer {
     // Draw particles
     this.renderParticles(ctx, dt);
 
+    // Draw ambient dust motes (world-space, in light zones)
+    this.renderDustMotes(ctx, gameState);
+
     ctx.restore();
+
+    // Update ambient timers
+    this.ambientTime += dt;
+    this.updateFlickerTimer(dt);
 
     // Lunch overlay darkening (screen-space)
     if (gameState.phase === 'LUNCH_CLOSE') {
@@ -313,6 +365,9 @@ export class Renderer {
 
     // Weather effects (screen-space, over the scene)
     this.renderWeather(ctx, gameState);
+
+    // Screen edge vignette (screen-space)
+    this.renderVignette(ctx, w, h);
 
     // Off-screen event indicators (screen-space)
     this.renderOffScreenIndicators(ctx);
@@ -324,6 +379,8 @@ export class Renderer {
   // ========== LIGHTING ==========
 
   renderLighting(ctx, gameState) {
+    const t = gameState.time || 0;
+
     // Time-of-day tint: morning gold → midday bright → afternoon amber
     const progress = gameState.time ? gameState.time / 360 : 0; // 0-1 over shift
     let todR, todG, todB, todA;
@@ -335,8 +392,8 @@ export class Renderer {
       todR = 255; todG = 250; todB = 240; todA = 0.02;
     } else {
       // Afternoon — amber/orange as sun lowers
-      const t = (progress - 0.6) / 0.4;
-      todR = 255; todG = 200 - t * 40; todB = 120 - t * 40; todA = 0.04 + t * 0.06;
+      const p = (progress - 0.6) / 0.4;
+      todR = 255; todG = 200 - p * 40; todB = 120 - p * 40; todA = 0.04 + p * 0.06;
     }
 
     // Apply time-of-day tint to customer-visible area (rows 0-7)
@@ -356,13 +413,24 @@ export class Renderer {
     ctx.fillRect(0, 7 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
 
     // Fluorescent lighting — workspace band, warm white
-    ctx.fillStyle = 'rgba(255, 245, 220, 0.12)';
+    // Check for full-flicker dimming
+    const flickerDim = this.flickerFrames > 0 ? 0.05 : 0;
+    ctx.fillStyle = `rgba(255, 245, 220, ${(0.12 - flickerDim).toFixed(3)})`;
     ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, 5 * TILE_SIZE);
 
-    // Fluorescent flicker (subtle, random)
-    if (Math.sin(gameState.time * 47) > 0.97) {
-      ctx.fillStyle = 'rgba(255, 250, 230, 0.08)';
+    // Fluorescent flicker (subtle, random) — enhanced visibility
+    if (Math.sin(t * 47) > 0.93) {
+      const flickAlpha = 0.06 + Math.sin(t * 120) * 0.04;
+      ctx.fillStyle = `rgba(255, 250, 230, ${flickAlpha.toFixed(3)})`;
       ctx.fillRect(4 * TILE_SIZE, 10 * TILE_SIZE, 5 * TILE_SIZE, 2 * TILE_SIZE);
+    }
+
+    // Subtle light hum visual: faint horizontal lines in ceiling area (fluorescent tube look)
+    ctx.fillStyle = 'rgba(255, 250, 240, 0.02)';
+    for (let row = 9; row < 14; row++) {
+      for (let ly = 0; ly < TILE_SIZE; ly += 3) {
+        ctx.fillRect(0, row * TILE_SIZE + ly, 13 * TILE_SIZE, 1);
+      }
     }
 
     // Back shelf area darker — warm shadow
@@ -373,6 +441,45 @@ export class Renderer {
     ctx.fillStyle = 'rgba(40, 20, 0, 0.06)';
     ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
 
+    // ---- TIME-OF-DAY LIGHT RAYS ----
+    if (progress < 0.75) {
+      this.renderLightRays(ctx, progress);
+    }
+
+    // ---- CEILING TEXTURE (acoustic tile look) ----
+    ctx.fillStyle = 'rgba(180, 170, 155, 0.04)';
+    for (let cx = 0; cx < 13; cx++) {
+      for (let cy = 8; cy < 14; cy++) {
+        // Grid of dots simulating acoustic tile holes
+        for (let dx = 2; dx < TILE_SIZE; dx += 4) {
+          for (let dy = 2; dy < TILE_SIZE; dy += 4) {
+            ctx.fillRect(cx * TILE_SIZE + dx, cy * TILE_SIZE + dy, 1, 1);
+          }
+        }
+      }
+    }
+
+    // ---- FLOOR REFLECTIONS of overhead lights ----
+    // Oval bright spots on floor (rows 12-13, under fluorescent fixtures)
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+    ctx.fillStyle = '#fff8e8';
+    const floorLights = [
+      { cx: 4.5, cy: 12.5 },
+      { cx: 7.5, cy: 12.5 },
+      { cx: 10.5, cy: 12.5 },
+    ];
+    for (const fl of floorLights) {
+      ctx.beginPath();
+      ctx.ellipse(
+        fl.cx * TILE_SIZE, fl.cy * TILE_SIZE,
+        TILE_SIZE * 1.2, TILE_SIZE * 0.5,
+        0, 0, Math.PI * 2
+      );
+      ctx.fill();
+    }
+    ctx.restore();
+
     // Meter-based ambient tint
     if (gameState.meters) {
       const urgency = Math.max(gameState.meters.rage, gameState.meters.burnout) / 100;
@@ -382,6 +489,65 @@ export class Renderer {
         ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE);
       }
     }
+  }
+
+  // ---- LIGHT RAY HELPER ----
+  renderLightRays(ctx, progress) {
+    ctx.save();
+    // Morning: ray from right, golden. Afternoon: warmer/amber, steeper angle.
+    let rayAlpha, rayR, rayG, rayB, angleShift;
+    if (progress < 0.3) {
+      // Morning — bright golden diagonal from right
+      const m = progress / 0.3;
+      rayAlpha = 0.05 * (1 - m * 0.5);
+      rayR = 255; rayG = 230; rayB = 160;
+      angleShift = 0.15 + m * 0.1;
+    } else if (progress < 0.6) {
+      // Midday — faint warm ray
+      rayAlpha = 0.03;
+      rayR = 255; rayG = 245; rayB = 200;
+      angleShift = 0.25;
+    } else {
+      // Afternoon — amber, steeper, fading
+      const a = (progress - 0.6) / 0.15;
+      rayAlpha = 0.04 * Math.max(0, 1 - a);
+      rayR = 255; rayG = 200; rayB = 120;
+      angleShift = 0.3 + a * 0.15;
+    }
+
+    if (rayAlpha < 0.005) { ctx.restore(); return; }
+
+    // Draw gradient triangle from right edge
+    const rightX = 14 * TILE_SIZE;
+    const topY = 0;
+    const bottomY = 8 * TILE_SIZE;
+    const spreadX = rightX - 6 * TILE_SIZE * angleShift;
+
+    const grad = ctx.createLinearGradient(rightX, topY, spreadX, bottomY);
+    grad.addColorStop(0, `rgba(${rayR}, ${rayG}, ${rayB}, ${rayAlpha.toFixed(3)})`);
+    grad.addColorStop(1, `rgba(${rayR}, ${rayG}, ${rayB}, 0)`);
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    ctx.moveTo(rightX, topY);
+    ctx.lineTo(rightX, bottomY);
+    ctx.lineTo(spreadX, bottomY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Second, thinner ray for variation
+    const grad2 = ctx.createLinearGradient(rightX, topY + 2 * TILE_SIZE, spreadX + TILE_SIZE * 2, bottomY);
+    grad2.addColorStop(0, `rgba(${rayR}, ${rayG}, ${rayB}, ${(rayAlpha * 0.5).toFixed(3)})`);
+    grad2.addColorStop(1, `rgba(${rayR}, ${rayG}, ${rayB}, 0)`);
+    ctx.fillStyle = grad2;
+    ctx.beginPath();
+    ctx.moveTo(rightX, topY + TILE_SIZE);
+    ctx.lineTo(rightX, bottomY - TILE_SIZE);
+    ctx.lineTo(spreadX + TILE_SIZE * 3, bottomY - TILE_SIZE);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
   }
 
   // ========== WEATHER ==========
@@ -401,36 +567,79 @@ export class Renderer {
       ctx.fillRect(0, 0, w, h);
     }
 
-    // Rain effect — falling droplets on the drive lane side
+    // ---- FULL-SCREEN RAIN ----
     if (weather.hasRain) {
       ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.strokeStyle = '#8090b0';
-      ctx.lineWidth = 1;
 
-      // Rain drops on the right side (drive-thru area visible through window)
-      const scale = this.camZoom * this.dpr;
-      const driveX = w * 0.8; // Approximate drive lane screen position
-      const rainWidth = w * 0.25;
+      const windSlant = 1.5; // pixels of horizontal offset per pixel of vertical fall
 
-      for (let i = 0; i < 20; i++) {
-        const rx = driveX + (Math.sin(i * 7.3 + t * 0.5) * 0.5 + 0.5) * rainWidth;
-        const ry = ((t * 200 + i * 47) % h);
+      // Main rain drops — 70 drops across the entire canvas
+      for (let i = 0; i < this.rainDrops.length; i++) {
+        const drop = this.rainDrops[i];
+        // Deterministic but animated position using seed + time
+        const rx = ((drop.xBase * w + t * 30 * drop.windOffset + i * 73.7) % (w + 40)) - 20;
+        const ry = ((t * drop.speed + drop.seed * 47.3) % (h + 20)) - 10;
+        const len = drop.length;
+
+        ctx.globalAlpha = drop.alpha;
+        ctx.strokeStyle = '#8898bc';
+        ctx.lineWidth = 0.8;
         ctx.beginPath();
         ctx.moveTo(rx, ry);
-        ctx.lineTo(rx - 1, ry + 4 + Math.random() * 3);
+        ctx.lineTo(rx - windSlant * len * 0.3, ry + len);
         ctx.stroke();
       }
+
+      // ---- RAIN SPLASHES at ground level ----
+      // Spawn new splashes (probabilistic each frame)
+      if (Math.random() < 0.35) {
+        this.rainSplashes.push({
+          x: Math.random() * w,
+          y: h * (0.85 + Math.random() * 0.12), // near bottom
+          frame: 0,
+          maxFrames: 4,
+        });
+      }
+
+      // Draw and age splashes
+      for (let i = this.rainSplashes.length - 1; i >= 0; i--) {
+        const sp = this.rainSplashes[i];
+        sp.frame += 1;
+        if (sp.frame > sp.maxFrames) {
+          this.rainSplashes.splice(i, 1);
+          continue;
+        }
+        const r = 1 + sp.frame * 1.2;
+        const splashAlpha = 0.25 * (1 - sp.frame / sp.maxFrames);
+        ctx.globalAlpha = splashAlpha;
+        ctx.strokeStyle = '#8898bc';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ---- WINDOW CONDENSATION / FOG OVERLAY ----
+      ctx.globalAlpha = 0.04;
+      ctx.fillStyle = '#a0b0c8';
+      ctx.fillRect(0, 0, w, h);
 
       ctx.globalAlpha = 1;
       ctx.restore();
     }
 
-    // Thunder flash
+    // ---- THUNDER FLASH (multi-frame with decay) ----
     if (weather.hasThunder) {
-      if (Math.sin(t * 0.7) > 0.995) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      // Trigger: rare event
+      if (Math.sin(t * 0.7) > 0.995 && this.thunderFrames <= 0) {
+        this.thunderFrames = 3;
+        this.thunderDecay = 0.12;
+      }
+      if (this.thunderFrames > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.thunderDecay.toFixed(3)})`;
         ctx.fillRect(0, 0, w, h);
+        this.thunderDecay *= 0.55; // rapid decay across frames
+        this.thunderFrames--;
       }
     }
   }
@@ -654,7 +863,7 @@ export class Renderer {
     ctx.drawImage(sprite, px, py - 4);
 
     // Walking dust particles — tiny warm-colored puffs
-    if (pharm.state === 'WALKING' && Math.floor(state.time * 6) % 3 === 0) {
+    if (pharm.state === 'WALKING' && Math.floor(state.time * 8) % 6 === 0) {
       const dustPhase = state.time * 12;
       if (Math.sin(dustPhase) > 0.8) {
         this.spawnParticles(pharm.col, pharm.row + 0.5, 'rgba(180,160,130,0.6)', 1);
@@ -974,5 +1183,62 @@ export class Renderer {
         ctx.stroke();
       }
     }
+  }
+
+  // ========== AMBIENT DUST MOTES ==========
+
+  renderDustMotes(ctx, gameState) {
+    const t = gameState.time || 0;
+    ctx.save();
+    for (const mote of this.dustMotes) {
+      // Sinusoidal horizontal drift + slow vertical drift
+      mote.x = mote.baseX + Math.sin(t * mote.freqX + mote.phase) * mote.ampX;
+      mote.baseY += mote.speed / 60; // slow downward drift
+
+      // Wrap vertically within the fluorescent zone (rows 9-14)
+      if (mote.baseY > 14 * TILE_SIZE) {
+        mote.baseY = 9 * TILE_SIZE;
+      }
+      mote.y = mote.baseY;
+
+      ctx.globalAlpha = mote.alpha;
+      ctx.fillStyle = '#e8d8c0';
+      ctx.fillRect(mote.x, mote.y, 1, 1);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // ========== FLUORESCENT FULL-FLICKER TIMER ==========
+
+  updateFlickerTimer(dt) {
+    // Count down to next full flicker event
+    if (this.flickerFrames > 0) {
+      this.flickerFrames--;
+      if (this.flickerFrames <= 0) {
+        this.flickerCooldown = 15 + Math.random() * 15;
+      }
+    } else {
+      this.flickerCooldown -= dt;
+      if (this.flickerCooldown <= 0) {
+        this.flickerFrames = 3; // dim for 3 frames then snap back
+      }
+    }
+  }
+
+  // ========== SCREEN EDGE VIGNETTE ==========
+
+  renderVignette(ctx, w, h) {
+    // Radial gradient darkening toward edges
+    const cx = w / 2;
+    const cy = h / 2;
+    const outerR = Math.sqrt(cx * cx + cy * cy);
+    const innerR = outerR * 0.55;
+
+    const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.08)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
   }
 }
