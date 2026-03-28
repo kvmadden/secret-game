@@ -1607,6 +1607,92 @@ export class Renderer {
     }
   }
 
+  // ========== CEILING DETAILS ==========
+
+  renderCeilingDetails(ctx, gameState) {
+    // Fluorescent light fixtures at rows 16-19 (back of pharmacy)
+    // Gray rectangles with white center line, at regular intervals
+    const fixtures = [
+      { col: 3, row: 17 },
+      { col: 6, row: 17 },
+      { col: 9, row: 17 },
+      { col: 6, row: 19 },
+    ];
+    for (const fix of fixtures) {
+      const fx = fix.col * TILE_SIZE;
+      const fy = fix.row * TILE_SIZE;
+      // Gray fixture body
+      ctx.fillStyle = 'rgba(160, 155, 145, 0.15)';
+      ctx.fillRect(fx, fy + 2, TILE_SIZE, 3);
+      // White center line (the fluorescent tube glow)
+      const flickDim = this.flickerFrames > 0 ? 0.03 : 0.1;
+      ctx.fillStyle = `rgba(255, 250, 235, ${flickDim})`;
+      ctx.fillRect(fx + 2, fy + 3, TILE_SIZE - 4, 1);
+    }
+
+    // Air vent: small grid pattern at row 16, col 10
+    const ventX = 10 * TILE_SIZE;
+    const ventY = 16 * TILE_SIZE;
+    ctx.fillStyle = 'rgba(120, 115, 105, 0.12)';
+    ctx.fillRect(ventX + 2, ventY + 2, 12, 8);
+    // Grid lines
+    ctx.fillStyle = 'rgba(80, 75, 65, 0.1)';
+    for (let vx = 0; vx < 4; vx++) {
+      ctx.fillRect(ventX + 3 + vx * 3, ventY + 2, 0.5, 8);
+    }
+    for (let vy = 0; vy < 3; vy++) {
+      ctx.fillRect(ventX + 2, ventY + 3 + vy * 3, 12, 0.5);
+    }
+
+    // Sprinkler head: tiny red dot at row 18, col 4
+    ctx.fillStyle = 'rgba(200, 50, 40, 0.25)';
+    ctx.beginPath();
+    ctx.arc(4 * TILE_SIZE + 8, 18 * TILE_SIZE + 4, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Sprinkler base
+    ctx.fillStyle = 'rgba(150, 145, 135, 0.12)';
+    ctx.fillRect(4 * TILE_SIZE + 6, 18 * TILE_SIZE + 2, 4, 1);
+  }
+
+  // ========== FLOOR REFLECTION LAYER ==========
+
+  renderFloorReflections(ctx, gameState) {
+    // Very faint reflections of entities in workspace floor (rows 9-13)
+    // Mirror pharmacist and patients vertically with very low alpha
+    ctx.save();
+    ctx.globalAlpha = 0.04;
+
+    const pharm = gameState.pharmacist;
+    if (pharm && pharm.row >= 5 && pharm.row <= 13) {
+      // Reflect pharmacist: mirror y-position into rows 9-13
+      const reflectRow = pharm.row + (13 - pharm.row) * 2;
+      if (reflectRow >= 9 && reflectRow <= 14) {
+        const rpx = pharm.col * TILE_SIZE;
+        const rpy = reflectRow * TILE_SIZE;
+        ctx.fillStyle = 'rgba(200, 180, 150, 1)';
+        ctx.fillRect(rpx + 3, rpy, 10, 6);
+      }
+    }
+
+    // Reflect patients
+    if (gameState.patients) {
+      for (const patient of gameState.patients) {
+        if (!patient.visible) continue;
+        if (patient.row >= 5 && patient.row <= 13) {
+          const reflectRow = patient.row + (13 - patient.row) * 2;
+          if (reflectRow >= 9 && reflectRow <= 14) {
+            const rpx = patient.col * TILE_SIZE;
+            const rpy = reflectRow * TILE_SIZE;
+            ctx.fillStyle = 'rgba(180, 160, 140, 1)';
+            ctx.fillRect(rpx + 3, rpy, 10, 6);
+          }
+        }
+      }
+    }
+
+    ctx.restore();
+  }
+
   // ========== SCREEN EDGE VIGNETTE ==========
 
   renderVignette(ctx, w, h) {
