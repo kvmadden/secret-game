@@ -4,7 +4,7 @@
 
 import {
   SHIFT_START_HOUR, SHIFT_END_HOUR, GAME_DURATION,
-  METER_MAX, PHASES, WIN_TITLES, LOSS_TITLES,
+  METER_MAX, PHASES, WIN_TITLES, LOSS_TITLES, LOSS_FLAVORS,
 } from './constants.js';
 
 export class UI {
@@ -163,8 +163,12 @@ export class UI {
       event.isPipeline ? '📋 PIPELINE' :
       event.station.toUpperCase();
 
+    // Calculate card index for keyboard hint
+    const cardIndex = this.activeCards.size + 1;
+
     card.innerHTML = `
       <div class="card-header">
+        <span class="card-key-hint">${cardIndex}</span>
         <span class="card-station ${stationClass}">${stationLabel}</span>
         <span class="card-time">${event.duration}s</span>
       </div>
@@ -380,7 +384,9 @@ export class UI {
       const info = LOSS_TITLES[lostMeter] || LOSS_TITLES.queue;
       titleEl.textContent = info.title;
       titleEl.style.color = '#ff4444';
-      flavorEl.textContent = info.flavor;
+      // Pick random loss flavor
+      const flavors = LOSS_FLAVORS[lostMeter] || LOSS_FLAVORS.queue;
+      flavorEl.textContent = flavors[Math.floor(Math.random() * flavors.length)];
     }
 
     // Calculate grade

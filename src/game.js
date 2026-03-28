@@ -11,7 +11,7 @@ import {
   MAX_PATIENTS_PER_STATION, PIPELINE_QUEUE_PRESSURE_MULT,
   PIPELINE_RAGE_PRESSURE_MULT, MAX_ESCALATION_CHAIN,
   DIFFICULTY, COMBO_WINDOW, COMBO_BONUS_PER_STACK,
-  SHIFT_DAYS,
+  SHIFT_DAYS, WEATHER_TYPES,
 } from './constants.js';
 import { Pipeline } from './pipeline.js';
 import { StationManager } from './stations.js';
@@ -310,6 +310,15 @@ export class Game {
     // Pick a random day of the week
     this.shiftDay = SHIFT_DAYS[Math.floor(Math.random() * SHIFT_DAYS.length)];
 
+    // Pick weather (weighted random)
+    const totalWeight = WEATHER_TYPES.reduce((sum, w) => sum + w.weight, 0);
+    let roll = Math.random() * totalWeight;
+    this.weather = WEATHER_TYPES[0];
+    for (const w of WEATHER_TYPES) {
+      roll -= w.weight;
+      if (roll <= 0) { this.weather = w; break; }
+    }
+
     this.ui.hideTitle();
     this.state = 'PLAYING';
     this.renderer.setOverview(false);
@@ -321,7 +330,8 @@ export class Game {
     // Show the day announcement + modifier
     this.ui.showPhaseAnnounce(this.shiftDay.name);
     setTimeout(() => {
-      this.ui.showDayModifier(this.shiftDay);
+      const weatherInfo = this.weather ? ` | ${this.weather.name}` : '';
+      this.ui.showTutorial(`${this.shiftDay.modifier}: ${this.shiftDay.desc}${weatherInfo}`);
       this.tutorialTimer = 5;
     }, 2600);
 
@@ -512,6 +522,7 @@ export class Game {
       meters: this.meters,
       ambientShoppers: this.ambientShoppers,
       shiftDay: this.shiftDay,
+      weather: this.weather,
     };
   }
 
@@ -1056,6 +1067,7 @@ export class Game {
         this.pipeline.verify();
         this.stats.scriptsVerified++;
         Audio.playPaperShuffle();
+        this.renderer.triggerReceipt();
       } else if (event.isPipeline && event.pipelineAction === 'serve') {
         this.pipeline.serve();
         this.stats.patientsServed++;

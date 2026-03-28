@@ -193,18 +193,52 @@ export const SHIFT_DAYS = [
   { name: 'Sunday',    modifier: 'Solo Sunday',         desc: 'Just you. All day.',              scriptMult: 1.2, eventMult: 1.1, rageMult: 1.1 },
 ];
 
+// ========== WEATHER ==========
+export const WEATHER_TYPES = [
+  { name: 'Sunny',    weight: 4, lightTint: [255, 240, 180], lightAlpha: 0.04, desc: 'Clear and warm' },
+  { name: 'Cloudy',   weight: 3, lightTint: [180, 190, 210], lightAlpha: 0.03, desc: 'Gray skies' },
+  { name: 'Rainy',    weight: 2, lightTint: [140, 160, 200], lightAlpha: 0.05, desc: 'Rain outside', hasRain: true },
+  { name: 'Stormy',   weight: 1, lightTint: [100, 110, 140], lightAlpha: 0.06, desc: 'Thunder rumbles', hasRain: true, hasThunder: true },
+];
+
 // ========== RESULTS ==========
 export const WIN_TITLES = [
   { title: 'HELD TOGETHER', flavor: 'You kept the store open. That was the assignment.' },
   { title: 'SURVIVED', flavor: "Someone is writing a Google review right now." },
   { title: 'STILL STANDING', flavor: "You'll do it again tomorrow." },
   { title: 'SHIFT COMPLETE', flavor: "Clock out. Don't look back." },
+  { title: 'CLOSING TIME', flavor: "The gate comes down. You earned this silence." },
+  { title: 'ANOTHER DAY', flavor: "The pills are counted. The queue is clear. For now." },
+  { title: 'MADE IT', flavor: "Your feet hurt but your license is intact." },
+  { title: 'OFF THE CLOCK', flavor: "Tomorrow's problem is tomorrow's." },
 ];
 
 export const LOSS_TITLES = {
   queue:   { title: 'QUEUE COLLAPSE', flavor: 'The line reached the blood pressure machine.' },
   rage:    { title: 'THEY WANT YOUR NAME', flavor: 'Corporate will hear about this. All of it.' },
   burnout: { title: 'BURNED OUT', flavor: 'You stared at a vial for 30 seconds and forgot why.' },
+};
+
+// Extended loss flavors per meter
+export const LOSS_FLAVORS = {
+  queue: [
+    'The line reached the blood pressure machine.',
+    'People are queuing outside. In the rain.',
+    'The drive-thru line is blocking the road.',
+    'They opened a second line at the register. There is no second register.',
+  ],
+  rage: [
+    'Corporate will hear about this. All of it.',
+    'Someone just posted a one-star review. With photos.',
+    'A patient asked for the complaint form. You ran out.',
+    '"I will NEVER come here again." They\'ll be back Monday.',
+  ],
+  burnout: [
+    'You stared at a vial for 30 seconds and forgot why.',
+    'You counted the same bottle three times.',
+    'You accidentally put someone on hold. An hour ago.',
+    'You considered a career in literally anything else.',
+  ],
 };
 
 // ========== LUNCH MESSAGES ==========

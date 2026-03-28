@@ -53,6 +53,9 @@ export class Renderer {
     // Lunch gate animation (0 = open, 1 = fully closed)
     this.gateProgress = 0;
     this.gateTarget = 0;
+
+    // Receipt printer animation
+    this.receiptProgress = 0; // 0 = idle, >0 = printing
   }
 
   init(tileMap) {
@@ -83,6 +86,10 @@ export class Renderer {
   }
 
   // ========== CAMERA CONTROL ==========
+
+  triggerReceipt() {
+    this.receiptProgress = 1.5; // 1.5 seconds of printing
+  }
 
   setGate(closed) {
     this.gateTarget = closed ? 1 : 0;
@@ -304,6 +311,9 @@ export class Renderer {
       ctx.fillRect(0, 0, w, h);
     }
 
+    // Weather effects (screen-space, over the scene)
+    this.renderWeather(ctx, gameState);
+
     // Off-screen event indicators (screen-space)
     this.renderOffScreenIndicators(ctx);
 
@@ -370,6 +380,57 @@ export class Renderer {
         const alpha = (urgency - 0.5) * 0.08;
         ctx.fillStyle = `rgba(255, 50, 0, ${alpha})`;
         ctx.fillRect(0, 0, MAP_COLS * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+      }
+    }
+  }
+
+  // ========== WEATHER ==========
+
+  renderWeather(ctx, state) {
+    const weather = state.weather;
+    if (!weather) return;
+
+    const w = this.canvas.width;
+    const h = this.canvas.height;
+    const t = state.time || 0;
+
+    // Ambient tint from weather
+    if (weather.lightTint) {
+      const [r, g, b] = weather.lightTint;
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${weather.lightAlpha || 0.03})`;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    // Rain effect — falling droplets on the drive lane side
+    if (weather.hasRain) {
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.strokeStyle = '#8090b0';
+      ctx.lineWidth = 1;
+
+      // Rain drops on the right side (drive-thru area visible through window)
+      const scale = this.camZoom * this.dpr;
+      const driveX = w * 0.8; // Approximate drive lane screen position
+      const rainWidth = w * 0.25;
+
+      for (let i = 0; i < 20; i++) {
+        const rx = driveX + (Math.sin(i * 7.3 + t * 0.5) * 0.5 + 0.5) * rainWidth;
+        const ry = ((t * 200 + i * 47) % h);
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 1, ry + 4 + Math.random() * 3);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
+
+    // Thunder flash
+    if (weather.hasThunder) {
+      if (Math.sin(t * 0.7) > 0.995) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.fillRect(0, 0, w, h);
       }
     }
   }
@@ -489,6 +550,28 @@ export class Renderer {
     ctx.fillStyle = `rgba(100, 180, 220, ${monitorFlicker})`;
     ctx.fillRect(4 * TILE_SIZE + 3, 10 * TILE_SIZE + 3, 10, 7);
     ctx.fillRect(9 * TILE_SIZE + 3, 10 * TILE_SIZE + 3, 10, 7);
+
+    // Receipt printer animation
+    if (this.receiptProgress > 0) {
+      this.receiptProgress -= 1 / 60;
+      const printerX = (STATIONS.verify.col + 2) * TILE_SIZE;
+      const printerY = STATIONS.verify.row * TILE_SIZE;
+      const paperLen = Math.min(10, (1.5 - this.receiptProgress) * 12);
+
+      // Paper scrolling out
+      ctx.fillStyle = '#f0ede5';
+      ctx.fillRect(printerX + 5, printerY - paperLen, 6, paperLen);
+      // Paper curl at top
+      if (paperLen > 4) {
+        ctx.fillStyle = '#e8e5dd';
+        ctx.fillRect(printerX + 6, printerY - paperLen - 1, 4, 1);
+      }
+      // Text lines on paper
+      ctx.fillStyle = '#aaa';
+      for (let li = 0; li < Math.min(4, paperLen / 2.5); li++) {
+        ctx.fillRect(printerX + 6, printerY - paperLen + 1 + li * 2.5, 4, 0.5);
+      }
+    }
   }
 
   renderPhone(ctx, state) {
@@ -524,10 +607,35 @@ export class Renderer {
       for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
         const car = Sprites.car(carColors[i % carColors.length]);
         const bob = Math.sin(state.time * 2 + i * 1.5) * 0.3;
-        ctx.drawImage(car,
-          14 * TILE_SIZE,
-          (8 + i * 2) * TILE_SIZE + bob
-        );
+        const cx = 14 * TILE_SIZE;
+        const cy = (8 + i * 2) * TILE_SIZE + bob;
+        ctx.drawImage(car, cx, cy);
+
+        // Honk lines from first car if drive-thru event active
+        if (i === 0 && state.stationManager.getStation('drive')?.hasEvent) {
+          const honkPhase = Math.sin(state.time * 5);
+          if (honkPhase > 0.3) {
+            ctx.strokeStyle = `rgba(255, 200, 100, ${(honkPhase - 0.3) * 0.4})`;
+            ctx.lineWidth = 0.5;
+            // Sound waves
+            for (let r = 0; r < 3; r++) {
+              const radius = 6 + r * 4 + honkPhase * 3;
+              ctx.beginPath();
+              ctx.arc(cx + 4, cy + 8, radius, -Math.PI * 0.4, Math.PI * 0.4);
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Exhaust puff from rear of waiting cars
+        if (Math.sin(state.time * 1.5 + i * 3) > 0.8) {
+          ctx.fillStyle = 'rgba(160, 150, 140, 0.15)';
+          const puffX = cx + 22 + Math.sin(state.time * 2 + i) * 2;
+          const puffY = cy + 6 + Math.cos(state.time * 1.5 + i) * 1;
+          ctx.beginPath();
+          ctx.arc(puffX, puffY, 2 + Math.sin(state.time + i) * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
   }
