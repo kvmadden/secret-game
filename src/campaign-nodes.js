@@ -1,4 +1,26 @@
 // campaign-nodes.js — Chapter spine data for campaign mode (pure data, no logic)
+//
+// DUAL SYSTEM:
+//   Legacy nodes  — CAMPAIGN_NODES / CHAPTERS / ENDING_LANES / CHAPTER_DECISIONS
+//     The original flat-array campaign data. Still exported for backward
+//     compatibility with existing game logic and UI code.
+//
+//   Expanded nodes — getExpandedChapters() and helpers
+//     Richer per-chapter data pulled from dedicated chapter files
+//     (campaign-ch1.js … campaign-ch7.js), chapter intros, transitions,
+//     and field-leader metadata. Use these for the expanded campaign
+//     architecture.
+
+import { CHAPTER_1 } from './campaign-ch1.js';
+import { CHAPTER_2 } from './campaign-ch2.js';
+import { CHAPTER_3 } from './campaign-ch3.js';
+import { CHAPTER_4 } from './campaign-ch4.js';
+import { CHAPTER_5 } from './campaign-ch5.js';
+import { CHAPTER_6 } from './campaign-ch6.js';
+import { CHAPTER_7 } from './campaign-ch7.js';
+import { CHAPTER_INTROS } from './chapter-intros.js';
+import { CHAPTER_TRANSITIONS } from './chapter-transitions.js';
+import { FIELD_LEADERS } from './field-leaders.js';
 
 export const CHAPTERS = [
   { id: 0, title: 'Prologue',           subtitle: 'Congratulations, Doctor — School, sacrifice, exams, debt, pride — retail reality.' },
@@ -657,3 +679,55 @@ export const CHAPTER_DECISIONS = {
   c5_dec1: CAMPAIGN_NODES.find(n => n.id === 'c5_dec1'),
   c6_dec1: CAMPAIGN_NODES.find(n => n.id === 'c6_dec1'),
 };
+
+// ── Expanded campaign architecture ──────────────────────────────────────
+
+const CHAPTER_IMPORTS = [
+  CHAPTER_1,
+  CHAPTER_2,
+  CHAPTER_3,
+  CHAPTER_4,
+  CHAPTER_5,
+  CHAPTER_6,
+  CHAPTER_7,
+];
+
+/**
+ * Returns the full expanded chapter array assembled from per-chapter data
+ * files. Each entry combines meta, shifts, decisions, and storyNodes from
+ * its CHAPTER_X import.
+ */
+export function getExpandedChapters() {
+  return CHAPTER_IMPORTS.map((ch) => ({
+    meta:       ch.meta,
+    shifts:     ch.shifts     || [],
+    decisions:  ch.decisions  || [],
+    storyNodes: ch.storyNodes || [],
+  }));
+}
+
+/**
+ * Returns the field leader assigned to the given chapter.
+ * @param {number|string} chapterId
+ */
+export function getChapterLeader(chapterId) {
+  return FIELD_LEADERS[chapterId] ?? null;
+}
+
+/**
+ * Returns the intro text / data for a chapter.
+ * @param {number|string} chapterId
+ */
+export function getChapterIntro(chapterId) {
+  return CHAPTER_INTROS[chapterId] ?? null;
+}
+
+/**
+ * Returns transition data when moving from one chapter to the next.
+ * @param {number|string} fromChapter
+ * @param {number|string} toChapter
+ */
+export function getTransition(fromChapter, toChapter) {
+  const key = `${fromChapter}_${toChapter}`;
+  return CHAPTER_TRANSITIONS[key] ?? null;
+}

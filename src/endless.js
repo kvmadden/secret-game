@@ -6,6 +6,13 @@
 
 import { SHIFT_DAYS, WEATHER_TYPES } from './constants.js';
 
+let EVENT_TIERS;
+try {
+  ({ EVENT_TIERS } = await import('./event-hierarchy.js'));
+} catch (_) {
+  EVENT_TIERS = { AMBIENT: 'ambient', PRESSURE: 'pressure', SIGNATURE: 'signature' };
+}
+
 // ========== SEGMENT TYPES ==========
 // Each segment is a different store/situation with unique flavor
 
@@ -141,6 +148,7 @@ export class EndlessMode {
     this.segment = 1;
     this.hoursAwake = 0;
     this.fatigue = 0;
+    this.campaignBonuses = null; // Set externally if player has campaign unlocks
     this.pickSegment();
   }
 
@@ -284,6 +292,55 @@ export class EndlessMode {
     if (this.totalSegments >= 5) return { title: 'STILL HERE', flavor: `${this.hoursAwake} hours. Your body gave out before your will did.` };
     if (this.totalSegments >= 3) return { title: 'PUSHED TOO FAR', flavor: 'You should have gone home two stores ago.' };
     return { title: 'NOT TODAY', flavor: 'Some days you just can\'t hold it together.' };
+  }
+
+  getSegmentEventWeights(segmentIndex) {
+    // Early segments: more ambient, less pressure
+    // Later segments: more pressure, occasional signature
+    const ambient = Math.max(30, 70 - segmentIndex * 8);
+    const pressure = Math.min(50, 25 + segmentIndex * 5);
+    const signature = Math.min(20, segmentIndex >= 3 ? (segmentIndex - 2) * 5 : 0);
+    return { ambient, pressure, signature };
+  }
+
+  applyFatigueEffects() {
+    const effects = {};
+    if (this.fatigue > 30) effects.blurVision = true;  // visual effect hint
+    if (this.fatigue > 50) effects.slowerInput = 0.9;  // 90% input speed
+    if (this.fatigue > 70) effects.meterDrift = 0.5;   // meters drift up passively
+    if (this.fatigue > 85) effects.randomMistakes = true; // occasional auto-errors
+    return effects;
+  }
+
+  getEndlessBarks(segmentIndex) {
+    const barks = [
+      // Early segments
+      ["You're still here?", "Didn't your shift end hours ago?", "They couldn't find anyone else?"],
+      // Mid segments
+      ["How long have you been working?", "You look exhausted.", "When was the last time you ate?"],
+      // Late segments
+      ["Are you okay?", "You should go home.", "I'm worried about you.", "Your hands are shaking."],
+      // Very late
+      ["Please go home.", "This isn't safe anymore.", "When did you last sleep?", "Someone call someone."],
+    ];
+    const tier = Math.min(3, Math.floor(segmentIndex / 2));
+    return barks[tier];
+  }
+
+  applyCampaignBonuses(campaignState) {
+    if (!campaignState) return;
+    const bonuses = {};
+    // Ch4 complete: +10% fatigue resistance (fatigue gain * 0.9)
+    if (campaignState.ch4Complete) bonuses.fatigueResistance = 0.9;
+    // Ch6 complete: supervisor events disabled in endless
+    if (campaignState.ch6Complete) bonuses.disableSupervisor = true;
+    // Perfect campaign: starting fatigue reduced by 10
+    if (campaignState.perfectCampaign) {
+      bonuses.startingFatigueReduction = 10;
+      this.fatigue = Math.max(0, this.fatigue - 10);
+    }
+    this.campaignBonuses = bonuses;
+    return bonuses;
   }
 
   getModeName() {

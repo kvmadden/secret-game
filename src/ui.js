@@ -7,6 +7,21 @@ import {
   METER_MAX, PHASES, WIN_TITLES, LOSS_TITLES, LOSS_FLAVORS,
 } from './constants.js';
 
+// Campaign leader types — imported if available, fallback inline
+let LEADER_TYPES;
+try {
+  const mod = await import('./constants.js');
+  LEADER_TYPES = mod.LEADER_TYPES;
+} catch (e) { /* ignore */ }
+if (!LEADER_TYPES) {
+  LEADER_TYPES = {
+    pharmacist: { title: 'Lead Pharmacist' },
+    manager: { title: 'Store Manager' },
+    regional: { title: 'Regional Director' },
+    mentor: { title: 'Senior Technician' },
+  };
+}
+
 export class UI {
   constructor() {
     // HUD elements
@@ -1002,5 +1017,278 @@ export class UI {
         <div class="fatigue-bar-fill" style="width:${Math.min(100, fatigue)}%"></div>
       </div>
     `;
+  }
+
+  // ========== CAMPAIGN-SPECIFIC UI ==========
+
+  showLeaderMessage(leaderType, message) {
+    let overlay = document.getElementById('leader-message-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'leader-message-overlay';
+      overlay.className = 'leader-message';
+      overlay.style.cssText = `
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        z-index: 900; min-width: 320px; max-width: 500px;
+        background: rgba(10, 12, 18, 0.95); border: 1px solid rgba(100, 140, 255, 0.3);
+        border-radius: 8px; padding: 14px 20px; text-align: center;
+        font-family: inherit; pointer-events: none;
+        transition: opacity 0.3s ease;
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    const leader = (LEADER_TYPES && LEADER_TYPES[leaderType]) || { title: leaderType || 'Leader' };
+    overlay.innerHTML = `
+      <div style="font-size:11px; text-transform:uppercase; letter-spacing:2px; color:#88aaff; margin-bottom:6px;">
+        ${leader.title}
+      </div>
+      <div style="font-size:14px; color:#ccdaff; line-height:1.4;">
+        "${message}"
+      </div>
+    `;
+    overlay.style.opacity = '1';
+    overlay.style.display = 'block';
+
+    if (this._leaderMsgTimer) clearTimeout(this._leaderMsgTimer);
+    this._leaderMsgTimer = setTimeout(() => {
+      overlay.style.opacity = '0';
+      setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }, 4000);
+  }
+
+  showChapterIntro(title, subtitle, chapterNum) {
+    let card = document.getElementById('chapter-intro-card');
+    if (!card) {
+      card = document.createElement('div');
+      card.id = 'chapter-intro-card';
+      card.className = 'chapter-intro-card';
+      card.style.cssText = `
+        position: fixed; inset: 0; z-index: 1000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: rgba(2, 4, 10, 0.97);
+        font-family: inherit; text-align: center;
+        opacity: 0; transition: opacity 0.6s ease;
+        pointer-events: none;
+      `;
+      document.body.appendChild(card);
+    }
+
+    card.innerHTML = `
+      <div style="font-size:64px; font-weight:700; color:#f0d880; letter-spacing:4px; margin-bottom:16px;">
+        ${chapterNum}
+      </div>
+      <div style="font-size:26px; font-weight:600; color:#ffffff; letter-spacing:2px; margin-bottom:10px;">
+        ${title}
+      </div>
+      <div style="font-size:15px; color:#8899bb; font-style:italic; max-width:420px; line-height:1.5;">
+        ${subtitle || ''}
+      </div>
+    `;
+
+    card.style.display = 'flex';
+
+    // Fade in
+    requestAnimationFrame(() => {
+      card.style.opacity = '1';
+    });
+
+    // Hold 3 seconds, then fade out
+    if (this._chapterIntroTimer) clearTimeout(this._chapterIntroTimer);
+    this._chapterIntroTimer = setTimeout(() => {
+      card.style.opacity = '0';
+      setTimeout(() => { card.style.display = 'none'; }, 600);
+    }, 3000);
+  }
+
+  showTransitionScene(title, paragraphs, timeSkip) {
+    return new Promise((resolve) => {
+      let scene = document.getElementById('transition-scene');
+      if (!scene) {
+        scene = document.createElement('div');
+        scene.id = 'transition-scene';
+        scene.className = 'transition-scene';
+        scene.style.cssText = `
+          position: fixed; inset: 0; z-index: 1000;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          background: rgba(2, 4, 10, 0.97);
+          font-family: inherit; text-align: center;
+          overflow-y: auto; padding: 40px 20px;
+        `;
+        document.body.appendChild(scene);
+      }
+
+      const timeSkipHtml = timeSkip
+        ? `<div style="font-size:13px; text-transform:uppercase; letter-spacing:3px; color:#88aaff; margin-bottom:30px;">${timeSkip}</div>`
+        : '';
+
+      const parasHtml = (paragraphs || []).map((p, i) =>
+        `<p class="transition-para" style="font-size:15px; color:#aabbcc; max-width:480px; line-height:1.6; margin:8px 0; opacity:0; transition:opacity 0.5s ease ${0.4 + i * 0.6}s;">${p}</p>`
+      ).join('');
+
+      scene.innerHTML = `
+        ${timeSkipHtml}
+        <div style="font-size:22px; font-weight:600; color:#ffffff; letter-spacing:1px; margin-bottom:24px;">
+          ${title}
+        </div>
+        <div id="transition-paragraphs">${parasHtml}</div>
+        <button id="transition-continue-btn" style="
+          margin-top:32px; padding:10px 32px; border:1px solid rgba(100,140,255,0.4);
+          background:rgba(40,50,80,0.5); color:#ccdaff; font-size:14px;
+          letter-spacing:2px; cursor:pointer; border-radius:4px;
+          opacity:0; transition:opacity 0.5s ease ${0.4 + (paragraphs || []).length * 0.6 + 0.4}s;
+        ">CONTINUE</button>
+      `;
+
+      scene.style.display = 'flex';
+
+      // Trigger paragraph fade-ins
+      requestAnimationFrame(() => {
+        const paras = scene.querySelectorAll('.transition-para');
+        paras.forEach(p => { p.style.opacity = '1'; });
+        const btn = document.getElementById('transition-continue-btn');
+        if (btn) btn.style.opacity = '1';
+      });
+
+      const btn = document.getElementById('transition-continue-btn');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          scene.style.display = 'none';
+          resolve();
+        }, { once: true });
+      }
+    });
+  }
+
+  showDecisionDialogue(title, description, choices, leaderComment) {
+    return new Promise((resolve) => {
+      let dialogue = document.getElementById('decision-dialogue');
+      if (!dialogue) {
+        dialogue = document.createElement('div');
+        dialogue.id = 'decision-dialogue';
+        dialogue.className = 'decision-dialogue';
+        dialogue.style.cssText = `
+          position: fixed; inset: 0; z-index: 1000;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          background: rgba(2, 4, 10, 0.97);
+          font-family: inherit; text-align: center;
+          padding: 40px 20px; overflow-y: auto;
+        `;
+        document.body.appendChild(dialogue);
+      }
+
+      const choicesHtml = (choices || []).map((c, i) =>
+        `<button class="decision-dialogue-choice" data-index="${i}" style="
+          display:block; width:100%; max-width:400px; margin:8px auto;
+          padding:14px 20px; border:1px solid rgba(100,140,255,0.3);
+          background:rgba(30,40,65,0.6); color:#ccdaff; font-size:14px;
+          text-align:left; cursor:pointer; border-radius:6px;
+          transition: background 0.2s, border-color 0.2s;
+        ">
+          <div style="font-weight:600; margin-bottom:4px; color:#ffffff;">${c.label}</div>
+          <div style="font-size:12px; color:#8899bb;">${c.desc || ''}</div>
+        </button>`
+      ).join('');
+
+      dialogue.innerHTML = `
+        <div style="font-size:20px; font-weight:600; color:#f0d880; letter-spacing:1px; margin-bottom:12px;">
+          ${title}
+        </div>
+        <div style="font-size:14px; color:#aabbcc; max-width:460px; line-height:1.5; margin-bottom:24px;">
+          ${description || ''}
+        </div>
+        <div id="decision-dialogue-choices">${choicesHtml}</div>
+        <div id="decision-dialogue-leader-comment" style="
+          margin-top:20px; font-size:13px; color:#88aaff; font-style:italic;
+          max-width:400px; min-height:20px; opacity:0; transition:opacity 0.4s ease;
+        "></div>
+      `;
+
+      dialogue.style.display = 'flex';
+
+      const choiceBtns = dialogue.querySelectorAll('.decision-dialogue-choice');
+      choiceBtns.forEach(btn => {
+        btn.addEventListener('mouseenter', () => {
+          btn.style.background = 'rgba(50,65,100,0.8)';
+          btn.style.borderColor = 'rgba(120,160,255,0.6)';
+        });
+        btn.addEventListener('mouseleave', () => {
+          btn.style.background = 'rgba(30,40,65,0.6)';
+          btn.style.borderColor = 'rgba(100,140,255,0.3)';
+        });
+        btn.addEventListener('click', () => {
+          const index = parseInt(btn.dataset.index, 10);
+
+          // Highlight selected choice
+          choiceBtns.forEach(b => {
+            b.style.opacity = '0.4';
+            b.style.pointerEvents = 'none';
+          });
+          btn.style.opacity = '1';
+          btn.style.borderColor = '#88ff88';
+
+          // Show leader comment if provided
+          if (leaderComment) {
+            const commentEl = document.getElementById('decision-dialogue-leader-comment');
+            if (commentEl) {
+              commentEl.textContent = leaderComment;
+              commentEl.style.opacity = '1';
+            }
+          }
+
+          // Dismiss after brief delay
+          setTimeout(() => {
+            dialogue.style.display = 'none';
+            resolve(index);
+          }, leaderComment ? 1500 : 400);
+        }, { once: true });
+      });
+    });
+  }
+
+  updateCampaignProgress(chapterNum, shiftNum, totalShifts) {
+    let el = document.getElementById('campaign-progress');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'campaign-progress';
+      el.className = 'campaign-progress';
+      el.style.cssText = `
+        position: fixed; top: 6px; right: 160px; z-index: 800;
+        font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+        color: #667799; font-family: inherit;
+        pointer-events: none;
+      `;
+      document.body.appendChild(el);
+    }
+    el.textContent = `Chapter ${chapterNum} — Shift ${shiftNum}/${totalShifts}`;
+    el.style.display = 'block';
+  }
+
+  showFlagNotification(flagName, description) {
+    let toast = document.getElementById('flag-notification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'flag-notification';
+      toast.className = 'flag-notification';
+      toast.style.cssText = `
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        z-index: 900; padding: 10px 22px;
+        background: rgba(10, 12, 18, 0.92); border: 1px solid rgba(200, 170, 80, 0.3);
+        border-radius: 6px; font-size: 13px; color: #d4c088;
+        font-family: inherit; pointer-events: none;
+        transition: opacity 0.3s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+
+    toast.textContent = `Tendency noted: ${description || flagName}`;
+    toast.style.opacity = '1';
+    toast.style.display = 'block';
+
+    if (this._flagNotifTimer) clearTimeout(this._flagNotifTimer);
+    this._flagNotifTimer = setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => { toast.style.display = 'none'; }, 300);
+    }, 3000);
   }
 }

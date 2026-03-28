@@ -6,6 +6,9 @@
 
 import { SHIFT_DAYS, WEATHER_TYPES } from './constants.js';
 import { CAMPAIGN_NODES as CAMPAIGN_NODES_ARR, CHAPTERS, ENDING_LANES } from './campaign-nodes.js';
+import { CampaignFlags } from './campaign-flags.js';
+import { selectEndingRoute } from './route-selection.js';
+import { CampaignStats } from './campaign-stats.js';
 
 // Convert array to id-keyed lookup map
 const CAMPAIGN_NODES = {};
@@ -180,6 +183,10 @@ export class Campaign {
 
     // Ending lane once determined
     this.endingLane = null;
+
+    // Enhanced campaign flag system and stats tracking
+    this.flags = new CampaignFlags();
+    this.campaignStats = new CampaignStats();
   }
 
   // ===== Lifecycle =====
@@ -305,6 +312,9 @@ export class Campaign {
     this.dayResults.push(result);
     this.shiftsCompleted++;
 
+    // Track shift in enhanced campaign stats
+    this.campaignStats.recordShift(this.currentNodeId, won, grade, meters, stats, result.day);
+
     // Update persistent variables from shift outcome
     if (won) {
       this.reputation = clamp(this.reputation + (grade === 'S' ? 8 : grade === 'A' ? 5 : grade === 'B' ? 2 : -2), 0, 100);
@@ -346,7 +356,8 @@ export class Campaign {
     if (!choice) return;
 
     const effects = choice.effects;
-    this.decisionsUsed.add(this.pendingDecision.id);
+    const decisionId = this.pendingDecision.id;
+    this.decisionsUsed.add(decisionId);
     this.pendingDecision = null;
 
     // Apply effects to persistent variables
@@ -356,6 +367,10 @@ export class Campaign {
         this[v] = clamp(this[v] + effects[v], 0, 100);
       }
     }
+
+    // Record choice in the campaign flag system
+    this.flags.recordChoice(decisionId, choiceIndex);
+    this.flags.evaluateThresholds();
 
     // Re-derive backward-compat modifiers
     this.shiftModifiers = this._deriveShiftModifiers();
@@ -437,6 +452,8 @@ export class Campaign {
 
   // ===== Ending determination =====
 
+  // NOTE: The enhanced ending system via getEnhancedEnding() / selectEndingRoute()
+  // could replace this legacy logic. Kept as fallback for backward compatibility.
   _determineEndingLane() {
     const { burnout, reputation, teamStrength, storeReadiness, leadershipAlignment, clinicalIntegrity } = this;
 
@@ -511,5 +528,71 @@ export class Campaign {
       grade: this.getCampaignGrade(),
       endingLane: this.endingLane || this._determineEndingLane(),
     };
+  }
+
+  // ===== Enhanced ending system =====
+
+  getEnhancedEnding() {
+    const result = selectEndingRoute(this.vars, this.flags);
+    return result;
+  }
+
+  // ===== Flag & stats accessors =====
+
+  getFlags() {
+    return this.flags.getActiveFlags();
+  }
+
+  getStats() {
+    return this.campaignStats.getFullSummary();
+  }
+
+  // ===== Serialization =====
+
+  serialize() {
+    return {
+      active: this.active,
+      totalDays: this.totalDays,
+      burnout: this.burnout,
+      reputation: this.reputation,
+      teamStrength: this.teamStrength,
+      storeReadiness: this.storeReadiness,
+      leadershipAlignment: this.leadershipAlignment,
+      clinicalIntegrity: this.clinicalIntegrity,
+      currentNodeId: this.currentNodeId,
+      shiftsCompleted: this.shiftsCompleted,
+      dayResults: this.dayResults,
+      decisionsUsed: [...this.decisionsUsed],
+      endingLane: this.endingLane,
+      flags: this.flags.serialize(),
+      campaignStats: this.campaignStats.serialize(),
+    };
+  }
+
+  deserialize(data) {
+    this.active = data.active;
+    this.totalDays = data.totalDays;
+    this.burnout = data.burnout;
+    this.reputation = data.reputation;
+    this.teamStrength = data.teamStrength;
+    this.storeReadiness = data.storeReadiness;
+    this.leadershipAlignment = data.leadershipAlignment;
+    this.clinicalIntegrity = data.clinicalIntegrity;
+    this.currentNodeId = data.currentNodeId;
+    this.shiftsCompleted = data.shiftsCompleted;
+    this.dayResults = data.dayResults || [];
+    this.decisionsUsed = new Set(data.decisionsUsed || []);
+    this.endingLane = data.endingLane;
+    this.shiftModifiers = this._deriveShiftModifiers();
+
+    // Restore enhanced flag and stats systems
+    if (data.flags) {
+      this.flags = new CampaignFlags();
+      this.flags.deserialize(data.flags);
+    }
+    if (data.campaignStats) {
+      this.campaignStats = new CampaignStats();
+      this.campaignStats.deserialize(data.campaignStats);
+    }
   }
 }

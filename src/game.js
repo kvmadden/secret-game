@@ -35,6 +35,9 @@ import { AchievementSystem } from './achievements.js';
 import { MeterVisuals } from './meter-visuals.js';
 import { CameraJuice } from './camera-juice.js';
 import { SeasonalDecorations } from './seasonal.js';
+import { FIELD_LEADERS } from './field-leaders.js';
+import { SUPERVISOR_EVENTS } from './supervisor-events.js';
+import { SHIFT_WEATHER, getWeatherForShift, getWeatherEffects } from './shift-weather.js';
 
 let uidCounter = 0;
 function nextUid() { return ++uidCounter; }
@@ -634,6 +637,18 @@ export class Game {
       this.updateIdleBehavior(dt);
       this.checkMeterWarnings(dt);
       this.checkGameOver();
+
+      // Supervisor event check (campaign only)
+      if (this.campaign.isActive() && this._supervisorEvents && this._supervisorEventTimer !== undefined) {
+        this._supervisorEventTimer -= dt;
+        if (this._supervisorEventTimer <= 0) {
+          const sevt = this._supervisorEvents[Math.floor(Math.random() * this._supervisorEvents.length)];
+          if (sevt && this.activeCards.length < 4) {
+            this.spawnEvent(sevt);
+          }
+          this._supervisorEventTimer = 90 + Math.random() * 90; // Next event in 90-180s
+        }
+      }
     } else if (this.state === 'LUNCH') {
       this.updateLunch(dt);
     }
@@ -990,8 +1005,8 @@ export class Game {
     }
   }
 
-  spawnEvent() {
-    const event = getRandomEventAny(this.phase);
+  spawnEvent(providedEvent) {
+    const event = providedEvent || getRandomEventAny(this.phase);
     if (!event) return;
 
     event.uid = nextUid();
@@ -1986,6 +2001,32 @@ export class Game {
     this.ui.hidePause();
     this.ui.hideCombo();
 
+    // Apply weather effects from campaign shift config
+    if (this.campaign.currentNodeId) {
+      const weatherConfig = getWeatherForShift(this.campaign.currentNodeId);
+      if (weatherConfig) {
+        this.weather = weatherConfig.type;
+        const weatherEffects = getWeatherEffects(weatherConfig.type);
+        if (weatherEffects) {
+          for (const [meter, mod] of Object.entries(weatherEffects)) {
+            if (this.meters[meter] !== undefined) {
+              this.meters[meter] = Math.min(100, this.meters[meter] + mod);
+            }
+          }
+        }
+      }
+    }
+
+    // Set up field leader events for this chapter
+    if (this.campaign.currentChapter) {
+      const chapterId = this.campaign.currentChapter;
+      const leaderType = this._getChapterLeader(chapterId);
+      if (leaderType && SUPERVISOR_EVENTS[leaderType]) {
+        this._supervisorEvents = SUPERVISOR_EVENTS[leaderType];
+        this._supervisorEventTimer = 60 + Math.random() * 60; // First event after 60-120s
+      }
+    }
+
     const chapter = this.campaign.getCurrentChapter();
     const chapterLabel = chapter ? `CH${chapter.id}: ${chapter.title}` : '';
     this.ui.showCampaignHud(chapterLabel, `Shift ${this.campaign.getCurrentDay()}`);
@@ -2007,6 +2048,19 @@ export class Game {
 
     this.updatePipelineCards();
     this.tick();
+  }
+
+  _getChapterLeader(chapterId) {
+    const leaderMap = {
+      ch1: 'cheerleader',
+      ch2: 'ghost',
+      ch3: 'fake_helper',
+      ch4: 'rescuer_user',
+      ch5: 'metrics_hawk',
+      ch6: 'polished_visitor',
+      ch7: null,
+    };
+    return leaderMap[chapterId] || null;
   }
 
   handleCampaignShiftEnd(won, lostMeter) {

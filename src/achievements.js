@@ -1,5 +1,6 @@
 // achievements.js - Achievement/badge system for Over The Bridge pharmacy survival game
 // No external dependencies. No imports.
+import { CAMPAIGN_ACHIEVEMENTS } from './campaign-achievements-data.js';
 
 const STORAGE_KEY = 'otb-achievements';
 
@@ -62,6 +63,17 @@ export class AchievementSystem {
     this._index = {};
     for (let i = 0; i < this._achievements.length; i++) {
       this._index[this._achievements[i].id] = this._achievements[i];
+    }
+
+    // Merge campaign achievements if available
+    if (typeof CAMPAIGN_ACHIEVEMENTS !== 'undefined') {
+      for (const ach of CAMPAIGN_ACHIEVEMENTS) {
+        if (!this._achievements.find(a => a.id === ach.id)) {
+          const entry = { ...ach, progress: 0, unlocked: false, unlockedAt: null };
+          this._achievements.push(entry);
+          this._index[entry.id] = entry;
+        }
+      }
     }
   }
 
@@ -354,6 +366,64 @@ export class AchievementSystem {
       const idx = this._listeners.indexOf(fn);
       if (idx !== -1) this._listeners.splice(idx, 1);
     };
+  }
+
+  /**
+   * Check if an achievement is unlocked.
+   * @param {string} achievementId
+   * @returns {boolean}
+   */
+  isUnlocked(achievementId) {
+    const ach = this._index[achievementId];
+    return ach ? ach.unlocked : false;
+  }
+
+  /**
+   * Manually unlock an achievement by id.
+   * @param {string} achievementId
+   */
+  unlock(achievementId) {
+    this._increment(achievementId, Infinity);
+  }
+
+  /**
+   * Check campaign-specific achievements based on campaign state.
+   * @param {object} campaignState
+   */
+  checkCampaignAchievements(campaignState) {
+    const { chapter, shiftId, grade, ending, flags, stats } = campaignState;
+
+    // Chapter completion checks
+    if (chapter) {
+      this.unlock(`${chapter}_complete`);
+    }
+
+    // Ending checks
+    if (ending) {
+      this.unlock(`ending_${ending}`);
+      // Check if all endings have been seen
+      const endingAchs = ['ending_builder', 'ending_climber', 'ending_escape', 'ending_quiet_pro', 'ending_burnout', 'ending_martyr'];
+      if (endingAchs.every(id => this.isUnlocked(id))) {
+        this.unlock('all_endings');
+      }
+    }
+
+    // Grade checks
+    if (grade === 'S' && shiftId === 'c5_offsite_clinic') {
+      this.unlock('perfect_offsite');
+    }
+
+    // Flag-based checks
+    if (flags) {
+      if (flags.includes('survived_overnight_path')) this.unlock('survived_overnight');
+      if (flags.includes('actively_looking_for_exit')) this.unlock('exit_planned');
+      if (flags.includes('trained_new_hire')) this.unlock('trained_new_hire_ach');
+    }
+
+    // Shift-specific checks
+    if (shiftId === 'c2_overnight' && grade !== 'F') this.unlock('survived_overnight');
+    if (shiftId === 'c4_no_relief' && grade !== 'F') this.unlock('survived_no_relief');
+    if (shiftId === 'c6_visit_never_comes' && grade !== 'F') this.unlock('survived_visit');
   }
 
   // --- Internal helpers ---

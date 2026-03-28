@@ -869,3 +869,156 @@ export function playClockTick() {
   // Subtle body resonance
   tone(800, 0.015, 'sine', 0.005, 0.003);
 }
+
+// --- Campaign chapter sound cues ---
+
+// Field leader arrival — short authoritative ascending tone
+export function playLeaderArrival() {
+  if (muted) return;
+  tone(523, 0.1, 'sine', 0.04);       // C5
+  tone(659, 0.1, 'sine', 0.04, 0.1);  // E5
+}
+
+// Decision moment — soft contemplative descending chime with slight echo
+export function playDecisionChime() {
+  if (muted) return;
+  // Primary notes
+  tone(784, 0.15, 'triangle', 0.035);       // G4
+  tone(659, 0.15, 'triangle', 0.035, 0.15); // E4
+  tone(523, 0.15, 'triangle', 0.035, 0.3);  // C4
+  // Subtle delay echo layer
+  tone(784, 0.12, 'triangle', 0.012, 0.08);
+  tone(659, 0.12, 'triangle', 0.012, 0.23);
+  tone(523, 0.12, 'triangle', 0.012, 0.38);
+}
+
+// Chapter complete — triumphant ascending fanfare with final sustain
+export function playChapterComplete() {
+  if (muted) return;
+  tone(262, 0.2, 'square', 0.025);       // C4
+  tone(330, 0.2, 'square', 0.025, 0.2);  // E4
+  tone(392, 0.2, 'square', 0.025, 0.4);  // G4
+  tone(523, 0.4, 'square', 0.03, 0.6);   // C5 sustained
+  // Soften with a sine layer on the final note
+  tone(523, 0.5, 'sine', 0.02, 0.6);
+}
+
+// Between-chapter transition — ambient wash fading in and out over 2s
+export function playTransitionAmbient() {
+  if (muted) return;
+  try {
+    const ctx = getCtx();
+    const duration = 2.0;
+    const bufferSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    // Brownian noise: accumulated random walk
+    let val = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      val += (Math.random() * 2 - 1) * 0.06;
+      val = Math.max(-1, Math.min(1, val));
+      data[i] = val;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 200;
+    const gain = ctx.createGain();
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.02, t + 1.0);
+    gain.gain.linearRampToValueAtTime(0.001, t + 2.0);
+    source.start(t);
+    source.stop(t + duration);
+  } catch (e) {
+    // Audio not available
+  }
+}
+
+// Campaign flag set — subtle acknowledgment ping
+export function playFlagNotification() {
+  if (muted) return;
+  tone(440, 0.08, 'sine', 0.015); // A4, very soft and brief
+}
+
+// Signature event start — dramatic low tone with vibrato and sub-bass
+export function playSignatureEventStart() {
+  if (muted) return;
+  try {
+    const ctx = getCtx();
+    const t = ctx.currentTime;
+    // Main C3 with vibrato
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(131, t); // C3
+    // Vibrato via LFO
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 5;
+    lfoGain.gain.value = 3;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    lfo.start(t);
+    lfo.stop(t + 0.5);
+    gain.gain.setValueAtTime(0.04, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    osc.start(t);
+    osc.stop(t + 0.5);
+    // Sub-bass rumble underneath
+    const sub = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    sub.connect(subGain);
+    subGain.connect(ctx.destination);
+    sub.type = 'sine';
+    sub.frequency.value = 55;
+    subGain.gain.setValueAtTime(0.025, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    sub.start(t);
+    sub.stop(t + 0.5);
+  } catch (e) {
+    // Audio not available
+  }
+}
+
+// Ending reveal — emotional chord with gentle fade
+export function playEndingReveal() {
+  if (muted) return;
+  try {
+    const ctx = getCtx();
+    const t = ctx.currentTime;
+    const notes = [262, 330, 392]; // C4, E4, G4
+    for (const freq of notes) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.025, t);
+      gain.gain.setValueAtTime(0.025, t + 0.6);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.0);
+      osc.start(t);
+      osc.stop(t + 1.0);
+    }
+  } catch (e) {
+    // Audio not available
+  }
+}
+
+// --- Chapter-to-music-phase mapping for campaign ---
+export const CHAPTER_MUSIC_PHASES = {
+  ch1: 'OPENING',      // Gentle, learning
+  ch2: 'BUILDING',     // Building momentum
+  ch3: 'BUILDING',     // Exposure pressure
+  ch4: 'REOPEN_RUSH',  // Endurance
+  ch5: 'REOPEN_RUSH',  // Responsibility
+  ch6: 'LATE_DRAG',    // Weariness
+  ch7: 'CLOSING',      // Resolution
+};

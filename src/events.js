@@ -5,6 +5,10 @@
  */
 
 import { DEFER_RETURN_MIN, DEFER_RETURN_MAX } from './constants.js';
+import { EVENT_CLASSIFICATIONS, EVENT_TIERS, TIER_SPAWN_WEIGHTS, getEventTier } from './event-hierarchy.js';
+import { AMBIENT_EVENTS } from './ambient-events-expanded.js';
+import { PRESSURE_EVENTS } from './pressure-events-expanded.js';
+import { SIGNATURE_EVENTS } from './signature-events.js';
 
 // Event definitions
 const EVENT_POOL = {
@@ -1697,4 +1701,139 @@ export function getEscalatedEvent(originalEvent) {
 // Get defer return time
 export function getDeferTime() {
   return DEFER_RETURN_MIN + Math.random() * (DEFER_RETURN_MAX - DEFER_RETURN_MIN);
+}
+
+// ========== TIERED EVENT SYSTEM ==========
+
+/**
+ * Combined expanded event pools, organised by tier.
+ */
+export const ALL_EVENTS_EXPANDED = {
+  ambient: AMBIENT_EVENTS,
+  pressure: PRESSURE_EVENTS,
+  signature: SIGNATURE_EVENTS,
+};
+
+/**
+ * Pick a random event from a specific tier, with optional station and phase filters.
+ *
+ * @param {'ambient'|'pressure'|'signature'} tier - The tier to draw from.
+ * @param {string} [station] - Optional station to filter events by.
+ * @param {string} [phase]   - Current phase name (unused in filter but available for future weighting).
+ * @returns {object|null} A shallow copy of a matching event, or null if none found.
+ */
+export function getEventByTier(tier, station, phase) {
+  const pool = ALL_EVENTS_EXPANDED[tier];
+  if (!pool || pool.length === 0) return null;
+
+  let candidates = pool;
+  if (station) {
+    candidates = pool.filter(e => e.station === station);
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Use TIER_SPAWN_WEIGHTS for the given phase to validate the tier is active
+  if (phase && TIER_SPAWN_WEIGHTS[phase]) {
+    const weight = TIER_SPAWN_WEIGHTS[phase][tier] || 0;
+    if (weight <= 0) return null;
+  }
+
+  const idx = Math.floor(Math.random() * candidates.length);
+  return { ...candidates[idx] };
+}
+
+/**
+ * Pick a random event using the tiered spawn-weight system.
+ *
+ * Uses TIER_SPAWN_WEIGHTS for the given phase to probabilistically select a tier,
+ * then picks a random event from that tier. If chapter is provided, chapter-specific
+ * events within the selected tier receive a higher selection weight.
+ *
+ * Falls back to the existing getRandomEventAny if the tier system yields nothing.
+ *
+ * @param {string} phase   - Current shift phase (e.g. 'OPENING', 'BUILDING', etc.).
+ * @param {number} [chapter] - Current chapter number (0-based); used to boost chapter-specific events.
+ * @returns {object} A shallow copy of the selected event.
+ */
+export function getRandomEventTiered(phase, chapter) {
+  const weights = TIER_SPAWN_WEIGHTS[phase];
+  if (!weights) {
+    // Phase not in weight table — fall back to legacy picker
+    return getRandomEventAny(phase);
+  }
+
+  // Weighted random tier selection
+  const roll = Math.random();
+  let cumulative = 0;
+  let selectedTier = null;
+
+  for (const tier of [EVENT_TIERS.AMBIENT, EVENT_TIERS.PRESSURE, EVENT_TIERS.SIGNATURE]) {
+    cumulative += weights[tier] || 0;
+    if (roll < cumulative) {
+      selectedTier = tier;
+      break;
+    }
+  }
+
+  // Safety net — rounding might leave us without a tier
+  if (!selectedTier) {
+    selectedTier = EVENT_TIERS.AMBIENT;
+  }
+
+  const pool = ALL_EVENTS_EXPANDED[selectedTier];
+  if (!pool || pool.length === 0) {
+    return getRandomEventAny(phase);
+  }
+
+  let selected = null;
+
+  // If chapter is provided, try to weight chapter-specific events higher
+  if (chapter !== undefined && chapter !== null) {
+    const chapterEvents = pool.filter(e => e.chapter === chapter);
+    const genericEvents = pool.filter(e => e.chapter === undefined || e.chapter === null);
+
+    if (chapterEvents.length > 0 && Math.random() < 0.4) {
+      // 40% chance to pick a chapter-specific event when available
+      selected = chapterEvents[Math.floor(Math.random() * chapterEvents.length)];
+    } else if (genericEvents.length > 0) {
+      selected = genericEvents[Math.floor(Math.random() * genericEvents.length)];
+    }
+  }
+
+  // Default: pick uniformly from the full tier pool
+  if (!selected) {
+    selected = pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  return { ...selected };
+}
+
+/**
+ * Tags all existing events in EVENT_POOL and ESCALATED_EVENTS with a `tier`
+ * property based on EVENT_CLASSIFICATIONS. Events not found in the classification
+ * map default to 'ambient'.
+ *
+ * This mutates the event objects in place so that downstream code can read
+ * `event.tier` without an extra lookup.
+ */
+export function tagExistingEvents() {
+  // Tag events in EVENT_POOL
+  for (const poolKey of Object.keys(EVENT_POOL)) {
+    const pool = EVENT_POOL[poolKey];
+    if (!Array.isArray(pool)) continue;
+    for (const event of pool) {
+      if (!event.tier) {
+        event.tier = getEventTier(event.id) || EVENT_TIERS.AMBIENT;
+      }
+    }
+  }
+
+  // Tag escalated events
+  for (const eventId of Object.keys(ESCALATED_EVENTS)) {
+    const event = ESCALATED_EVENTS[eventId];
+    if (!event.tier) {
+      event.tier = getEventTier(event.id) || EVENT_TIERS.PRESSURE;
+    }
+  }
 }

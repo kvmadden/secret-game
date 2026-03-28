@@ -404,3 +404,61 @@ export const WEATHER_EFFECTS = {
   Rainy: { moodBoost: -0.05, patienceMod: 0.9, ambientLight: 0.85, wetFloors: true },
   Stormy: { moodBoost: -0.1, patienceMod: 0.8, ambientLight: 0.7, wetFloors: true, powerFlicker: true },
 };
+
+// ========== CAMPAIGN ==========
+export const CAMPAIGN_CHAPTER_ORDER = ['prologue', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6', 'ch7'];
+
+export const CHAPTER_TITLES = {
+  prologue: 'Congratulations, Doctor',
+  ch1: 'Welcome Aboard',
+  ch2: 'Float Season',
+  ch3: 'Goldfish Bowl',
+  ch4: 'The Reliable One',
+  ch5: 'PIC',
+  ch6: 'We Need You Everywhere',
+  ch7: 'What It Made You',
+};
+
+export const CHAPTER_SUBTITLES = {
+  prologue: 'The diploma is real. The 4AM alarm that starts tomorrow is real.',
+  ch1: 'Support first. Then they take it away.',
+  ch2: 'You are useful. So the system sends you everywhere.',
+  ch3: 'The work is not only hard. It is exposed.',
+  ch4: 'Competence attracts more burden.',
+  ch5: 'You wanted influence. Now you own consequences.',
+  ch6: 'Too useful to leave alone.',
+  ch7: 'The days that define the career.',
+};
+
+export const EVENT_TIERS = { AMBIENT: 'ambient', PRESSURE: 'pressure', SIGNATURE: 'signature' };
+
+export const ENDING_LANE_IDS = ['builder', 'climber', 'escape', 'quiet_pro', 'burnout_end', 'martyr'];
+
+export const CAMPAIGN_FLAG_NAMES = [
+  'said_yes_often', 'protected_team_often', 'stayed_late_often',
+  'accepted_stretch_role', 'trained_new_hire', 'backed_down_for_optics',
+  'preserved_standards', 'actively_looking_for_exit', 'took_manager_role',
+  'survived_overnight_path'
+];
+
+export const LEADER_TYPES = {
+  cheerleader: 'The Cheerleader',
+  ghost: 'The Ghost',
+  fake_helper: 'The Fake Helper',
+  rescuer_user: 'The Rescuer-User',
+  metrics_hawk: 'The Metrics Hawk',
+  polished_visitor: 'The Polished Visitor',
+  ladder_climber: 'The Ladder Climber',
+  competent_unicorn: 'The Competent Unicorn',
+};
+
+export const SHIFT_COUNT_TARGET = 18; // 3 shifts per chapter × 6 main chapters
+
+export const SIGNATURE_EVENT_PAIRINGS = {
+  ch1: 'thrown_in',
+  ch2: 'overnight_weirdness',
+  ch3: 'surprise_visit_collapse',
+  ch4: 'no_relief_coming',
+  ch5: 'offsite_clinic',
+  ch6: 'visit_that_never_comes',
+};
