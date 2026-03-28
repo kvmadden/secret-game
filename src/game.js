@@ -161,6 +161,13 @@ export class Game {
       });
     });
 
+    // Mute
+    const muteBtn = document.getElementById('mute-btn');
+    muteBtn.addEventListener('click', () => {
+      const nowMuted = Audio.toggleMute();
+      muteBtn.textContent = nowMuted ? '🔇' : '🔊';
+    });
+
     // Pause
     document.getElementById('pause-btn').addEventListener('click', () => {
       if (this.state === 'PLAYING') {
@@ -194,6 +201,7 @@ export class Game {
     this.ui.hideTitle();
     this.state = 'PLAYING';
     this.lastTimestamp = performance.now();
+    Audio.startAmbient();
     this.spawnInitialPatients();
     this.showTutorial('welcome');
     this.tick();
@@ -609,6 +617,8 @@ export class Game {
     this.ui.removeCard(event.uid);
     this.activeEvents = this.activeEvents.filter(e => e.uid !== event.uid);
 
+    Audio.playRush();
+
     // Rush cost: immediate burnout
     this.meters.burnout = Math.min(METER_MAX, this.meters.burnout + 6 * this.diff.meterMult);
 
@@ -690,6 +700,12 @@ export class Game {
         this.stats.eventsEscalated++;
 
         Audio.playEscalation();
+        this.renderer.shake(3);
+        this.renderer.spawnParticles(
+          STATIONS[escalated.station].col,
+          STATIONS[escalated.station].row,
+          '#ff4444', 6
+        );
 
         // Spawn angry patient if room
         const stationPatients = this.patients.filter(
@@ -773,10 +789,13 @@ export class Game {
 
       if (this.comboCount >= 2) {
         this.ui.showCombo(this.comboCount);
+        Audio.playCombo(this.comboCount);
         // Bonus meter relief for combos
         const bonus = (this.comboCount - 1) * COMBO_BONUS_PER_STACK;
         this.meters.queue = Math.max(0, this.meters.queue - bonus);
         this.meters.rage = Math.max(0, this.meters.rage - bonus * 0.5);
+        // Extra particles for combos
+        this.renderer.spawnParticles(pharm.col, pharm.row, '#ffdd00', this.comboCount * 3);
       }
 
       this.applyEffects(event.effects);
@@ -958,6 +977,7 @@ export class Game {
       if (patient.patience <= 0 && !patient.fadeOut) {
         patient.fadeOut = true;
         this.stats.patientsLost++;
+        this.renderer.shake(2);
         // Rage spike when patient leaves angry
         this.meters.rage = Math.min(METER_MAX, this.meters.rage + 4);
         this.meters.queue = Math.min(METER_MAX, this.meters.queue + 2);
@@ -1011,11 +1031,13 @@ export class Game {
 
   endGame(won, lostMeter) {
     this.state = 'GAMEOVER';
+    Audio.stopAmbient();
 
     if (won) {
       Audio.playWin();
     } else {
       Audio.playGameOver();
+      this.renderer.shake(6);
     }
 
     this.ui.clearCards();

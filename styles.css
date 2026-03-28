@@ -454,6 +454,18 @@ html, body {
   letter-spacing: 4px;
   margin-bottom: 8px;
   text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  animation: titleGlow 3s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+  0%, 100% { text-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+  50% { text-shadow: 0 0 30px rgba(0, 212, 255, 0.5), 0 0 60px rgba(0, 212, 255, 0.15); }
+}
+
+.title-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.3));
 }
 
 .subtitle {
@@ -467,8 +479,19 @@ html, body {
 .flavor {
   font-size: 13px;
   color: #777;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   line-height: 1.5;
+}
+
+.title-tips {
+  font-size: 10px;
+  color: #555;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.title-tips span {
+  display: block;
 }
 
 .big-btn {
@@ -704,7 +727,7 @@ html, body {
   gap: 8px;
 }
 
-#pause-btn {
+#mute-btn, #pause-btn {
   background: none;
   border: 1px solid #444;
   color: #888;
@@ -715,7 +738,7 @@ html, body {
   line-height: 1;
 }
 
-#pause-btn:active {
+#mute-btn:active, #pause-btn:active {
   background: rgba(255,255,255,0.1);
 }
 

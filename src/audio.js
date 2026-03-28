@@ -129,9 +129,61 @@ export function playBark() {
   tone(600, 0.03, 'square', 0.015);
 }
 
+// Combo chain — ascending arpeggio
+export function playCombo(count) {
+  const baseFreq = 600 + Math.min(count, 8) * 80;
+  tone(baseFreq, 0.06, 'triangle', 0.035);
+  tone(baseFreq * 1.25, 0.06, 'triangle', 0.035, 0.05);
+  tone(baseFreq * 1.5, 0.1, 'triangle', 0.04, 0.1);
+}
+
+// Rush start — urgent quick burst
+export function playRush() {
+  tone(800, 0.04, 'sawtooth', 0.03);
+  tone(1000, 0.04, 'sawtooth', 0.03, 0.03);
+  tone(1200, 0.06, 'sawtooth', 0.035, 0.06);
+}
+
+// Ambient pharmacy hum — continuous low drone
+let ambientOsc = null;
+let ambientGain = null;
+
+export function startAmbient() {
+  if (muted) return;
+  try {
+    const ctx = getCtx();
+    ambientOsc = ctx.createOscillator();
+    ambientGain = ctx.createGain();
+    ambientOsc.connect(ambientGain);
+    ambientGain.connect(ctx.destination);
+    ambientOsc.type = 'sine';
+    ambientOsc.frequency.value = 60;
+    ambientGain.gain.value = 0.008;
+    ambientOsc.start();
+  } catch (e) {
+    // Audio not available
+  }
+}
+
+export function stopAmbient() {
+  try {
+    if (ambientOsc) {
+      ambientOsc.stop();
+      ambientOsc = null;
+    }
+  } catch (e) {
+    // Already stopped
+  }
+}
+
 // Mute toggle
 export function toggleMute() {
   muted = !muted;
+  if (muted && ambientOsc) {
+    try { ambientGain.gain.value = 0; } catch (e) {}
+  } else if (!muted && ambientGain) {
+    try { ambientGain.gain.value = 0.008; } catch (e) {}
+  }
   return muted;
 }
 

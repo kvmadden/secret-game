@@ -17,6 +17,7 @@
         <div id="combo-indicator" style="display:none;"><span id="combo-count">x2</span> COMBO</div>
         <div id="hud-right">
           <div id="timer">9:00 AM</div>
+          <button id="mute-btn">🔊</button>
           <button id="pause-btn">⏸</button>
         </div>
       </div>
@@ -59,9 +60,15 @@
     <!-- Title Screen Overlay -->
     <div id="title-screen" class="overlay">
       <div class="title-content">
+        <div class="title-icon">💊</div>
         <h1>ON THE BENCH</h1>
         <p class="subtitle">A Retail Pharmacy Survival Game</p>
         <p class="flavor">Solo Sunday shift. Six minutes. Three meters. One pharmacist.</p>
+        <div class="title-tips">
+          <span>HANDLE — dispatch pharmacist to resolve</span>
+          <span>RUSH — half the time, double the stress</span>
+          <span>DEFER — buy time, but it comes back worse</span>
+        </div>
         <div id="difficulty-select">
           <button class="diff-btn selected" data-diff="NORMAL">NORMAL</button>
           <button class="diff-btn" data-diff="EASY">EASY</button>

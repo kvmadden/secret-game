@@ -18,6 +18,13 @@ export class Renderer {
 
     // Completion flash effects
     this.flashes = [];
+
+    // Screen shake
+    this.shakeIntensity = 0;
+    this.shakeDecay = 0;
+
+    // Particles
+    this.particles = [];
   }
 
   init(tileMap) {
@@ -42,6 +49,29 @@ export class Renderer {
 
   flashComplete(col, row) {
     this.flashes.push({ col, row, timer: 0.6, maxTimer: 0.6 });
+    this.spawnParticles(col, row, '#44ff88', 8);
+  }
+
+  shake(intensity) {
+    this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
+    this.shakeDecay = 0.4;
+  }
+
+  spawnParticles(col, row, color, count) {
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 / count) * i + Math.random() * 0.5;
+      const speed = 20 + Math.random() * 30;
+      this.particles.push({
+        x: col * TILE_SIZE + 8,
+        y: row * TILE_SIZE + 4,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0.5 + Math.random() * 0.3,
+        maxLife: 0.8,
+        color,
+        size: 1 + Math.random(),
+      });
+    }
   }
 
   updateCamera(pharmacistCol, dt) {
@@ -64,8 +94,18 @@ export class Renderer {
     ctx.fillStyle = '#2a2a3a';
     ctx.fillRect(0, 0, w, h);
 
+    // Screen shake
+    let shakeX = 0, shakeY = 0;
+    if (this.shakeDecay > 0) {
+      this.shakeDecay -= dt;
+      const intensity = this.shakeIntensity * Math.max(0, this.shakeDecay / 0.4);
+      shakeX = (Math.random() - 0.5) * intensity * this.scale;
+      shakeY = (Math.random() - 0.5) * intensity * this.scale;
+      if (this.shakeDecay <= 0) this.shakeIntensity = 0;
+    }
+
     ctx.save();
-    ctx.translate(-Math.round(this.cameraX), 0);
+    ctx.translate(-Math.round(this.cameraX) + shakeX, shakeY);
     ctx.scale(this.scale, this.scale);
 
     // Draw map
@@ -122,6 +162,9 @@ export class Renderer {
 
     // Draw completion flashes
     this.renderFlashes(ctx, dt);
+
+    // Draw particles
+    this.renderParticles(ctx, dt);
 
     ctx.restore();
 
@@ -326,6 +369,27 @@ export class Renderer {
         }
       }
     }
+  }
+
+  renderParticles(ctx, dt) {
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 40 * dt; // gravity
+
+      const alpha = Math.min(1, p.life / (p.maxLife * 0.5));
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
   }
 
   renderFlashes(ctx, dt) {
