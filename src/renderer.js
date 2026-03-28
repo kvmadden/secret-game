@@ -655,13 +655,17 @@ export class Renderer {
     if (weather.hasRain) {
       ctx.save();
 
-      const windSlant = 1.5; // pixels of horizontal offset per pixel of vertical fall
+      // Wind effect: time-varying wind angle using sin wave
+      const windBase = 1.5;
+      const windWave = Math.sin(t * 0.7) * 0.8 + Math.sin(t * 1.3) * 0.4;
+      const windSlant = windBase + windWave; // drifts left/right
 
       // Main rain drops — 70 drops across the entire canvas
       for (let i = 0; i < this.rainDrops.length; i++) {
         const drop = this.rainDrops[i];
         // Deterministic but animated position using seed + time
-        const rx = ((drop.xBase * w + t * 30 * drop.windOffset + i * 73.7) % (w + 40)) - 20;
+        const windDrift = windWave * t * 2 * drop.windOffset;
+        const rx = ((drop.xBase * w + t * 30 * drop.windOffset + i * 73.7 + windDrift) % (w + 40)) - 20;
         const ry = ((t * drop.speed + drop.seed * 47.3) % (h + 20)) - 10;
         const len = drop.length;
 

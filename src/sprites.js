@@ -1482,6 +1482,19 @@ function drawBackWallTile(variant) {
   ctx.fillStyle = 'rgba(200,190,170,0.05)';
   ctx.fillRect(0, 3, 16, 1);
   ctx.fillRect(0, 8, 16, 1);
+  // Subtle paint texture variation: random 1px dots of slightly different shade
+  const paintSeed = (variant * 37 + 11);
+  const paintDots = [
+    [(paintSeed * 3) % 14 + 1, (paintSeed * 7) % 11 + 1],
+    [(paintSeed * 5) % 14 + 1, (paintSeed * 11) % 11 + 1],
+    [(paintSeed * 9) % 14 + 1, (paintSeed * 13) % 11 + 1],
+    [(paintSeed * 2) % 14 + 1, (paintSeed * 17) % 11 + 1],
+    [(paintSeed * 4) % 14 + 1, (paintSeed * 19) % 11 + 1],
+  ];
+  for (const [pdx, pdy] of paintDots) {
+    const shade = (paintSeed + pdx + pdy) % 2 === 0 ? 'rgba(210,202,190,0.4)' : 'rgba(230,222,212,0.4)';
+    px(ctx, pdx, pdy, shade);
+  }
   // Baseboard molding with highlight
   rect(ctx, 0, 13, 16, 1, '#c8bcaa');
   rect(ctx, 0, 14, 16, 2, '#b8ac9a');
