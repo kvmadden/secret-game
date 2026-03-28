@@ -1335,6 +1335,54 @@ export class Renderer {
     ctx.restore();
   }
 
+  // Draw a 3x3 pixel-art mini-icon for station types
+  _drawStationMiniIcon(ctx, stationType, x, y) {
+    // 3x3 colored pixel grids representing each station type
+    const icons = {
+      verify: [
+        // Pill shape: green cross-like
+        [null, '#44cc66', null],
+        ['#44cc66', '#66ee88', '#44cc66'],
+        [null, '#44cc66', null],
+      ],
+      pickup: [
+        // Bag shape: brown
+        ['#aa7744', '#cc9955', '#aa7744'],
+        ['#cc9955', '#eebb77', '#cc9955'],
+        ['#aa7744', '#aa7744', '#aa7744'],
+      ],
+      consult: [
+        // Speech bubble: blue
+        ['#4488cc', '#4488cc', '#4488cc'],
+        ['#4488cc', '#66aaee', '#4488cc'],
+        [null, '#4488cc', null],
+      ],
+      phone: [
+        // Phone: dark gray
+        [null, '#555555', null],
+        ['#555555', '#888888', '#555555'],
+        [null, '#555555', null],
+      ],
+      drive: [
+        // Car: red
+        [null, '#cc4444', '#cc4444'],
+        ['#cc4444', '#ee6666', '#cc4444'],
+        ['#666666', null, '#666666'],
+      ],
+    };
+    const icon = icons[stationType];
+    if (!icon) return;
+    for (let iy = 0; iy < 3; iy++) {
+      for (let ix = 0; ix < 3; ix++) {
+        const c = icon[iy][ix];
+        if (c) {
+          ctx.fillStyle = c;
+          ctx.fillRect(x + ix, y + iy, 1, 1);
+        }
+      }
+    }
+  }
+
   renderStationIndicators(ctx, state) {
     for (const station of state.stationManager.getAll()) {
       if (!station.hasEvent) continue;
@@ -1348,6 +1396,10 @@ export class Renderer {
       ctx.font = 'bold 10px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('!', px + 8, py - 2);
+
+      // Mini pixel-art icon above the "!" indicator
+      ctx.globalAlpha = pulse * 0.9;
+      this._drawStationMiniIcon(ctx, station.type, px + 6, py - 10);
       ctx.globalAlpha = 1;
 
       if (station.urgency > 0) {
@@ -1474,6 +1526,43 @@ export class Renderer {
           ctx.fill();
         }
       }
+    }
+
+    // "DONE!" text popups with spring scale animation
+    for (let i = this.completionTexts.length - 1; i >= 0; i--) {
+      const ct = this.completionTexts[i];
+      ct.timer += dt;
+      if (ct.timer >= ct.maxTimer) {
+        this.completionTexts.splice(i, 1);
+        continue;
+      }
+      const ctProgress = ct.timer / ct.maxTimer;
+      const ctPx = ct.col * TILE_SIZE + 8;
+      const ctPy = ct.row * TILE_SIZE - 4 - ctProgress * 12; // float upward
+
+      // Spring scale: 0 -> 1.2 -> 1.0
+      let ctScale;
+      if (ctProgress < 0.3) {
+        ctScale = (ctProgress / 0.3) * 1.2;
+      } else if (ctProgress < 0.5) {
+        ctScale = 1.2 - ((ctProgress - 0.3) / 0.2) * 0.2;
+      } else {
+        ctScale = 1.0;
+      }
+
+      const ctAlpha = ctProgress < 0.6 ? 1 : (1 - (ctProgress - 0.6) / 0.4);
+
+      // Parse color
+      const ctc = ct.color || '#f0d880';
+      ctx.save();
+      ctx.translate(ctPx, ctPy);
+      ctx.scale(ctScale, ctScale);
+      ctx.globalAlpha = ctAlpha * 0.9;
+      ctx.fillStyle = ctc;
+      ctx.font = 'bold 6px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('DONE!', 0, 0);
+      ctx.restore();
     }
   }
 
