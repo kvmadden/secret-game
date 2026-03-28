@@ -1280,24 +1280,24 @@ export class Renderer {
         }
       }
 
-      // Draw sigh puffs above impatient patients
-      for (let si = this.sighPuffs.length - 1; si >= 0; si--) {
-        const sp = this.sighPuffs[si];
-        sp.life -= 1 / 60;
-        sp.y -= 0.3;
-        if (sp.life <= 0) {
-          this.sighPuffs.splice(si, 1);
-          continue;
-        }
-        const sa = (sp.life / sp.maxLife) * 0.25;
-        const sr = 1.5 + (1 - sp.life / sp.maxLife) * 2;
-        ctx.fillStyle = `rgba(200, 200, 200, ${sa})`;
-        ctx.beginPath();
-        ctx.arc(sp.x, sp.y, sr, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
       ctx.globalAlpha = 1;
+    }
+
+    // Draw sigh puffs above impatient patients (rendered once, outside patient loop)
+    for (let si = this.sighPuffs.length - 1; si >= 0; si--) {
+      const sp = this.sighPuffs[si];
+      sp.life -= 1 / 60;
+      sp.y -= 0.3;
+      if (sp.life <= 0) {
+        this.sighPuffs.splice(si, 1);
+        continue;
+      }
+      const sa = (sp.life / sp.maxLife) * 0.25;
+      const sr = 1.5 + (1 - sp.life / sp.maxLife) * 2;
+      ctx.fillStyle = `rgba(200, 200, 200, ${sa})`;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sr, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
