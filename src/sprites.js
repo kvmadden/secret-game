@@ -2273,6 +2273,187 @@ function drawTrashBin() {
   return c;
 }
 
+// ========== WAITING CHAIR (DETAILED) ==========
+function drawWaitingChair() {
+  const key = 'waiting_chair_detailed';
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const c = createSpriteCanvas(16, 16);
+  const ctx = c.getContext('2d');
+
+  // Chair frame — warm dark wood
+  const frameColor = '#5a4028';
+  const frameHighlight = '#7a6048';
+  const frameShadow = '#3a2818';
+
+  // Back legs
+  rect(ctx, 2, 3, 1, 12, frameColor);
+  rect(ctx, 13, 3, 1, 12, frameColor);
+  // Front legs (shorter)
+  rect(ctx, 3, 9, 1, 6, frameColor);
+  rect(ctx, 12, 9, 1, 6, frameColor);
+  // Leg highlights (front edge)
+  px(ctx, 3, 10, frameHighlight);
+  px(ctx, 12, 10, frameHighlight);
+  // Leg shadow at floor
+  px(ctx, 2, 14, frameShadow);
+  px(ctx, 13, 14, frameShadow);
+
+  // Seat cushion — warm fabric
+  const cushionBase = '#8b4444';
+  const cushionHighlight = '#a05555';
+  const cushionShadow = '#6a3333';
+  rect(ctx, 3, 8, 10, 3, cushionBase);
+  // Cushion top highlight
+  rect(ctx, 4, 8, 8, 1, cushionHighlight);
+  // Cushion shadow
+  rect(ctx, 3, 10, 10, 1, cushionShadow);
+  // Cushion stitch detail
+  px(ctx, 6, 9, cushionShadow);
+  px(ctx, 9, 9, cushionShadow);
+
+  // Backrest with cushion
+  rect(ctx, 2, 2, 12, 6, frameColor);
+  rect(ctx, 3, 3, 10, 4, cushionBase);
+  // Back cushion highlight
+  rect(ctx, 4, 3, 8, 1, cushionHighlight);
+  // Back cushion pattern (stitching)
+  px(ctx, 6, 5, cushionShadow);
+  px(ctx, 9, 5, cushionShadow);
+  // Back frame top highlight
+  rect(ctx, 2, 2, 12, 1, frameHighlight);
+
+  // Armrests
+  rect(ctx, 1, 6, 2, 1, frameColor);
+  rect(ctx, 13, 6, 2, 1, frameColor);
+  // Armrest supports (vertical)
+  rect(ctx, 1, 6, 1, 3, frameColor);
+  rect(ctx, 14, 6, 1, 3, frameColor);
+  // Armrest highlight
+  px(ctx, 1, 6, frameHighlight);
+  px(ctx, 14, 6, frameHighlight);
+
+  // Shadow under chair
+  ctx.fillStyle = 'rgba(40,24,16,0.2)';
+  ctx.beginPath();
+  ctx.ellipse(8, 15.5, 5, 1, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  spriteCache.set(key, c);
+  return c;
+}
+
+// ========== COFFEE MUG (8x8) ==========
+function drawCoffeeMug(full) {
+  // full: true = filled with coffee, false = empty (default true)
+  full = full !== false;
+  const key = getCacheKey('coffee_mug', full ? 1 : 0);
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const c = createSpriteCanvas(8, 8);
+  const ctx = c.getContext('2d');
+
+  const mugColor = '#e8e4dc';
+  const mugShadow = '#ccc8c0';
+  const mugHighlight = '#f4f0e8';
+
+  // Mug body
+  rect(ctx, 1, 2, 4, 5, mugColor);
+  // Mug shadow (right side)
+  rect(ctx, 4, 2, 1, 5, mugShadow);
+  // Mug highlight (left edge)
+  px(ctx, 1, 3, mugHighlight);
+  px(ctx, 1, 4, mugHighlight);
+  // Mug rim
+  rect(ctx, 1, 2, 4, 1, mugHighlight);
+  // Mug bottom
+  rect(ctx, 1, 6, 4, 1, mugShadow);
+
+  // Handle (right side)
+  px(ctx, 5, 3, mugShadow);
+  px(ctx, 6, 3, mugShadow);
+  px(ctx, 6, 4, mugShadow);
+  px(ctx, 6, 5, mugShadow);
+  px(ctx, 5, 5, mugShadow);
+
+  if (full) {
+    // Coffee inside (dark brown liquid)
+    rect(ctx, 2, 3, 2, 1, '#4a2818');
+    // Coffee surface highlight (sheen)
+    px(ctx, 2, 3, '#5a3828');
+    // Steam wisps (2 tiny lines above mug)
+    ctx.fillStyle = 'rgba(200,200,200,0.4)';
+    px(ctx, 2, 1, 'rgba(200,200,200,0.4)');
+    px(ctx, 3, 0, 'rgba(200,200,200,0.3)');
+    px(ctx, 4, 1, 'rgba(200,200,200,0.35)');
+  }
+
+  // Shadow under mug
+  ctx.fillStyle = 'rgba(0,0,0,0.1)';
+  ctx.fillRect(1, 7, 5, 1);
+
+  spriteCache.set(key, c);
+  return c;
+}
+
+// ========== CLIPBOARD DETAILED (8x16) ==========
+function drawClipboardDetailed() {
+  const key = 'clipboard_detailed';
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const c = createSpriteCanvas(8, 16);
+  const ctx = c.getContext('2d');
+
+  // Clipboard board (warm brown)
+  const boardColor = '#c8a060';
+  const boardShadow = '#b89050';
+  const boardHighlight = '#d8b070';
+
+  rect(ctx, 0, 2, 8, 14, boardColor);
+  // Board edge highlight (left)
+  rect(ctx, 0, 2, 1, 14, boardHighlight);
+  // Board edge shadow (right)
+  rect(ctx, 7, 2, 1, 14, boardShadow);
+  // Board bottom shadow
+  rect(ctx, 0, 15, 8, 1, boardShadow);
+
+  // Metal clip at top
+  rect(ctx, 1, 0, 6, 3, '#888888');
+  rect(ctx, 2, 0, 4, 1, '#aaaaaa'); // clip highlight
+  // Clip mechanism
+  px(ctx, 4, 1, '#999999');
+  px(ctx, 3, 1, '#777777');
+  // Clip hinge detail
+  px(ctx, 4, 0, '#bbbbbb');
+
+  // Paper on clipboard
+  rect(ctx, 1, 3, 6, 12, '#f8f6f0');
+  // Paper shadow at edges
+  rect(ctx, 1, 3, 6, 1, '#f0ede5');
+
+  // Visible text lines (handwritten style - varied lengths)
+  const textColor = '#555555';
+  const textLight = '#888888';
+  // Header line (bolder)
+  rect(ctx, 2, 4, 4, 1, '#333333');
+  // Body text lines
+  rect(ctx, 2, 6, 4, 0.5, textColor);
+  rect(ctx, 2, 7.5, 3, 0.5, textColor);
+  rect(ctx, 2, 9, 5, 0.5, textColor);
+  rect(ctx, 2, 10.5, 3, 0.5, textLight);
+  rect(ctx, 2, 12, 4, 0.5, textColor);
+  // Checkbox at bottom
+  ctx.strokeStyle = textColor;
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(2, 13.5, 1, 1);
+  // Checkmark
+  px(ctx, 2, 14, '#228822');
+
+  // Drop shadow (right and bottom)
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.fillRect(7, 3, 1, 13);
+
+  spriteCache.set(key, c);
+  return c;
+}
+
 // ========== EXPORTS ==========
 export const Sprites = {
   pharmacist: drawPharmacistFrame,
@@ -2303,4 +2484,7 @@ export const Sprites = {
   computerMonitor: drawComputerMonitor,
   bpMachine: drawBPMachine,
   trashBin: drawTrashBin,
+  waitingChair: drawWaitingChair,
+  coffeeMug: drawCoffeeMug,
+  clipboardDetailed: drawClipboardDetailed,
 };
