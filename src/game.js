@@ -11,6 +11,7 @@ import {
   MAX_PATIENTS_PER_STATION, PIPELINE_QUEUE_PRESSURE_MULT,
   PIPELINE_RAGE_PRESSURE_MULT, MAX_ESCALATION_CHAIN,
   DIFFICULTY, COMBO_WINDOW, COMBO_BONUS_PER_STACK,
+  SHIFT_DAYS,
 } from './constants.js';
 import { Pipeline } from './pipeline.js';
 import { StationManager } from './stations.js';
@@ -34,6 +35,7 @@ export class Game {
     this.reset();
     this.setupListeners();
     this.loadHighScores();
+    this.startTitleAnimation();
   }
 
   reset() {
@@ -155,6 +157,7 @@ export class Game {
       this.reset();
       this.ui.showTitle();
       this.loadHighScores();
+      this.startTitleAnimation();
     });
 
     // Difficulty buttons
@@ -197,6 +200,95 @@ export class Game {
     });
 
     window.addEventListener('resize', () => this.renderer.resize());
+
+    // Keyboard controls for desktop play
+    window.addEventListener('keydown', (e) => this.handleKeyboard(e));
+  }
+
+  handleKeyboard(e) {
+    // Title screen: Enter/Space to start
+    if (this.state === 'TITLE') {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        Audio.playClick();
+        this.startGame();
+      }
+      return;
+    }
+
+    // Pause screen: Escape or P to resume
+    if (this.state === 'PAUSED') {
+      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+        Audio.playClick();
+        this.resumeGame();
+      }
+      return;
+    }
+
+    // Game over: Enter/Space to retry
+    if (this.state === 'GAMEOVER') {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        Audio.playClick();
+        this.reset();
+        this.startGame();
+      }
+      return;
+    }
+
+    // In-game controls
+    if (this.state === 'PLAYING') {
+      // Number keys 1-5: handle cards by index
+      if (e.key >= '1' && e.key <= '9') {
+        const idx = parseInt(e.key) - 1;
+        const cards = [...this.ui.activeCards.entries()];
+        if (idx < cards.length) {
+          const [uid] = cards[idx];
+          const event = this.activeEvents.find(ev => ev.uid === uid);
+          if (event) {
+            this.handleEvent(event);
+          }
+        }
+        return;
+      }
+
+      // D key: defer the first card that can be deferred
+      if (e.key === 'd' || e.key === 'D') {
+        const deferable = this.activeEvents.find(ev => ev.canDefer && !ev.isPipeline);
+        if (deferable) this.deferEvent(deferable);
+        return;
+      }
+
+      // R key: rush the first card that supports rush
+      if (e.key === 'r' || e.key === 'R') {
+        const rushable = this.activeEvents.find(ev => !ev.isPipeline && ev.duration >= 4);
+        if (rushable) this.rushEvent(rushable);
+        return;
+      }
+
+      // Z key: toggle zoom
+      if (e.key === 'z' || e.key === 'Z') {
+        this.renderer.toggleOverview();
+        const zoomBtn = document.getElementById('zoom-btn');
+        if (zoomBtn) zoomBtn.textContent = this.renderer.manualOverview ? '🔎' : '🔍';
+        return;
+      }
+
+      // M key: toggle mute
+      if (e.key === 'm' || e.key === 'M') {
+        const nowMuted = Audio.toggleMute();
+        const muteBtn = document.getElementById('mute-btn');
+        if (muteBtn) muteBtn.textContent = nowMuted ? '🔇' : '🔊';
+        return;
+      }
+
+      // P or Escape: pause
+      if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+        Audio.playClick();
+        this.pauseGame();
+        return;
+      }
+    }
   }
 
   pauseGame() {
@@ -212,19 +304,127 @@ export class Game {
   }
 
   startGame() {
+    this.stopTitleAnimation();
     this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
+
+    // Pick a random day of the week
+    this.shiftDay = SHIFT_DAYS[Math.floor(Math.random() * SHIFT_DAYS.length)];
+
     this.ui.hideTitle();
     this.state = 'PLAYING';
+    this.renderer.setOverview(false);
     this.lastTimestamp = performance.now();
     Audio.startAmbient();
     this.spawnInitialPatients();
     this.showTutorial('welcome');
+
+    // Show the day announcement + modifier
+    this.ui.showPhaseAnnounce(this.shiftDay.name);
+    setTimeout(() => {
+      this.ui.showDayModifier(this.shiftDay);
+      this.tutorialTimer = 5;
+    }, 2600);
+
     this.tick();
   }
 
   spawnInitialPatients() {
     this.spawnPatient('pickup');
     setTimeout(() => this.spawnPatient('consult'), 500);
+  }
+
+  // ========== TITLE SCREEN ANIMATION ==========
+
+  startTitleAnimation() {
+    this.titleTime = 0;
+    this.titleShoppers = [];
+    // Spawn some initial ambient shoppers for the title
+    for (let i = 0; i < 3; i++) {
+      this.titleShoppers.push({
+        id: nextUid(),
+        col: 2 + Math.random() * 10,
+        row: 1 + Math.random() * 4,
+        targetCol: 2 + Math.random() * 10,
+        targetRow: 1 + Math.random() * 4,
+        state: 'BROWSING',
+        facing: Math.random() < 0.5 ? 'left' : 'right',
+        browseTimer: Math.random() * 4,
+        paletteIndex: Math.floor(Math.random() * PATIENT_PALETTES.length),
+        hasCart: Math.random() < 0.3,
+      });
+    }
+    this.renderer.setOverview(true);
+    this.titleAnimFrame = null;
+    this.tickTitle();
+  }
+
+  tickTitle() {
+    if (this.state !== 'TITLE') return;
+    const now = performance.now();
+    const dt = this.lastTitleTimestamp ? Math.min((now - this.lastTitleTimestamp) / 1000, 0.1) : 1 / 60;
+    this.lastTitleTimestamp = now;
+    this.titleTime += dt;
+
+    // Update title shoppers
+    for (let i = this.titleShoppers.length - 1; i >= 0; i--) {
+      const s = this.titleShoppers[i];
+      if (s.state === 'WALKING') {
+        const dx = s.targetCol - s.col;
+        const dy = s.targetRow - s.row;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.2) {
+          s.state = 'BROWSING';
+          s.browseTimer = 2 + Math.random() * 4;
+        } else {
+          s.col += (dx / dist) * 1.2 * dt;
+          s.row += (dy / dist) * 1.2 * dt;
+          s.facing = dx > 0 ? 'right' : 'left';
+        }
+      } else {
+        s.browseTimer -= dt;
+        if (s.browseTimer <= 0) {
+          s.targetCol = 2 + Math.random() * 10;
+          s.targetRow = 1 + Math.random() * 4;
+          s.state = 'WALKING';
+        }
+      }
+    }
+
+    // Render the pharmacy scene in overview
+    this.renderer.updateCamera(
+      { col: 7, row: 10 }, dt,
+      {
+        time: this.titleTime,
+        phase: 'OPENING',
+        pharmacist: { col: 7, row: 11, state: 'IDLE', facing: 'right', idleTimer: 0, stress: 0 },
+        patients: [],
+        stationManager: this.stationManager,
+        driveThruCars: 0,
+        phoneRinging: false,
+        meters: { queue: 0, rage: 0, burnout: 0 },
+        ambientShoppers: this.titleShoppers,
+      }
+    );
+    this.renderer.render({
+      time: this.titleTime,
+      phase: 'OPENING',
+      pharmacist: { col: 7, row: 11, state: 'IDLE', facing: 'right', idleTimer: this.titleTime, stress: 0, workTimer: 0, workDuration: 1 },
+      patients: [],
+      stationManager: this.stationManager,
+      driveThruCars: 0,
+      phoneRinging: false,
+      meters: { queue: 0, rage: 0, burnout: 0 },
+      ambientShoppers: this.titleShoppers,
+    });
+
+    this.titleAnimFrame = requestAnimationFrame(() => this.tickTitle());
+  }
+
+  stopTitleAnimation() {
+    if (this.titleAnimFrame) {
+      cancelAnimationFrame(this.titleAnimFrame);
+      this.titleAnimFrame = null;
+    }
   }
 
   // ========== TUTORIAL ==========
@@ -311,6 +511,7 @@ export class Game {
       phoneRinging: this.phoneRinging,
       meters: this.meters,
       ambientShoppers: this.ambientShoppers,
+      shiftDay: this.shiftDay,
     };
   }
 
@@ -436,9 +637,12 @@ export class Game {
     const ambient = PHASE_AMBIENT[this.phase] || PHASE_AMBIENT.OPENING;
     const aMult = this.diff.ambientMult;
 
+    const dayRage = this.shiftDay?.rageMult || 1;
+    const dayBurnout = this.shiftDay?.burnoutMult || 1;
+
     this.meters.queue += ambient.queue * aMult * dt;
-    this.meters.rage += ambient.rage * aMult * dt;
-    this.meters.burnout += ambient.burnout * aMult * dt;
+    this.meters.rage += ambient.rage * aMult * dayRage * dt;
+    this.meters.burnout += ambient.burnout * aMult * dayBurnout * dt;
 
     // Combo timer
     if (this.comboTimer > 0) {
@@ -534,11 +738,13 @@ export class Game {
       this.spawnEvent();
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
       const eMult = this.diff.eventMult;
-      this.nextEventTimer = (interval.min + Math.random() * (interval.max - interval.min)) * eMult;
+      const dayEvent = this.shiftDay?.eventMult || 1;
+      this.nextEventTimer = (interval.min + Math.random() * (interval.max - interval.min)) * eMult / dayEvent;
     } else if (this.nextEventTimer <= 0) {
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
       const eMult = this.diff.eventMult;
-      this.nextEventTimer = (interval.min + Math.random() * (interval.max - interval.min)) * eMult;
+      const dayEvent = this.shiftDay?.eventMult || 1;
+      this.nextEventTimer = (interval.min + Math.random() * (interval.max - interval.min)) * eMult / dayEvent;
     }
 
     // Unhandled events apply gradual ignore penalties
@@ -575,6 +781,11 @@ export class Game {
       Audio.playEscalation();
     } else {
       Audio.playEventSpawn();
+    }
+
+    // Positive event sound
+    if (event.isPositive) {
+      Audio.playPositiveEvent();
     }
 
     // Spawn patient (respect station capacity)
@@ -844,9 +1055,11 @@ export class Game {
       if (event.isPipeline && event.pipelineAction === 'verify') {
         this.pipeline.verify();
         this.stats.scriptsVerified++;
+        Audio.playPaperShuffle();
       } else if (event.isPipeline && event.pipelineAction === 'serve') {
         this.pipeline.serve();
         this.stats.patientsServed++;
+        Audio.playRegisterDing();
       }
 
       if (!event.isPipeline) {
@@ -867,7 +1080,9 @@ export class Game {
     pharm.workTimer = 0;
     this.ui.hideWorkProgress();
 
-    this.renderer.flashComplete(pharm.col, pharm.row);
+    // Station-specific completion particles
+    const stationColor = event ? (STATIONS[event.station]?.color || '#f0d880') : '#f0d880';
+    this.renderer.flashComplete(pharm.col, pharm.row, stationColor);
     this.updatePipelineCards();
   }
 
@@ -920,7 +1135,9 @@ export class Game {
     this.nextScriptTimer -= dt;
     if (this.nextScriptTimer <= 0) {
       const interval = PHASE_SCRIPT_INTERVAL[this.phase] || PHASE_SCRIPT_INTERVAL.OPENING;
-      this.nextScriptTimer = interval.min + Math.random() * (interval.max - interval.min);
+      const dayScript = this.shiftDay?.scriptMult || 1;
+      // Higher scriptMult = faster scripts, so divide interval
+      this.nextScriptTimer = (interval.min + Math.random() * (interval.max - interval.min)) / dayScript;
       this.pipeline.addScript(1);
       this.updatePipelineCards();
     }
@@ -966,6 +1183,11 @@ export class Game {
 
     this.patients.push(patient);
     this.stationManager.setPatient(stationKey, patient);
+
+    // Doorbell chime for walk-in patients
+    if (stationKey !== 'drive') {
+      Audio.playDoorbell();
+    }
   }
 
   removePatientAtStation(stationKey) {

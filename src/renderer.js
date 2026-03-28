@@ -110,9 +110,10 @@ export class Renderer {
     this.mode = 'PEEK';
   }
 
-  flashComplete(col, row) {
-    this.flashes.push({ col, row, timer: 0.6, maxTimer: 0.6 });
-    this.spawnParticles(col, row, '#f0d880', 8);
+  flashComplete(col, row, color) {
+    const c = color || '#f0d880';
+    this.flashes.push({ col, row, timer: 0.6, maxTimer: 0.6, color: c });
+    this.spawnParticles(col, row, c, 8);
   }
 
   shake(intensity) {
@@ -837,20 +838,26 @@ export class Renderer {
       const radius = 4 + progress * 16;
       const alpha = (1 - progress) * 0.4;
 
-      ctx.fillStyle = `rgba(240, 216, 128, ${alpha})`;
+      // Parse flash color for rgba
+      const fc = flash.color || '#f0d880';
+      const fr = parseInt(fc.slice(1, 3), 16);
+      const fg = parseInt(fc.slice(3, 5), 16);
+      const fb = parseInt(fc.slice(5, 7), 16);
+
+      ctx.fillStyle = `rgba(${fr}, ${fg}, ${fb}, ${alpha})`;
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
       ctx.fill();
 
       if (progress < 0.3) {
-        ctx.fillStyle = `rgba(255, 250, 230, ${(0.3 - progress) * 2})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${(0.3 - progress) * 2})`;
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
         ctx.fill();
       }
 
       if (progress > 0.1 && progress < 0.7) {
-        ctx.strokeStyle = `rgba(240, 216, 128, ${(0.7 - progress) * 1.5})`;
+        ctx.strokeStyle = `rgba(${fr}, ${fg}, ${fb}, ${(0.7 - progress) * 1.5})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(px - 3, py);

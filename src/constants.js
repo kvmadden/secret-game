@@ -119,6 +119,7 @@ export const PATIENT_PALETTES = [
 ];
 
 export const PATIENT_BARKS = [
+  // Classic frustrations
   "I've been waiting forever.",
   "How long does this take?",
   "You never answer the phone.",
@@ -135,6 +136,32 @@ export const PATIENT_BARKS = [
   "Can you hurry up?",
   "My insurance covers this.",
   "I drove 30 minutes for this.",
+  // Pharmacy-specific humor
+  "Can you just give me one pill?",
+  "I left my insurance card at home.",
+  "My doctor's office is closed.",
+  "What do you mean prior auth?",
+  "I don't have a copay.",
+  "It was $4 last month.",
+  "The app says it's ready!",
+  "Can you check the back?",
+  "I'll wait.",
+  "I'm parked in the fire lane.",
+  "Do you have this in liquid?",
+  "My friend takes the same thing.",
+  "What's taking so long? It's just pills.",
+  "I was here 10 minutes ago.",
+  "Can I speak to the pharmacist?",
+  "...you ARE the pharmacist?",
+  "My other pharmacy never did this.",
+  "GoodRx says $7.",
+  "Can you call my doctor for me?",
+  "I don't need a consultation.",
+  "Just put it through my insurance.",
+  "Is this generic?",
+  "I need all 12 prescriptions today.",
+  "I have a coupon somewhere...",
+  "My grandson set up the app.",
 ];
 
 // ========== PIPELINE DANGER THRESHOLDS ==========
@@ -154,6 +181,17 @@ export const DIFFICULTY = {
 // ========== COMBO ==========
 export const COMBO_WINDOW = 10; // seconds to chain another handle for combo
 export const COMBO_BONUS_PER_STACK = 2.5; // extra meter relief per combo stack
+
+// ========== SHIFT DAYS ==========
+export const SHIFT_DAYS = [
+  { name: 'Monday',    modifier: 'Weekend Backlog',     desc: 'Scripts pile up faster',          scriptMult: 1.4, eventMult: 1.0, rageMult: 1.0 },
+  { name: 'Tuesday',   modifier: 'Steady Tuesday',      desc: 'A normal day. Enjoy it.',         scriptMult: 1.0, eventMult: 1.0, rageMult: 1.0 },
+  { name: 'Wednesday', modifier: 'Insurance Day',       desc: 'Patients angrier about copays',   scriptMult: 1.0, eventMult: 1.0, rageMult: 1.3 },
+  { name: 'Thursday',  modifier: 'Short Staffed',       desc: 'Burnout rises faster',            scriptMult: 1.0, eventMult: 1.0, rageMult: 1.0, burnoutMult: 1.4 },
+  { name: 'Friday',    modifier: 'Weekend Prep Rush',   desc: 'Everyone needs meds before the weekend', scriptMult: 1.3, eventMult: 1.2, rageMult: 1.0 },
+  { name: 'Saturday',  modifier: 'Skeleton Crew',       desc: 'Drive-thru chaos, short patience', scriptMult: 1.0, eventMult: 1.3, rageMult: 1.2, driveMult: 2.0 },
+  { name: 'Sunday',    modifier: 'Solo Sunday',         desc: 'Just you. All day.',              scriptMult: 1.2, eventMult: 1.1, rageMult: 1.1 },
+];
 
 // ========== RESULTS ==========
 export const WIN_TITLES = [

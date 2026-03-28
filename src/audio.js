@@ -129,6 +129,33 @@ export function playBark() {
   tone(600, 0.03, 'square', 0.015);
 }
 
+// Doorbell chime — when patient enters store
+export function playDoorbell() {
+  tone(1047, 0.12, 'sine', 0.025);
+  tone(1319, 0.12, 'sine', 0.025, 0.1);
+}
+
+// Cash register ding — on serve patient
+export function playRegisterDing() {
+  tone(2000, 0.06, 'sine', 0.03);
+  tone(2500, 0.1, 'sine', 0.025, 0.05);
+}
+
+// Paper shuffle — on verify script
+export function playPaperShuffle() {
+  // White noise burst simulated with rapid tones
+  for (let i = 0; i < 3; i++) {
+    tone(200 + Math.random() * 300, 0.02, 'sawtooth', 0.008, i * 0.03);
+  }
+}
+
+// Positive event — cheerful ping
+export function playPositiveEvent() {
+  tone(880, 0.08, 'sine', 0.03);
+  tone(1100, 0.08, 'sine', 0.03, 0.06);
+  tone(1320, 0.12, 'sine', 0.035, 0.12);
+}
+
 // Combo chain — ascending arpeggio
 export function playCombo(count) {
   const baseFreq = 600 + Math.min(count, 8) * 80;

@@ -57,6 +57,13 @@ export class UI {
     this.activeCards = new Map();
   }
 
+  showDayModifier(day) {
+    if (!day) return;
+    this.phaseEl.textContent = day.name.toUpperCase();
+    // Show modifier as tutorial hint
+    this.showTutorial(`${day.modifier}: ${day.desc}`);
+  }
+
   // ========== HUD UPDATES ==========
 
   updateTimer(elapsed) {
@@ -290,7 +297,9 @@ export class UI {
       'Late Drag': 'Almost there. Hold it together.',
     };
 
-    const flavor = flavorText[label] || '';
+    // Check if it's a day name
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const flavor = days.includes(label) ? '' : (flavorText[label] || '');
     this.phaseAnnounce.innerHTML = `<div class="phase-label">${label.toUpperCase()}</div>${flavor ? `<div class="phase-flavor">${flavor}</div>` : ''}`;
     this.phaseAnnounce.style.display = 'flex';
     this.phaseAnnounce.style.opacity = '1';
