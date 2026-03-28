@@ -1170,6 +1170,24 @@ export class Renderer {
       if (!patient.walking && !patient.fadeOut) {
         const idleSeed = patient.id % 4;
 
+        // Subtle head-turn: eyes shift left/right randomly
+        const headTurnPhase = Math.sin(state.time * 0.6 + patient.id * 2.3);
+        if (Math.abs(headTurnPhase) > 0.7) {
+          const eyeShift = headTurnPhase > 0 ? 1 : -1;
+          ctx.fillStyle = 'rgba(30, 20, 10, 0.2)';
+          ctx.fillRect(px + 5 + eyeShift, py + 1, 1, 1);
+          ctx.fillRect(px + 9 + eyeShift, py + 1, 1, 1);
+        }
+
+        // Weight-shifting: alternate foot darkening every 2 seconds
+        const weightPhase = Math.floor(state.time * 0.5 + patient.id) % 2;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.06)';
+        if (weightPhase === 0) {
+          ctx.fillRect(px + 4, py + 12, 3, 2); // left foot darker
+        } else {
+          ctx.fillRect(px + 9, py + 12, 3, 2); // right foot darker
+        }
+
         if (emotionLevel === 0 && idleSeed === 0) {
           // Looking at phone — small rectangle in hand
           const phoneY = py + 8 + Math.sin(state.time * 1.5 + patient.id) * 0.3;
@@ -1199,6 +1217,16 @@ export class Renderer {
             ctx.fillStyle = 'rgba(255, 80, 40, 0.2)';
             ctx.fillRect(px + 12, py + 4, 3, 2); // raised arm
           }
+
+          // Sigh puff effect for impatient patients (emotionLevel >= 1)
+          if (Math.sin(state.time * 1.2 + patient.id * 3.7) > 0.95) {
+            this.sighPuffs.push({
+              x: px + 8,
+              y: py - 6,
+              life: 0.6,
+              maxLife: 0.6,
+            });
+          }
         }
 
         // Occasional look-around (all patience levels)
@@ -1208,6 +1236,23 @@ export class Renderer {
           ctx.fillStyle = 'rgba(0,0,0,0.15)';
           ctx.fillRect(px + 3, py + 1, 1, 1);
         }
+      }
+
+      // Draw sigh puffs above impatient patients
+      for (let si = this.sighPuffs.length - 1; si >= 0; si--) {
+        const sp = this.sighPuffs[si];
+        sp.life -= 1 / 60;
+        sp.y -= 0.3;
+        if (sp.life <= 0) {
+          this.sighPuffs.splice(si, 1);
+          continue;
+        }
+        const sa = (sp.life / sp.maxLife) * 0.25;
+        const sr = 1.5 + (1 - sp.life / sp.maxLife) * 2;
+        ctx.fillStyle = `rgba(200, 200, 200, ${sa})`;
+        ctx.beginPath();
+        ctx.arc(sp.x, sp.y, sr, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       ctx.globalAlpha = 1;
