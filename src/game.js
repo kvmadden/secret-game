@@ -1705,9 +1705,21 @@ export class Game {
   }
 
   startShiftFromCampaign() {
-    this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
+    this.diff = { ...(DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL) };
     this.shiftDay = this.campaign.getShiftDay();
     this.weather = this.campaignWeather;
+
+    // Apply node-specific difficulty overrides
+    const node = this.campaign.getCurrentNode();
+    if (node && node.difficulty) {
+      const nd = node.difficulty;
+      if (nd.ambientMult) this.diff.ambientMult *= nd.ambientMult;
+      if (nd.eventMult) this.diff.eventMult *= nd.eventMult;
+      if (nd.meterMult) this.diff.meterMult *= nd.meterMult;
+      if (nd.interruptWeight !== undefined) this.campaignInterruptWeight = nd.interruptWeight;
+    } else {
+      this.campaignInterruptWeight = null;
+    }
 
     // Apply campaign starting meters
     this.time = 0;
@@ -1782,8 +1794,8 @@ export class Game {
     Audio.startAmbient();
     this.spawnInitialPatients();
 
-    const node = this.campaign.getCurrentNode();
-    const shiftTitle = (node && node.title) || this.shiftDay.name;
+    const currentNode = this.campaign.getCurrentNode();
+    const shiftTitle = (currentNode && currentNode.title) || this.shiftDay.name;
     this.ui.showPhaseAnnounce(shiftTitle);
     setTimeout(() => {
       const weatherInfo = this.weather ? ` | ${this.weather.name}` : '';
