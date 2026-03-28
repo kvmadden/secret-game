@@ -7,20 +7,8 @@ import {
   METER_MAX, PHASES, WIN_TITLES, LOSS_TITLES, LOSS_FLAVORS,
 } from './constants.js';
 
-// Campaign leader types — imported if available, fallback inline
-let LEADER_TYPES;
-try {
-  const mod = await import('./constants.js');
-  LEADER_TYPES = mod.LEADER_TYPES;
-} catch (e) { /* ignore */ }
-if (!LEADER_TYPES) {
-  LEADER_TYPES = {
-    pharmacist: { title: 'Lead Pharmacist' },
-    manager: { title: 'Store Manager' },
-    regional: { title: 'Regional Director' },
-    mentor: { title: 'Senior Technician' },
-  };
-}
+// Campaign leader types
+import { LEADER_TYPES } from './constants.js';
 
 export class UI {
   constructor() {

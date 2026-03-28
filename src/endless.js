@@ -6,12 +6,7 @@
 
 import { SHIFT_DAYS, WEATHER_TYPES } from './constants.js';
 
-let EVENT_TIERS;
-try {
-  ({ EVENT_TIERS } = await import('./event-hierarchy.js'));
-} catch (_) {
-  EVENT_TIERS = { AMBIENT: 'ambient', PRESSURE: 'pressure', SIGNATURE: 'signature' };
-}
+import { EVENT_TIERS } from './event-hierarchy.js';
 
 // ========== SEGMENT TYPES ==========
 // Each segment is a different store/situation with unique flavor

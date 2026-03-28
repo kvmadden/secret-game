@@ -219,4 +219,4 @@ class CampaignStats {
   }
 }
 
-module.exports = { CampaignStats };
+export { CampaignStats };
