@@ -101,6 +101,42 @@ export class Renderer {
 
     // Global time accumulator for ambient effects (not tied to game time)
     this.ambientTime = 0;
+
+    // Stress exclamation particles (float-up effect)
+    this.stressExclamations = [];
+
+    // Patient sigh puffs
+    this.sighPuffs = [];
+
+    // Window condensation drops (persistent, regenerated during rain)
+    this.condensationDrops = [];
+    for (let i = 0; i < 25; i++) {
+      this.condensationDrops.push({
+        x: (Math.random() * 13) * TILE_SIZE + Math.random() * TILE_SIZE,
+        y: 7 * TILE_SIZE + Math.random() * TILE_SIZE,
+        r: 0.5 + Math.random() * 1.0,
+        alpha: 0.08 + Math.random() * 0.12,
+        drift: Math.random() * 0.1,
+      });
+    }
+
+    // Light ray dust motes (inside the ray region)
+    this.rayDustMotes = [];
+    for (let i = 0; i < 10; i++) {
+      this.rayDustMotes.push({
+        xFrac: Math.random(),
+        yFrac: Math.random(),
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.2 + Math.random() * 0.4,
+        alpha: 0.15 + Math.random() * 0.15,
+      });
+    }
+
+    // Completion text popups
+    this.completionTexts = [];
+
+    // Frame counter for dust puff timing
+    this._frameCounter = 0;
   }
 
   init(tileMap) {
@@ -166,6 +202,10 @@ export class Renderer {
     const c = color || '#f0d880';
     this.flashes.push({ col, row, timer: 0.6, maxTimer: 0.6, color: c });
     this.spawnParticles(col, row, c, 8);
+    // "DONE!" text popup
+    this.completionTexts.push({
+      col, row, timer: 0, maxTimer: 0.8, color: c,
+    });
   }
 
   shake(intensity) {
@@ -314,6 +354,12 @@ export class Renderer {
     // Lighting zones
     this.renderLighting(ctx, gameState);
 
+    // Ceiling details (fluorescent fixtures, vent, sprinkler)
+    this.renderCeilingDetails(ctx, gameState);
+
+    // Floor reflection layer (very faint mirror of entities above)
+    this.renderFloorReflections(ctx, gameState);
+
     // Draw animated world elements
     this.renderWorldAnimations(ctx, gameState);
 
@@ -355,6 +401,7 @@ export class Renderer {
 
     // Update ambient timers
     this.ambientTime += dt;
+    this._frameCounter++;
     this.updateFlickerTimer(dt);
 
     // Lunch overlay darkening (screen-space)
@@ -492,7 +539,7 @@ export class Renderer {
   }
 
   // ---- LIGHT RAY HELPER ----
-  renderLightRays(ctx, progress) {
+  renderLightRays(ctx, progress, weather) {
     ctx.save();
     // Morning: ray from right, golden. Afternoon: warmer/amber, steeper angle.
     let rayAlpha, rayR, rayG, rayB, angleShift;
@@ -513,6 +560,12 @@ export class Renderer {
       rayAlpha = 0.04 * Math.max(0, 1 - a);
       rayR = 255; rayG = 200; rayB = 120;
       angleShift = 0.3 + a * 0.15;
+    }
+
+    // Dim rays based on cloud cover / rain
+    if (weather && (weather.isCloudy || weather.hasRain)) {
+      const cloudDim = weather.hasRain ? 0.3 : 0.6;
+      rayAlpha *= cloudDim;
     }
 
     if (rayAlpha < 0.005) { ctx.restore(); return; }
@@ -546,6 +599,37 @@ export class Renderer {
     ctx.lineTo(spreadX + TILE_SIZE * 3, bottomY - TILE_SIZE);
     ctx.closePath();
     ctx.fill();
+
+    // Dust motes floating IN the light rays
+    const t = this.ambientTime;
+    for (const mote of this.rayDustMotes) {
+      const mx = spreadX + (rightX - spreadX) * mote.xFrac;
+      const my = topY + (bottomY - topY) * mote.yFrac;
+      // Drift with time
+      const driftX = Math.sin(t * mote.speed + mote.phase) * 3;
+      const driftY = (t * mote.speed * 4) % (bottomY - topY);
+      const finalX = mx + driftX;
+      const finalY = topY + ((my - topY + driftY) % (bottomY - topY));
+      // Only draw if within ray triangle (rough check: x > spreadX)
+      if (finalX > spreadX && finalX < rightX) {
+        ctx.globalAlpha = mote.alpha * (rayAlpha / 0.05);
+        ctx.fillStyle = `rgb(${Math.min(255, rayR + 30)}, ${Math.min(255, rayG + 20)}, ${Math.min(255, rayB + 20)})`;
+        ctx.fillRect(finalX, finalY, 1.2, 1.2);
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    // Warm bloom/glow where rays hit the floor (bottom of ray region)
+    if (rayAlpha > 0.01) {
+      const bloomGrad = ctx.createRadialGradient(
+        (rightX + spreadX) / 2, bottomY, 0,
+        (rightX + spreadX) / 2, bottomY, TILE_SIZE * 3
+      );
+      bloomGrad.addColorStop(0, `rgba(${rayR}, ${rayG}, ${Math.min(255, rayB + 40)}, ${(rayAlpha * 0.6).toFixed(3)})`);
+      bloomGrad.addColorStop(1, `rgba(${rayR}, ${rayG}, ${rayB}, 0)`);
+      ctx.fillStyle = bloomGrad;
+      ctx.fillRect(spreadX - TILE_SIZE, bottomY - TILE_SIZE, rightX - spreadX + TILE_SIZE * 2, TILE_SIZE * 2);
+    }
 
     ctx.restore();
   }

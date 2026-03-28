@@ -1893,6 +1893,7 @@ export class Game {
       workEvent: null,
       workLabel: '',
       idleTimer: 0,
+      idleAnim: 'none',
       stress: 0,
     };
 
@@ -1904,6 +1905,7 @@ export class Game {
     this.patients = [];
     this.nextPatientId = 0;
     this.driveThruCars = 0;
+    this.driveThruCarQueue = [];
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
     this.nextEventTimer = 3;
@@ -2033,7 +2035,7 @@ export class Game {
       col: PHARMACIST_START.col, row: PHARMACIST_START.row,
       state: 'IDLE', facing: 'right', path: [], pathIndex: 0,
       workTimer: 0, workDuration: 0, workEvent: null, workLabel: '',
-      idleTimer: 0, stress: 0,
+      idleTimer: 0, idleAnim: 'none', stress: 0,
     };
 
     this.pipeline = new Pipeline();
@@ -2044,6 +2046,7 @@ export class Game {
     this.patients = [];
     this.nextPatientId = 0;
     this.driveThruCars = 0;
+    this.driveThruCarQueue = [];
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
     this.nextEventTimer = 3;

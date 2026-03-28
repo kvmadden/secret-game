@@ -977,36 +977,83 @@ function drawSpeechBubble(text, maxWidth) {
   const w = Math.min(maxWidth, Math.max(...lines.map(l => tempCtx.measureText(l).width)) + 10);
   const h = lines.length * lineHeight + 8;
 
-  const c = createSpriteCanvas(Math.ceil(w), Math.ceil(h) + 6);
+  // Extra space for shadow (1px right, 1px down) and tail
+  const c = createSpriteCanvas(Math.ceil(w) + 2, Math.ceil(h) + 8);
   const ctx = c.getContext('2d');
 
-  // Bubble background — warm cream with brown outline
-  ctx.fillStyle = '#faf4e8';
-  ctx.strokeStyle = '#5a4030';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(0, 0, w, h, 3);
-  ctx.fill();
-  ctx.stroke();
+  const bgColor = '#faf4e8';
+  const borderColor = '#5a4030';
+  const shadowColor = 'rgba(40,24,16,0.35)';
 
-  // Tail
-  ctx.fillStyle = '#faf4e8';
+  // === 1px DROP SHADOW (offset right+down by 1px) ===
+  ctx.fillStyle = shadowColor;
+  // Shadow body (offset by 1,1)
+  ctx.fillRect(3, 2, w - 4, h - 2);
+  // Shadow edges
+  ctx.fillRect(2, 3, 1, h - 4);
+  ctx.fillRect(w - 1, 3, 1, h - 4);
+  ctx.fillRect(3, h - 1, w - 4, 1);
+  // Shadow tail
   ctx.beginPath();
-  ctx.moveTo(w / 2 - 3, h);
-  ctx.lineTo(w / 2, h + 5);
+  ctx.moveTo(w / 2 - 1, h);
+  ctx.lineTo(w / 2 + 1, h + 5);
   ctx.lineTo(w / 2 + 3, h);
   ctx.fill();
-  ctx.strokeStyle = '#5a4030';
-  ctx.beginPath();
-  ctx.moveTo(w / 2 - 3, h);
-  ctx.lineTo(w / 2, h + 5);
-  ctx.lineTo(w / 2 + 3, h);
-  ctx.stroke();
-  // Cover the gap
-  ctx.fillStyle = '#faf4e8';
-  ctx.fillRect(w / 2 - 3, h - 1, 6, 2);
 
-  // Text
+  // === BUBBLE BACKGROUND with pixel-art rounded corners ===
+  // Main body (inset from corners by 2px)
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(2, 0, w - 4, h);       // center horizontal band
+  ctx.fillRect(0, 2, w, h - 4);       // center vertical band
+  // Fill corner pixels (cut 2px from each corner, creating pixel-art rounded look)
+  ctx.fillRect(1, 1, 1, 1);           // top-left inner corner pixel
+  ctx.fillRect(w - 2, 1, 1, 1);       // top-right inner corner pixel
+  ctx.fillRect(1, h - 2, 1, 1);       // bottom-left inner corner pixel
+  ctx.fillRect(w - 2, h - 2, 1, 1);   // bottom-right inner corner pixel
+
+  // === PIXEL-ART BORDER with rounded corners ===
+  ctx.fillStyle = borderColor;
+  // Top edge (inset 2px from corners)
+  ctx.fillRect(2, 0, w - 4, 1);
+  // Bottom edge (inset 2px from corners)
+  ctx.fillRect(2, h - 1, w - 4, 1);
+  // Left edge (inset 2px from corners)
+  ctx.fillRect(0, 2, 1, h - 4);
+  // Right edge (inset 2px from corners)
+  ctx.fillRect(w - 1, 2, 1, h - 4);
+  // Corner bevels (1px diagonal pixels for rounded look)
+  px(ctx, 1, 0, borderColor);  px(ctx, 0, 1, borderColor);   // top-left
+  px(ctx, w - 2, 0, borderColor); px(ctx, w - 1, 1, borderColor); // top-right
+  px(ctx, 1, h - 1, borderColor); px(ctx, 0, h - 2, borderColor); // bottom-left
+  px(ctx, w - 2, h - 1, borderColor); px(ctx, w - 1, h - 2, borderColor); // bottom-right
+
+  // === DEFINED PIXEL-ART TRIANGLE TAIL ===
+  // More defined tiny triangle (pixel-art style, 5px wide, 4px tall)
+  const tailX = Math.floor(w / 2);
+  ctx.fillStyle = bgColor;
+  // Row 1 (at h): 3px wide
+  ctx.fillRect(tailX - 1, h, 3, 1);
+  // Row 2 (at h+1): 3px wide
+  ctx.fillRect(tailX - 1, h + 1, 3, 1);
+  // Row 3 (at h+2): 1px wide
+  ctx.fillRect(tailX, h + 2, 1, 1);
+  // Row 4 (at h+3): tip
+  ctx.fillRect(tailX, h + 3, 1, 1);
+  // Tail border - left edge
+  ctx.fillStyle = borderColor;
+  px(ctx, tailX - 2, h, borderColor);
+  px(ctx, tailX - 2, h + 1, borderColor);
+  px(ctx, tailX - 1, h + 2, borderColor);
+  px(ctx, tailX - 1, h + 3, borderColor);
+  // Tail border - right edge
+  px(ctx, tailX + 2, h, borderColor);
+  px(ctx, tailX + 2, h + 1, borderColor);
+  px(ctx, tailX + 1, h + 2, borderColor);
+  px(ctx, tailX + 1, h + 3, borderColor);
+  // Tail tip
+  px(ctx, tailX, h + 4, borderColor);
+
+  // === TEXT ===
   ctx.fillStyle = '#3a2820';
   ctx.font = '8px monospace';
   ctx.textAlign = 'center';
@@ -1112,6 +1159,23 @@ function drawFloorTile(variant) {
     px(ctx, 7, 13, 'rgba(220,208,176,0.5)');
   }
 
+  // Subtle crack/chip detail on ~1 in 10 tiles
+  if (seed % 10 === 0) {
+    const crackColor = '#b8ab93';
+    const crackX = (seed * 3) % 10 + 2;
+    const crackY = (seed * 7) % 8 + 3;
+    // Diagonal hairline crack
+    px(ctx, crackX, crackY, crackColor);
+    px(ctx, crackX + 1, crackY + 1, crackColor);
+    px(ctx, crackX + 2, crackY + 2, crackColor);
+    px(ctx, crackX + 1, crackY + 2, '#c0b49c'); // slight branch
+    // Chip at edge (small triangular nick)
+    if ((seed * 11) % 10 < 5) {
+      px(ctx, 0, (seed * 5) % 12 + 2, '#c0b49c');
+      px(ctx, 1, (seed * 5) % 12 + 2, '#c4b8a0');
+    }
+  }
+
   spriteCache.set(key, c);
   return c;
 }
@@ -1133,6 +1197,17 @@ function drawCounterTopTile() {
   ctx.fillStyle = '#ece0cc';
   for (let i = 1; i < 16; i += 3) {
     ctx.fillRect(2, i, 12, 1);
+  }
+  // Wood grain texture: 1px horizontal lines in slightly different shades
+  const grainShades = ['#eadcc6', '#ecdec8', '#e6d8c2', '#eee2ce', '#e8dac4'];
+  for (let gy = 2; gy < 14; gy += 2) {
+    const shade = grainShades[gy % grainShades.length];
+    // Wavy grain: offset start position per row
+    const gxOff = (gy * 3) % 4;
+    for (let gx = gxOff; gx < 16; gx += 5) {
+      ctx.fillStyle = shade;
+      ctx.fillRect(gx, gy, 3, 1);
+    }
   }
   // Shadow strip at back edge (where counter meets wall)
   rect(ctx, 0, 0, 16, 1, '#d8ccb8');
