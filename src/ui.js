@@ -109,6 +109,13 @@ export class UI {
       vals[key].textContent = Math.round(v);
       fills[key].style.opacity = v > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
       vals[key].style.color = v > 75 ? '#ff4444' : v > 50 ? '#ffaa00' : '#aaa';
+
+      // Add critical/warning CSS classes for pulse animation
+      const meterRow = fills[key].closest('.meter') || fills[key].parentElement;
+      if (meterRow) {
+        meterRow.classList.toggle('critical', v > 75);
+        meterRow.classList.toggle('warning', v > 50 && v <= 75);
+      }
     }
   }
 
@@ -157,6 +164,7 @@ export class UI {
       (event.isPositive ? ' positive-card' : '') +
       stationStripe;
     card.dataset.uid = event.uid;
+    if (event.station) card.dataset.station = event.station;
 
     const stationClass = event.isInterrupt ? 'interrupt' :
                          event.isPipeline ? 'station-verify' :
@@ -169,9 +177,15 @@ export class UI {
     // Calculate card index for keyboard hint
     const cardIndex = this.activeCards.size + 1;
 
+    // Urgency pulsing dot
+    const urgencyDot = event.urgency
+      ? '<span class="card-urgency-dot"></span>'
+      : '';
+
     card.innerHTML = `
       <div class="card-header">
         <span class="card-key-hint">${cardIndex}</span>
+        ${urgencyDot}
         <span class="card-station ${stationClass}">${stationLabel}</span>
         <span class="card-time">${event.duration}s</span>
       </div>
@@ -186,6 +200,7 @@ export class UI {
         ${event.canDefer ? '<button class="card-btn btn-defer">DEFER</button>' : ''}
       </div>
       ${!event.isPipeline ? '<div class="card-age-bar"><div class="card-age-fill"></div></div>' : ''}
+      <div class="card-timer" data-max="${event.timeout || 30}"><div class="card-timer-fill" style="width:100%"></div></div>
     `;
 
     // Button handlers — use click only, prevent double-fire
@@ -259,6 +274,18 @@ export class UI {
         ageFill.style.background = '#ffaa00';
       }
     }
+
+    // Update timer countdown bar
+    const timerBar = card.querySelector('.card-timer');
+    if (timerBar) {
+      const maxTime = parseFloat(timerBar.dataset.max) || 30;
+      const remaining = Math.max(0, 1 - age / maxTime);
+      const timerFill = timerBar.querySelector('.card-timer-fill');
+      if (timerFill) {
+        timerFill.style.width = `${remaining * 100}%`;
+        timerFill.style.background = remaining > 0.5 ? '#44ff88' : remaining > 0.25 ? '#ffcc00' : '#ff4444';
+      }
+    }
   }
 
   clearCards() {
@@ -298,17 +325,33 @@ export class UI {
     }
     this._phaseTimers = [];
 
+    const phaseEmojis = {
+      'Opening': '☀️',
+      'Building': '📈',
+      'Lunch Close': '🔒',
+      'LUNCH CLOSE': '🔒',
+      'Reopen Rush': '🌊',
+      'REOPEN RUSH': '🌊',
+      'Late Drag': '🌅',
+      'LATE DRAG': '🌅',
+    };
+
     const flavorText = {
       'Opening': 'First customers arriving...',
       'Building': 'Scripts piling up. Stay sharp.',
+      'Lunch Close': 'Shutters down. Catch your breath.',
+      'LUNCH CLOSE': 'Shutters down. Catch your breath.',
       'Reopen Rush': 'They\'ve been waiting.',
       'REOPEN RUSH': 'They\'ve been waiting.',
       'Late Drag': 'Almost there. Hold it together.',
+      'LATE DRAG': 'Almost there. Hold it together.',
     };
 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const flavor = days.includes(label) ? '' : (flavorText[label] || '');
-    this.phaseAnnounce.innerHTML = `<div class="phase-label">${label.toUpperCase()}</div>${flavor ? `<div class="phase-flavor">${flavor}</div>` : ''}`;
+    const emoji = phaseEmojis[label] || phaseEmojis[label.toUpperCase()] || '';
+    const emojiHtml = emoji ? `<span class="phase-emoji">${emoji}</span> ` : '';
+    this.phaseAnnounce.innerHTML = `<div class="phase-label phase-label-dramatic">${emojiHtml}${label.toUpperCase()}</div>${flavor ? `<div class="phase-subtitle">${flavor}</div>` : ''}`;
 
     // Phase 1: Enter (scale 0.8->1.0 + fade in, 0.4s)
     this.phaseAnnounce.className = 'phase-enter';
@@ -344,13 +387,30 @@ export class UI {
 
   showTutorial(text) {
     if (!this.tutorialEl) return;
-    this.tutorialEl.textContent = text;
+
+    // Use tutorial-text span if it exists, otherwise fall back to textContent
+    const textSpan = this.tutorialEl.querySelector('.tutorial-text');
+    if (textSpan) {
+      textSpan.textContent = text;
+    } else {
+      this.tutorialEl.textContent = text;
+    }
     this.tutorialEl.style.display = 'block';
     this.tutorialEl.style.opacity = '1';
+
+    // Auto-dismiss after 5 seconds with fade-out
+    if (this._tutorialDismissTimer) clearTimeout(this._tutorialDismissTimer);
+    this._tutorialDismissTimer = setTimeout(() => {
+      this.hideTutorial();
+    }, 5000);
   }
 
   hideTutorial() {
     if (!this.tutorialEl) return;
+    if (this._tutorialDismissTimer) {
+      clearTimeout(this._tutorialDismissTimer);
+      this._tutorialDismissTimer = null;
+    }
     this.tutorialEl.style.opacity = '0';
     setTimeout(() => {
       if (this.tutorialEl) this.tutorialEl.style.display = 'none';
@@ -422,8 +482,20 @@ export class UI {
     const grade = this.calculateGrade(won, meters, stats);
     if (gradeEl) {
       gradeEl.textContent = grade;
-      gradeEl.className = 'results-grade grade-' + grade.toLowerCase();
+      gradeEl.className = 'results-grade grade-' + grade.toLowerCase() + ' grade-animate';
     }
+
+    // Personal best indicator
+    try {
+      const bestGrade = localStorage.getItem('otb_best_grade') || 'F';
+      const gradeRank = { S: 6, A: 5, B: 4, C: 3, D: 2, F: 1 };
+      if ((gradeRank[grade] || 0) > (gradeRank[bestGrade] || 0)) {
+        localStorage.setItem('otb_best_grade', grade);
+        if (gradeEl) {
+          gradeEl.insertAdjacentHTML('afterend', '<div class="personal-best-badge">NEW PERSONAL BEST!</div>');
+        }
+      }
+    } catch (e) { /* localStorage unavailable */ }
 
     // Animated meter fill
     const meterDefs = [
@@ -471,16 +543,38 @@ export class UI {
     else if (efficiency >= 70) recapLines.push('Solid work under pressure.');
     else if (efficiency >= 50) recapLines.push('Survived, but barely.');
 
+    // Shift time display
+    const shiftMins = stats.shiftTime ? Math.floor(stats.shiftTime / 60) : 0;
+    const shiftSecs = stats.shiftTime ? Math.floor(stats.shiftTime % 60) : 0;
+    const shiftTimeStr = stats.shiftTime
+      ? `${shiftMins}m ${shiftSecs.toString().padStart(2, '0')}s`
+      : '--';
+
+    // Max combo
+    const maxCombo = stats.maxCombo || 0;
+
     statsEl.innerHTML = `
       <div class="stat-section-label">SHIFT RECAP</div>
       <div class="shift-recap">${recapLines.join(' ')}</div>
       <div class="stat-section-label">STATS</div>
+      ${stats.shiftTime ? `<div class="stat-line"><span>Shift Time</span><span>${shiftTimeStr}</span></div>` : ''}
       <div class="stat-line"><span>Events Handled</span><span>${stats.eventsHandled}</span></div>
       <div class="stat-line"><span>Scripts Verified</span><span>${stats.scriptsVerified}</span></div>
       <div class="stat-line"><span>Patients Served</span><span>${stats.patientsServed}</span></div>
       <div class="stat-line"><span>Deferred / Escalated</span><span>${stats.eventsDeferred} / ${stats.eventsEscalated}</span></div>
       <div class="stat-line"><span>Patients Lost</span><span class="${stats.patientsLost > 0 ? 'stat-bad' : 'stat-good'}">${stats.patientsLost || 0}</span></div>
+      ${maxCombo > 1 ? `<div class="stat-line"><span>Max Combo</span><span class="stat-combo">x${maxCombo}</span></div>` : ''}
       <div class="stat-line stat-highlight"><span>Efficiency</span><span>${efficiency}%</span></div>
+      <div class="stat-section-label">FINAL METERS</div>
+      ${meterDefs.map(m => `
+        <div class="result-meter-mini">
+          <span class="result-meter-mini-label" style="color:${m.color}">${m.label}</span>
+          <div class="result-meter-mini-bar">
+            <div class="result-meter-mini-fill" style="width:${Math.min(100, meters[m.key])}%;background:${m.color}"></div>
+          </div>
+          <span class="result-meter-mini-val">${Math.round(meters[m.key])}</span>
+        </div>
+      `).join('')}
     `;
   }
 
@@ -555,11 +649,46 @@ export class UI {
 
   showCombo(count) {
     if (!this.comboIndicator) return;
+
+    // Combo streak descriptions
+    const streakDesc = count >= 8 ? 'LEGENDARY!' :
+                       count >= 5 ? 'Awesome!' :
+                       count >= 3 ? 'Great!' :
+                       count >= 2 ? 'Nice!' : '';
+
+    // Color escalation: white -> yellow -> orange -> red -> purple
+    const comboColor = count >= 8 ? '#cc66ff' :
+                       count >= 5 ? '#ff4444' :
+                       count >= 3 ? '#ff8800' :
+                       count >= 2 ? '#ffcc00' : '#ffffff';
+
     this.comboCount.textContent = `x${count}`;
+    this.comboCount.style.color = comboColor;
     this.comboIndicator.style.display = 'inline-block';
+
+    // Show streak label if exists
+    let streakEl = this.comboIndicator.querySelector('.combo-streak');
+    if (!streakEl && streakDesc) {
+      streakEl = document.createElement('span');
+      streakEl.className = 'combo-streak';
+      this.comboIndicator.appendChild(streakEl);
+    }
+    if (streakEl) {
+      streakEl.textContent = streakDesc ? ` ${streakDesc}` : '';
+      streakEl.style.color = comboColor;
+    }
+
+    // Scale-up pop animation
     this.comboIndicator.style.animation = 'none';
     void this.comboIndicator.offsetHeight; // reflow
     this.comboIndicator.style.animation = 'comboPop 0.3s ease-out';
+
+    // Brief scale bump on the count
+    this.comboCount.style.transform = 'scale(1.4)';
+    this.comboCount.style.transition = 'transform 0.15s ease-out';
+    setTimeout(() => {
+      if (this.comboCount) this.comboCount.style.transform = 'scale(1)';
+    }, 150);
   }
 
   hideCombo() {
@@ -627,12 +756,28 @@ export class UI {
     if (shiftDay && shiftDay.modifier && shiftDay.desc) {
       modsHtml += `<span class="day-modifier-tag">${shiftDay.modifier}: ${shiftDay.desc}</span>`;
     }
+
+    // Weather display with emoji
     if (weather) {
-      modsHtml += `<span class="day-modifier-tag">${weather.name} — ${weather.desc}</span>`;
+      const weatherEmojis = { Sunny: '☀️', Cloudy: '☁️', Rainy: '🌧️', Stormy: '⛈️' };
+      const wEmoji = weatherEmojis[weather.name] || '';
+      modsHtml += `<span class="day-modifier-tag weather-tag">${wEmoji} ${weather.name} — ${weather.desc}</span>`;
     }
+
     if (modifierTags) {
       for (const tag of modifierTags) {
         modsHtml += `<span class="day-modifier-tag ${tag.type}">${tag.text}</span>`;
+      }
+    }
+
+    // Shift day multiplier badges
+    if (shiftDay && shiftDay.multipliers) {
+      const mLabels = { queue: 'QUEUE', safety: 'SAFETY', rage: 'RAGE', burnout: 'BURNOUT', scrutiny: 'SCRUTINY' };
+      for (const [key, val] of Object.entries(shiftDay.multipliers)) {
+        if (val && val !== 1) {
+          const label = mLabels[key] || key.toUpperCase();
+          modsHtml += `<span class="day-modifier-badge">${label} x${val}</span>`;
+        }
       }
     }
     modsEl.innerHTML = modsHtml;
@@ -684,13 +829,28 @@ export class UI {
     const overlay = document.getElementById('campaign-end');
     if (!overlay) return;
 
-    document.getElementById('campaign-end-title').textContent = endMessage.title;
+    // Ending trophy/badge icon based on grade
+    const gradeTrophies = {
+      perfect: '🏆', great: '🥇', decent: '🥈', rough: '🥉', bad: '💀',
+    };
+    const trophy = gradeTrophies[summary.grade] || '📋';
+
+    document.getElementById('campaign-end-title').textContent = `${trophy} ${endMessage.title}`;
     document.getElementById('campaign-end-title').style.color =
       summary.grade === 'perfect' ? '#ffdd00' :
       summary.grade === 'great' ? '#44ff88' :
       summary.grade === 'decent' ? '#00d4ff' :
       summary.grade === 'rough' ? '#ff8800' : '#ff4444';
-    document.getElementById('campaign-end-flavor').textContent = endMessage.flavor;
+
+    // Ending lane name and description
+    const flavorParts = [endMessage.flavor];
+    if (endMessage.lane) {
+      flavorParts.unshift(`[${endMessage.lane}]`);
+    }
+    if (endMessage.laneDesc) {
+      flavorParts.push(endMessage.laneDesc);
+    }
+    document.getElementById('campaign-end-flavor').textContent = flavorParts.join(' ');
 
     // Summary stats
     document.getElementById('campaign-summary').innerHTML = `
@@ -729,6 +889,17 @@ export class UI {
           <span class="pip-grade">${r.grade}</span>
         </div>
       `).join('') + '</div>';
+
+    // Campaign persistent variables visual summary
+    if (summary.persistentVars && Object.keys(summary.persistentVars).length > 0) {
+      const varsHtml = Object.entries(summary.persistentVars).map(([k, v]) => {
+        const displayKey = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        return `<div class="campaign-var-item"><span class="campaign-var-key">${displayKey}</span><span class="campaign-var-val">${v}</span></div>`;
+      }).join('');
+      daysEl.insertAdjacentHTML('beforeend',
+        `<div class="campaign-shift-label" style="margin-top:10px">JOURNEY</div><div class="campaign-vars-grid">${varsHtml}</div>`
+      );
+    }
 
     this._showOverlay(overlay);
   }
