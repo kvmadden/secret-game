@@ -23,16 +23,16 @@ export const COLORS = {
   RAGE: '#ff4444',
   BURNOUT: '#ff8800',
 
-  // Pharmacy palette
-  FLOOR: '#ccc8ba',
-  FLOOR_DARK: '#c0bcae',
-  COUNTER_TOP: '#e0dcd4',
-  COUNTER_FRONT: '#4a3a2a',
-  SHELF: '#7a6545',
-  SHELF_DARK: '#5a4525',
-  WALL: '#d8d4cc',
-  CEILING: '#e8e4dc',
-  BACK_WALL: '#d0ccc4',
+  // Pharmacy palette — warm Stardew-inspired tones
+  FLOOR: '#e0d4c0',
+  FLOOR_DARK: '#d4c8b4',
+  COUNTER_TOP: '#f0e4d0',
+  COUNTER_FRONT: '#8b6f47',
+  SHELF: '#9a7a50',
+  SHELF_DARK: '#7a5a30',
+  WALL: '#e8dcc8',
+  CEILING: '#f4ece0',
+  BACK_WALL: '#e0d8c8',
 
   // Station accents
   VERIFY: '#00d4ff',

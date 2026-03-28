@@ -104,7 +104,7 @@ export class Renderer {
 
   flashComplete(col, row) {
     this.flashes.push({ col, row, timer: 0.6, maxTimer: 0.6 });
-    this.spawnParticles(col, row, '#44ff88', 8);
+    this.spawnParticles(col, row, '#f0d880', 8);
   }
 
   shake(intensity) {
@@ -219,7 +219,7 @@ export class Renderer {
     const h = this.canvas.height;
     const dt = 1 / 60;
 
-    ctx.fillStyle = '#1a1a2e';
+    ctx.fillStyle = '#2a1e14';
     ctx.fillRect(0, 0, w, h);
 
     // Screen shake
@@ -278,7 +278,7 @@ export class Renderer {
 
     // Lunch overlay darkening (screen-space)
     if (gameState.phase === 'LUNCH_CLOSE') {
-      ctx.fillStyle = 'rgba(10, 10, 20, 0.4)';
+      ctx.fillStyle = 'rgba(20, 12, 5, 0.4)';
       ctx.fillRect(0, 0, w, h);
     }
 
@@ -292,28 +292,28 @@ export class Renderer {
   // ========== LIGHTING ==========
 
   renderLighting(ctx, gameState) {
-    // Store area — warmer retail lighting
-    ctx.fillStyle = 'rgba(255, 240, 200, 0.04)';
+    // Store area — warm golden retail lighting
+    ctx.fillStyle = 'rgba(255, 230, 180, 0.12)';
     ctx.fillRect(0, 0, 14 * TILE_SIZE, 2 * TILE_SIZE);
 
-    // Customer area — slightly exposed
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.04)';
+    // Customer area — warm shadow
+    ctx.fillStyle = 'rgba(40, 20, 0, 0.06)';
     ctx.fillRect(0, 2 * TILE_SIZE, 14 * TILE_SIZE, 5 * TILE_SIZE);
 
-    // Counter surface highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    // Counter surface highlight — warm glow
+    ctx.fillStyle = 'rgba(255, 240, 200, 0.10)';
     ctx.fillRect(0, 7 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
 
-    // Fluorescent lighting — workspace band
-    ctx.fillStyle = 'rgba(255, 255, 240, 0.06)';
+    // Fluorescent lighting — workspace band, warm white
+    ctx.fillStyle = 'rgba(255, 245, 220, 0.12)';
     ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, 5 * TILE_SIZE);
 
-    // Back shelf area darker
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.08)';
+    // Back shelf area darker — warm shadow
+    ctx.fillStyle = 'rgba(30, 15, 0, 0.12)';
     ctx.fillRect(0, 14 * TILE_SIZE, 13 * TILE_SIZE, 6 * TILE_SIZE);
 
     // Counter shadow on workspace
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+    ctx.fillStyle = 'rgba(40, 20, 0, 0.06)';
     ctx.fillRect(0, 9 * TILE_SIZE, 13 * TILE_SIZE, TILE_SIZE);
 
     // Meter-based ambient tint
@@ -372,7 +372,7 @@ export class Renderer {
   renderZoomHint(ctx, gameState) {
     // Small indicator showing current zoom mode
     if (this.mode === 'OVERVIEW') {
-      ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+      ctx.fillStyle = 'rgba(240, 200, 140, 0.6)';
       ctx.font = `${10 * this.dpr}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText('OVERVIEW', this.canvas.width / 2, this.canvas.height - 8 * this.dpr);
@@ -410,7 +410,7 @@ export class Renderer {
 
   renderDriveThruCars(ctx, state) {
     if (state.driveThruCars > 0) {
-      const carColors = ['#4466aa', '#aa4444', '#44aa66'];
+      const carColors = ['#6a7a98', '#a85848', '#5a8a5a'];
       for (let i = 0; i < Math.min(state.driveThruCars, 3); i++) {
         const car = Sprites.car(carColors[i % carColors.length]);
         const bob = Math.sin(state.time * 2 + i * 1.5) * 0.3;
@@ -438,18 +438,18 @@ export class Renderer {
     // Working indicator — animated glow + progress arc
     if (pharm.state === 'WORKING') {
       const pulse = 0.08 + Math.sin(state.time * 4) * 0.04;
-      ctx.fillStyle = `rgba(0, 212, 255, ${pulse})`;
+      ctx.fillStyle = `rgba(240, 200, 100, ${pulse})`;
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 14, 0, Math.PI * 2);
       ctx.fill();
 
       const progress = pharm.workTimer / pharm.workDuration;
-      ctx.strokeStyle = 'rgba(0, 212, 255, 0.15)';
+      ctx.strokeStyle = 'rgba(240, 200, 100, 0.15)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 11, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.strokeStyle = progress > 0.8 ? '#44ff88' : '#00d4ff';
+      ctx.strokeStyle = progress > 0.8 ? '#f0d880' : '#e8c060';
       ctx.beginPath();
       ctx.arc(px + 8, py + 6, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress);
       ctx.stroke();
@@ -601,20 +601,20 @@ export class Renderer {
       const radius = 4 + progress * 16;
       const alpha = (1 - progress) * 0.4;
 
-      ctx.fillStyle = `rgba(68, 255, 136, ${alpha})`;
+      ctx.fillStyle = `rgba(240, 216, 128, ${alpha})`;
       ctx.beginPath();
       ctx.arc(px, py, radius, 0, Math.PI * 2);
       ctx.fill();
 
       if (progress < 0.3) {
-        ctx.fillStyle = `rgba(255, 255, 255, ${(0.3 - progress) * 2})`;
+        ctx.fillStyle = `rgba(255, 250, 230, ${(0.3 - progress) * 2})`;
         ctx.beginPath();
         ctx.arc(px, py, 3, 0, Math.PI * 2);
         ctx.fill();
       }
 
       if (progress > 0.1 && progress < 0.7) {
-        ctx.strokeStyle = `rgba(68, 255, 136, ${(0.7 - progress) * 1.5})`;
+        ctx.strokeStyle = `rgba(240, 216, 128, ${(0.7 - progress) * 1.5})`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(px - 3, py);

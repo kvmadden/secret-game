@@ -42,65 +42,63 @@ function drawPharmacistFrame(facing, frame, stress) {
   const ctx = c.getContext('2d');
   const flip = facing === 'left';
 
+  const outline = '#3a2820'; // warm dark brown outline
+
   // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.fillStyle = 'rgba(60,40,20,0.3)';
   ctx.beginPath();
   ctx.ellipse(8, 15, 4, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // Legs (dark pants) with walk animation
   if (frame === 0) {
-    // Standing
-    rect(ctx, 5, 12, 2, 3, '#2a2a3a');
-    rect(ctx, 9, 12, 2, 3, '#2a2a3a');
+    rect(ctx, 5, 12, 2, 3, '#3a3a4a');
+    rect(ctx, 9, 12, 2, 3, '#3a3a4a');
   } else if (frame === 1) {
-    // Walk frame 1 — stride
-    rect(ctx, flip ? 7 : 4, 12, 2, 3, '#2a2a3a');
-    rect(ctx, flip ? 10 : 7, 13, 2, 2, '#2a2a3a');
-    // Arm swing
-    rect(ctx, flip ? 12 : 2, 7, 1, 5, '#f0f0f0');
-    rect(ctx, flip ? 3 : 13, 8, 1, 3, '#f0f0f0');
+    rect(ctx, flip ? 7 : 4, 12, 2, 3, '#3a3a4a');
+    rect(ctx, flip ? 10 : 7, 13, 2, 2, '#3a3a4a');
+    rect(ctx, flip ? 12 : 2, 7, 1, 5, '#f4f0e8');
+    rect(ctx, flip ? 3 : 13, 8, 1, 3, '#f4f0e8');
   } else if (frame === 2) {
-    // Walk frame 2 — opposite stride
-    rect(ctx, flip ? 10 : 7, 12, 2, 3, '#2a2a3a');
-    rect(ctx, flip ? 7 : 4, 13, 2, 2, '#2a2a3a');
-    rect(ctx, flip ? 3 : 13, 7, 1, 5, '#f0f0f0');
-    rect(ctx, flip ? 12 : 2, 8, 1, 3, '#f0f0f0');
+    rect(ctx, flip ? 10 : 7, 12, 2, 3, '#3a3a4a');
+    rect(ctx, flip ? 7 : 4, 13, 2, 2, '#3a3a4a');
+    rect(ctx, flip ? 3 : 13, 7, 1, 5, '#f4f0e8');
+    rect(ctx, flip ? 12 : 2, 8, 1, 3, '#f4f0e8');
   }
 
   // Shoes
   if (frame === 0) {
-    rect(ctx, 5, 14, 2, 1, '#1a1a1a');
-    rect(ctx, 9, 14, 2, 1, '#1a1a1a');
+    rect(ctx, 5, 14, 2, 1, '#2a2018');
+    rect(ctx, 9, 14, 2, 1, '#2a2018');
   } else if (frame === 1) {
-    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#1a1a1a');
-    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#1a1a1a');
+    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#2a2018');
+    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#2a2018');
   } else {
-    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#1a1a1a');
-    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#1a1a1a');
+    rect(ctx, flip ? 10 : 7, 14, 2, 1, '#2a2018');
+    rect(ctx, flip ? 7 : 4, 14, 2, 1, '#2a2018');
   }
 
-  // Lab coat body
-  const coatColor = stressLevel >= 2 ? '#e8e8e8' : '#f0f0f0';
+  // Lab coat body — warm white
+  const coatColor = stressLevel >= 2 ? '#e8e4dc' : '#f4f0e8';
+  const coatShadow = stressLevel >= 2 ? '#d8d4cc' : '#e4e0d8';
   rect(ctx, 4, 6, 8, 7, coatColor);
+  // Coat shading
+  rect(ctx, 4, 10, 8, 3, coatShadow);
   if (frame === 0) {
-    rect(ctx, 3, 7, 1, 4, coatColor); // left sleeve
-    rect(ctx, 12, 7, 1, 4, coatColor); // right sleeve
+    rect(ctx, 3, 7, 1, 4, coatColor);
+    rect(ctx, 12, 7, 1, 4, coatColor);
   }
 
-  // Coat details — buttons, seams, pockets
-  rect(ctx, 8, 7, 1, 5, '#e0e0e0'); // center button line
-  px(ctx, 8, 8, '#ccc'); // button
-  px(ctx, 8, 10, '#ccc'); // button
-  rect(ctx, 4, 6, 8, 1, '#e8e8e8'); // collar
-  // Collar V-neck
+  // Coat details
+  rect(ctx, 8, 7, 1, 5, coatShadow);
+  px(ctx, 8, 8, '#c8c4b8');
+  px(ctx, 8, 10, '#c8c4b8');
+  rect(ctx, 4, 6, 8, 1, coatShadow);
   px(ctx, 7, 6, '#e8b88a');
   px(ctx, 8, 6, '#e8b88a');
-  // Lab coat pockets
-  rect(ctx, 5, 9, 2, 2, '#e4e4e4');
-  rect(ctx, 9, 9, 2, 2, '#e4e4e4');
-  // Coat hem shadow
-  rect(ctx, 4, 12, 8, 1, '#d8d8d8');
+  rect(ctx, 5, 9, 2, 2, coatShadow);
+  rect(ctx, 9, 9, 2, 2, coatShadow);
+  rect(ctx, 4, 12, 8, 1, coatShadow);
 
   // Hands
   if (frame === 0) {
@@ -108,56 +106,63 @@ function drawPharmacistFrame(facing, frame, stress) {
     rect(ctx, 12, 11, 1, 1, '#e8b88a');
   }
 
-  // Name badge (green) with lanyard
+  // Name badge (warm green) with lanyard
   const badgeSide = flip ? 9 : 5;
-  rect(ctx, badgeSide, 8, 2, 2, '#22aa44');
-  px(ctx, badgeSide, 7, '#22aa44');
-  px(ctx, badgeSide, 6, '#228833');
+  rect(ctx, badgeSide, 8, 2, 2, '#4a9a5a');
+  px(ctx, badgeSide, 7, '#4a9a5a');
+  px(ctx, badgeSide, 6, '#3a8848');
 
-  // Head
-  rect(ctx, 5, 2, 6, 5, '#e8b88a');
+  // Head — bigger for charm (6px wide, 5px tall)
+  rect(ctx, 5, 1, 6, 6, '#e8b88a');
+  // Rosy cheeks
+  px(ctx, 5, 5, '#e0a080');
+  px(ctx, 10, 5, '#e0a080');
   // Ears
   px(ctx, 4, 3, '#e0b080');
   px(ctx, 11, 3, '#e0b080');
-  // Hair — fuller
-  rect(ctx, 5, 1, 6, 2, '#4a3020');
-  rect(ctx, 4, 1, 1, 3, '#4a3020');
-  rect(ctx, 11, 1, 1, 3, '#4a3020');
-  px(ctx, 5, 1, '#5a4030'); // hair highlight
+  // Hair — warm brown, fuller
+  rect(ctx, 5, 0, 6, 2, '#5a3820');
+  rect(ctx, 4, 0, 1, 4, '#5a3820');
+  rect(ctx, 11, 0, 1, 4, '#5a3820');
+  px(ctx, 6, 0, '#6a4830'); // hair highlight
+  px(ctx, 8, 0, '#6a4830');
 
-  // Eyes — direction-aware with stress
+  // Eyes — bigger, with white + pupil + highlight
   if (facing === 'left') {
-    px(ctx, 6, 4, '#222');
-    px(ctx, 8, 4, '#222');
-    if (stressLevel >= 1) {
-      px(ctx, 6, 4, '#333'); // bags under eyes
-      px(ctx, 8, 4, '#333');
-    }
+    px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#2a2018');
+    px(ctx, 8, 3, '#fff'); px(ctx, 8, 4, '#2a2018');
   } else if (facing === 'right') {
-    px(ctx, 7, 4, '#222');
-    px(ctx, 9, 4, '#222');
+    px(ctx, 7, 3, '#fff'); px(ctx, 7, 4, '#2a2018');
+    px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#2a2018');
   } else {
-    px(ctx, 6, 4, '#222');
-    px(ctx, 9, 4, '#222');
+    px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#2a2018');
+    px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#2a2018');
   }
 
-  // Eyebrows — show stress
+  // Eyebrows — warm brown
   if (stressLevel >= 1) {
-    px(ctx, 6, 3, '#5a4030');
-    px(ctx, 9, 3, '#5a4030');
+    px(ctx, 6, 2, '#5a3820');
+    px(ctx, 9, 2, '#5a3820');
   }
   if (stressLevel >= 2) {
-    // Furrowed brows
-    px(ctx, 5, 3, '#4a3020');
-    px(ctx, 10, 3, '#4a3020');
-    // Sweat drop
-    px(ctx, 12, 2, '#88ccff');
-    px(ctx, 12, 3, '#aaddff');
+    px(ctx, 5, 2, '#4a3020');
+    px(ctx, 10, 2, '#4a3020');
+    // Sweat drop — softer blue
+    px(ctx, 12, 1, '#8ac8e8');
+    px(ctx, 12, 2, '#a0d8f0');
   }
 
-  // Mouth
-  px(ctx, 7, 5, stressLevel >= 2 ? '#c88060' : '#d09070');
-  px(ctx, 8, 5, stressLevel >= 2 ? '#c88060' : '#d09070');
+  // Mouth — wider, more expressive
+  px(ctx, 7, 5, stressLevel >= 2 ? '#b87060' : '#c08070');
+  px(ctx, 8, 5, stressLevel >= 2 ? '#b87060' : '#c08070');
+
+  // Dark outline pass — warm brown edges
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 0.5;
+  // Head outline
+  ctx.strokeRect(4.5, 0.5, 7, 6);
+  // Body outline
+  ctx.strokeRect(3.5, 5.5, 9, 8);
 
   spriteCache.set(key, c);
   return c;
@@ -174,18 +179,21 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  const outline = '#3a2820'; // warm dark brown outline
+
+  // Shadow — warm
+  ctx.fillStyle = 'rgba(60,40,20,0.25)';
   ctx.beginPath();
   ctx.ellipse(8, 15, 3.5, 1.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Legs (jeans/pants)
-  const pantsColor = paletteIndex % 3 === 0 ? '#3a3a55' : paletteIndex % 3 === 1 ? '#4a4a3a' : '#444466';
+  // Legs (jeans/pants) — warmer tones
+  const pantsColors = ['#3a3848', '#4a4438', '#3e3e50', '#484040', '#3a4040'];
+  const pantsColor = pantsColors[paletteIndex % pantsColors.length];
   rect(ctx, 5, 12, 2, 3, pantsColor);
   rect(ctx, 9, 12, 2, 3, pantsColor);
-  // Shoes
-  const shoeColor = paletteIndex % 2 === 0 ? '#2a2a2a' : '#5a3a2a';
+  // Shoes — warm dark
+  const shoeColor = paletteIndex % 2 === 0 ? '#2a2018' : '#4a3020';
   rect(ctx, 5, 14, 2, 1, shoeColor);
   rect(ctx, 9, 14, 2, 1, shoeColor);
 
@@ -205,40 +213,42 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
   px(ctx, 3, 10, skin);
   px(ctx, 12, 10, skin);
 
-  // Head with more shape
-  rect(ctx, 5, 2, 6, 5, skin);
-  // Chin highlight
-  px(ctx, 7, 6, darkenColor(skin));
-  px(ctx, 8, 6, darkenColor(skin));
+  // Head — bigger for charm (6px wide, 5px tall)
+  rect(ctx, 5, 1, 6, 6, skin);
+  // Rosy cheeks
+  px(ctx, 5, 4, blendColor(skin, '#e08060', 0.4));
+  px(ctx, 10, 4, blendColor(skin, '#e08060', 0.4));
   // Ears
   px(ctx, 4, 3, darkenColor(skin));
   px(ctx, 11, 3, darkenColor(skin));
 
-  // Hair — varied styles based on palette
+  // Hair — varied styles based on palette, with highlights
   const hairStyle = paletteIndex % 4;
-  rect(ctx, 5, 1, 6, 2, palette.hair);
+  rect(ctx, 5, 0, 6, 2, palette.hair);
   if (hairStyle === 0) {
     // Full hair
-    rect(ctx, 4, 1, 1, 3, palette.hair);
-    rect(ctx, 11, 1, 1, 3, palette.hair);
-    px(ctx, 5, 1, lightenColor(palette.hair));
+    rect(ctx, 4, 0, 1, 3, palette.hair);
+    rect(ctx, 11, 0, 1, 3, palette.hair);
+    px(ctx, 6, 0, lightenColor(palette.hair));
+    px(ctx, 8, 0, lightenColor(palette.hair));
   } else if (hairStyle === 1) {
     // Short sides
-    rect(ctx, 4, 2, 1, 1, palette.hair);
-    rect(ctx, 11, 2, 1, 1, palette.hair);
+    rect(ctx, 4, 1, 1, 1, palette.hair);
+    rect(ctx, 11, 1, 1, 1, palette.hair);
+    px(ctx, 7, 0, lightenColor(palette.hair));
   } else if (hairStyle === 2) {
     // Longer hair
-    rect(ctx, 4, 1, 1, 4, palette.hair);
-    rect(ctx, 11, 1, 1, 4, palette.hair);
-    rect(ctx, 5, 1, 6, 1, lightenColor(palette.hair));
+    rect(ctx, 4, 0, 1, 4, palette.hair);
+    rect(ctx, 11, 0, 1, 4, palette.hair);
+    rect(ctx, 5, 0, 6, 1, lightenColor(palette.hair));
   } else {
     // Buzz cut
-    rect(ctx, 5, 1, 6, 1, palette.hair);
+    rect(ctx, 5, 0, 6, 1, palette.hair);
   }
 
-  // Eyes
-  px(ctx, 6, 4, '#222');
-  px(ctx, 9, 4, '#222');
+  // Eyes — bigger with white + pupil (Stardew style)
+  px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#2a2018');
+  px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#2a2018');
 
   // Emotion-specific details
   if (emotionLevel === 0) {
@@ -246,33 +256,33 @@ function drawPatientSprite(paletteIndex, emotionLevel) {
     px(ctx, 7, 5, darkenColor(skin));
     px(ctx, 8, 5, darkenColor(skin));
   } else if (emotionLevel === 1) {
-    // Impatient — frown, crossed arms look
-    px(ctx, 7, 5, '#aa7755');
-    px(ctx, 8, 5, '#aa7755');
-    // Slight yellow tinge
-    ctx.fillStyle = 'rgba(255, 200, 0, 0.08)';
-    ctx.fillRect(0, 0, 16, 16);
+    // Impatient — frown
+    px(ctx, 7, 5, '#a07050');
+    px(ctx, 8, 5, '#a07050');
     // Furrowed brows
-    px(ctx, 5, 3, palette.hair);
-    px(ctx, 10, 3, palette.hair);
+    px(ctx, 5, 2, palette.hair);
+    px(ctx, 10, 2, palette.hair);
   } else {
     // Angry — red face, wide mouth
-    // Angry tint on skin
-    rect(ctx, 5, 2, 6, 5, blendColor(skin, '#ff4444', 0.15));
+    rect(ctx, 5, 1, 6, 6, blendColor(skin, '#ff4444', 0.15));
     // Re-draw eyes (angrier)
-    px(ctx, 6, 4, '#111');
-    px(ctx, 9, 4, '#111');
+    px(ctx, 6, 3, '#fff'); px(ctx, 6, 4, '#1a1010');
+    px(ctx, 9, 3, '#fff'); px(ctx, 9, 4, '#1a1010');
     // Angry eyebrows
-    px(ctx, 5, 3, '#222');
-    px(ctx, 6, 3, '#222');
-    px(ctx, 9, 3, '#222');
-    px(ctx, 10, 3, '#222');
+    px(ctx, 5, 2, '#2a1a10'); px(ctx, 6, 2, '#2a1a10');
+    px(ctx, 9, 2, '#2a1a10'); px(ctx, 10, 2, '#2a1a10');
     // Open mouth
     rect(ctx, 7, 5, 2, 1, '#993333');
-    // Red tint on whole sprite
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+    // Warm red tint
+    ctx.fillStyle = 'rgba(200, 60, 30, 0.08)';
     ctx.fillRect(0, 0, 16, 16);
   }
+
+  // Dark outline pass — warm brown edges (Stardew style)
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 0.5;
+  ctx.strokeRect(4.5, 0.5, 7, 6);  // head
+  ctx.strokeRect(3.5, 5.5, 9, 9);  // body
 
   spriteCache.set(key, c);
   return c;
@@ -331,9 +341,9 @@ function drawSpeechBubble(text, maxWidth) {
   const c = createSpriteCanvas(Math.ceil(w), Math.ceil(h) + 6);
   const ctx = c.getContext('2d');
 
-  // Bubble background
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#333';
+  // Bubble background — warm cream with brown outline
+  ctx.fillStyle = '#faf4e8';
+  ctx.strokeStyle = '#5a4030';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.roundRect(0, 0, w, h, 3);
@@ -341,24 +351,24 @@ function drawSpeechBubble(text, maxWidth) {
   ctx.stroke();
 
   // Tail
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = '#faf4e8';
   ctx.beginPath();
   ctx.moveTo(w / 2 - 3, h);
   ctx.lineTo(w / 2, h + 5);
   ctx.lineTo(w / 2 + 3, h);
   ctx.fill();
-  ctx.strokeStyle = '#333';
+  ctx.strokeStyle = '#5a4030';
   ctx.beginPath();
   ctx.moveTo(w / 2 - 3, h);
   ctx.lineTo(w / 2, h + 5);
   ctx.lineTo(w / 2 + 3, h);
   ctx.stroke();
   // Cover the gap
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = '#faf4e8';
   ctx.fillRect(w / 2 - 3, h - 1, 6, 2);
 
   // Text
-  ctx.fillStyle = '#222';
+  ctx.fillStyle = '#3a2820';
   ctx.font = '8px monospace';
   ctx.textAlign = 'center';
   for (let i = 0; i < lines.length; i++) {
@@ -377,16 +387,16 @@ function drawFloorTile(variant) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Base floor — slight color variation per tile
-  const bases = ['#d4d0c4', '#d6d2c6', '#d2cec2', '#d5d1c5', '#d3cfc3', '#d7d3c7', '#d1cdc1'];
+  // Base floor — warm golden VCT tiles (Stardew warmth)
+  const bases = ['#ddd0b8', '#dfd2ba', '#dbd0b6', '#ded1b9', '#dccfb7', '#e0d3bb', '#daceb5'];
   rect(ctx, 0, 0, 16, 16, bases[variant % bases.length]);
 
-  // VCT tile grid lines (vinyl composite tile — standard pharmacy floor)
-  ctx.fillStyle = '#cbc7bb';
+  // VCT tile grid lines
+  ctx.fillStyle = '#cfc2aa';
   ctx.fillRect(0, 0, 16, 1);
   ctx.fillRect(0, 0, 1, 16);
   // Inner highlight edge
-  ctx.fillStyle = '#ddd9cd';
+  ctx.fillStyle = '#e6d9c4';
   ctx.fillRect(1, 1, 15, 1);
   ctx.fillRect(1, 1, 1, 15);
 
@@ -394,26 +404,26 @@ function drawFloorTile(variant) {
   const seed = variant * 13;
   if (seed % 7 === 0) {
     // Dark scuff
-    ctx.fillStyle = '#c4c0b4';
+    ctx.fillStyle = '#c8bca4';
     ctx.fillRect(3, 8, 4, 1);
-    px(ctx, 4, 9, '#c4c0b4');
+    px(ctx, 4, 9, '#c8bca4');
   }
   if (seed % 11 === 0) {
     // Light scratch
-    ctx.fillStyle = '#d9d5c9';
+    ctx.fillStyle = '#e2d6c0';
     ctx.fillRect(6, 4, 1, 5);
   }
   if (seed % 5 === 0) {
     // Speckle cluster
-    px(ctx, 4, 7, '#c8c4b8');
-    px(ctx, 11, 3, '#ccc8bc');
-    px(ctx, 8, 12, '#c8c4b8');
+    px(ctx, 4, 7, '#ccbfa8');
+    px(ctx, 11, 3, '#d0c3ac');
+    px(ctx, 8, 12, '#ccbfa8');
   }
   if (seed % 9 === 0) {
     // Heel mark
-    ctx.fillStyle = '#c0bcb0';
+    ctx.fillStyle = '#c4b89e';
     ctx.fillRect(9, 10, 3, 1);
-    px(ctx, 10, 11, '#c0bcb0');
+    px(ctx, 10, 11, '#c4b89e');
   }
   if (seed % 13 === 0) {
     // Faint cross-pattern (wax buildup)
@@ -432,15 +442,15 @@ function drawCounterTopTile() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Laminate counter top
-  rect(ctx, 0, 0, 16, 16, '#e8e4dc');
+  // Laminate counter top — warm cream
+  rect(ctx, 0, 0, 16, 16, '#f0e4d0');
   // Subtle grain
-  ctx.fillStyle = '#e0dcd4';
+  ctx.fillStyle = '#e8dcc8';
   for (let i = 0; i < 16; i += 3) {
     ctx.fillRect(0, i, 16, 1);
   }
   // Edge highlight
-  rect(ctx, 0, 0, 16, 1, '#f0ece4');
+  rect(ctx, 0, 0, 16, 1, '#f8ecd8');
 
   spriteCache.set(key, c);
   return c;
@@ -452,14 +462,14 @@ function drawCounterFrontTile() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Dark front panel
-  rect(ctx, 0, 0, 16, 16, '#5a4a3a');
+  // Dark front panel — warm oak
+  rect(ctx, 0, 0, 16, 16, '#8b6f47');
   // Panel lines
-  rect(ctx, 0, 0, 16, 1, '#6a5a4a');
-  rect(ctx, 0, 15, 16, 1, '#4a3a2a');
-  // Vertical panel details
-  rect(ctx, 7, 0, 1, 16, '#504030');
-  rect(ctx, 8, 0, 1, 16, '#645444');
+  rect(ctx, 0, 0, 16, 1, '#9a7e56');
+  rect(ctx, 0, 15, 16, 1, '#7a5f37');
+  // Vertical panel details — wood grain
+  rect(ctx, 7, 0, 1, 16, '#7a5f37');
+  rect(ctx, 8, 0, 1, 16, '#9a7e56');
 
   spriteCache.set(key, c);
   return c;
@@ -471,19 +481,19 @@ function drawShelfTile(row) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Shelf back panel
-  rect(ctx, 0, 0, 16, 16, '#6a5535');
+  // Shelf back panel — warm wood
+  rect(ctx, 0, 0, 16, 16, '#7a5a30');
   // Vertical support brackets
-  rect(ctx, 0, 0, 1, 16, '#5a4525');
-  rect(ctx, 15, 0, 1, 16, '#5a4525');
+  rect(ctx, 0, 0, 1, 16, '#6a4a20');
+  rect(ctx, 15, 0, 1, 16, '#6a4a20');
 
-  // Shelf surfaces (3 shelves)
-  rect(ctx, 0, 0, 16, 2, '#8b7355');
-  rect(ctx, 0, 1, 16, 1, '#9b8365'); // highlight
-  rect(ctx, 0, 7, 16, 2, '#8b7355');
-  rect(ctx, 0, 8, 16, 1, '#9b8365');
-  rect(ctx, 0, 14, 16, 2, '#8b7355');
-  rect(ctx, 0, 15, 16, 1, '#9b8365');
+  // Shelf surfaces (3 shelves) — warm oak
+  rect(ctx, 0, 0, 16, 2, '#9a7a50');
+  rect(ctx, 0, 1, 16, 1, '#aa8a60'); // highlight
+  rect(ctx, 0, 7, 16, 2, '#9a7a50');
+  rect(ctx, 0, 8, 16, 1, '#aa8a60');
+  rect(ctx, 0, 14, 16, 2, '#9a7a50');
+  rect(ctx, 0, 15, 16, 1, '#aa8a60');
 
   // Medicine items on each shelf — varied types
   const seed = row * 17;
@@ -552,10 +562,10 @@ function drawWallTile() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  rect(ctx, 0, 0, 16, 16, '#e0dcd4');
+  rect(ctx, 0, 0, 16, 16, '#e8dcc8');
   // Drop ceiling grid
-  rect(ctx, 0, 15, 16, 1, '#d0ccc4');
-  rect(ctx, 15, 0, 1, 16, '#d0ccc4');
+  rect(ctx, 0, 15, 16, 1, '#d8ccb8');
+  rect(ctx, 15, 0, 1, 16, '#d8ccb8');
 
   spriteCache.set(key, c);
   return c;
@@ -567,11 +577,11 @@ function drawBackWallTile(variant) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Wall base
-  rect(ctx, 0, 0, 16, 16, '#d4d0c8');
+  // Wall base — warm
+  rect(ctx, 0, 0, 16, 16, '#e0d8c8');
   // Baseboard molding
-  rect(ctx, 0, 13, 16, 1, '#c0bcb4');
-  rect(ctx, 0, 14, 16, 2, '#b0aca4');
+  rect(ctx, 0, 13, 16, 1, '#c8bcaa');
+  rect(ctx, 0, 14, 16, 2, '#b8ac9a');
 
   const type = variant % 8;
 
@@ -735,31 +745,31 @@ function drawPhone(ringing) {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Phone base
-  rect(ctx, 3, 8, 10, 6, '#333');
-  rect(ctx, 4, 9, 8, 4, '#444');
+  // Phone base — warm dark
+  rect(ctx, 3, 8, 10, 6, '#2a2420');
+  rect(ctx, 4, 9, 8, 4, '#3a3430');
 
   // Handset
   if (!ringing) {
-    rect(ctx, 3, 6, 10, 3, '#222');
-    rect(ctx, 3, 6, 3, 2, '#222');
-    rect(ctx, 10, 6, 3, 2, '#222');
+    rect(ctx, 3, 6, 10, 3, '#1a1410');
+    rect(ctx, 3, 6, 3, 2, '#1a1410');
+    rect(ctx, 10, 6, 3, 2, '#1a1410');
   } else {
     // Handset lifted/vibrating
-    rect(ctx, 2, 3, 3, 5, '#222');
-    rect(ctx, 11, 3, 3, 5, '#222');
-    rect(ctx, 4, 3, 8, 2, '#222');
-    // Ring indicators
-    px(ctx, 1, 2, '#ff8800');
-    px(ctx, 14, 2, '#ff8800');
-    px(ctx, 0, 1, '#ff8800');
-    px(ctx, 15, 1, '#ff8800');
+    rect(ctx, 2, 3, 3, 5, '#1a1410');
+    rect(ctx, 11, 3, 3, 5, '#1a1410');
+    rect(ctx, 4, 3, 8, 2, '#1a1410');
+    // Ring indicators — warm orange
+    px(ctx, 1, 2, '#e8a040');
+    px(ctx, 14, 2, '#e8a040');
+    px(ctx, 0, 1, '#e8a040');
+    px(ctx, 15, 1, '#e8a040');
   }
 
   // Buttons
   for (let r = 0; r < 2; r++) {
     for (let c2 = 0; c2 < 3; c2++) {
-      px(ctx, 6 + c2 * 2, 10 + r * 2, '#888');
+      px(ctx, 6 + c2 * 2, 10 + r * 2, '#7a7068');
     }
   }
 
@@ -775,19 +785,19 @@ function drawRegister() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Register base
-  rect(ctx, 2, 6, 12, 8, '#555');
+  // Register base — warm dark
+  rect(ctx, 2, 6, 12, 8, '#4a4038');
   // Screen
-  rect(ctx, 3, 2, 10, 5, '#333');
-  rect(ctx, 4, 3, 8, 3, '#338855');
+  rect(ctx, 3, 2, 10, 5, '#2a2420');
+  rect(ctx, 4, 3, 8, 3, '#2a5a3a');
   // Text on screen
-  rect(ctx, 5, 4, 4, 1, '#66cc88');
+  rect(ctx, 5, 4, 4, 1, '#60c080');
   // Keypad
-  rect(ctx, 3, 8, 4, 4, '#666');
+  rect(ctx, 3, 8, 4, 4, '#5a5048');
   // Receipt slot
-  rect(ctx, 9, 7, 4, 1, '#777');
+  rect(ctx, 9, 7, 4, 1, '#6a6058');
   // Receipt paper
-  rect(ctx, 10, 4, 2, 4, '#fff');
+  rect(ctx, 10, 4, 2, 4, '#f0ede5');
 
   spriteCache.set(key, c);
   return c;
@@ -833,15 +843,15 @@ function drawCar(color) {
   rect(ctx, 2, 3, 20, 10, color || '#4466aa');
   // Roof
   rect(ctx, 5, 5, 14, 6, color ? darkenColor(color) : '#335599');
-  // Windshield
-  rect(ctx, 4, 4, 4, 8, '#88aacc');
+  // Windshield — warm tint
+  rect(ctx, 4, 4, 4, 8, '#90aabb');
   // Rear window
-  rect(ctx, 18, 5, 3, 6, '#88aacc');
-  // Wheels
-  rect(ctx, 1, 2, 3, 3, '#222');
-  rect(ctx, 1, 11, 3, 3, '#222');
-  rect(ctx, 19, 2, 3, 3, '#222');
-  rect(ctx, 19, 11, 3, 3, '#222');
+  rect(ctx, 18, 5, 3, 6, '#90aabb');
+  // Wheels — warm dark
+  rect(ctx, 1, 2, 3, 3, '#2a2018');
+  rect(ctx, 1, 11, 3, 3, '#2a2018');
+  rect(ctx, 19, 2, 3, 3, '#2a2018');
+  rect(ctx, 19, 11, 3, 3, '#2a2018');
 
   spriteCache.set(key, c);
   return c;
@@ -881,14 +891,14 @@ function drawChair() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Seat
-  rect(ctx, 3, 8, 10, 4, '#666688');
+  // Seat — warm brown wood
+  rect(ctx, 3, 8, 10, 4, '#8a7050');
   // Back
-  rect(ctx, 3, 4, 10, 5, '#777799');
-  rect(ctx, 4, 5, 8, 3, '#555577');
+  rect(ctx, 3, 4, 10, 5, '#9a8060');
+  rect(ctx, 4, 5, 8, 3, '#7a6040');
   // Legs
-  rect(ctx, 3, 12, 2, 3, '#555');
-  rect(ctx, 11, 12, 2, 3, '#555');
+  rect(ctx, 3, 12, 2, 3, '#6a5030');
+  rect(ctx, 11, 12, 2, 3, '#6a5030');
 
   spriteCache.set(key, c);
   return c;
@@ -1112,23 +1122,26 @@ function drawComputerMonitor() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Monitor bezel
-  rect(ctx, 2, 2, 12, 9, '#2a2a2a');
-  // Screen
-  rect(ctx, 3, 3, 10, 7, '#1a3a5a');
+  // Monitor bezel — warm dark
+  rect(ctx, 2, 2, 12, 9, '#2a2420');
+  // Screen — warm blue
+  rect(ctx, 3, 3, 10, 7, '#1a3850');
   // Screen content — Rx software
-  rect(ctx, 4, 4, 8, 1, '#2a5a8a');
-  rect(ctx, 4, 6, 5, 0.5, '#3a7aaa');
-  rect(ctx, 4, 7, 6, 0.5, '#3a7aaa');
-  rect(ctx, 4, 8, 4, 0.5, '#3a7aaa');
-  // Screen glow
-  px(ctx, 10, 4, '#44ff88');
+  rect(ctx, 4, 4, 8, 1, '#2a5878');
+  rect(ctx, 4, 6, 5, 0.5, '#3a7090');
+  rect(ctx, 4, 7, 6, 0.5, '#3a7090');
+  rect(ctx, 4, 8, 4, 0.5, '#3a7090');
+  // Screen glow — warm green
+  px(ctx, 10, 4, '#60c880');
+  // Scanlines
+  ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  for (let sl = 3; sl < 10; sl += 2) { ctx.fillRect(3, sl, 10, 1); }
   // Stand
-  rect(ctx, 6, 11, 4, 2, '#3a3a3a');
+  rect(ctx, 6, 11, 4, 2, '#3a3028');
   // Base
-  rect(ctx, 4, 13, 8, 1, '#4a4a4a');
+  rect(ctx, 4, 13, 8, 1, '#4a4038');
   // Power LED
-  px(ctx, 8, 10, '#44cc66');
+  px(ctx, 8, 10, '#50b868');
 
   spriteCache.set(key, c);
   return c;
@@ -1173,16 +1186,16 @@ function drawTrashBin() {
   const c = createSpriteCanvas(16, 16);
   const ctx = c.getContext('2d');
 
-  // Bin body — tapers slightly
-  rect(ctx, 4, 5, 9, 10, '#5a5a6a');
-  rect(ctx, 5, 5, 7, 10, '#6a6a7a');
+  // Bin body — warm gray
+  rect(ctx, 4, 5, 9, 10, '#5a5850');
+  rect(ctx, 5, 5, 7, 10, '#6a6858');
   // Lid
-  rect(ctx, 3, 3, 11, 3, '#7a7a8a');
-  rect(ctx, 4, 2, 9, 1, '#8a8a9a');
+  rect(ctx, 3, 3, 11, 3, '#7a7868');
+  rect(ctx, 4, 2, 9, 1, '#8a8878');
   // Swing flap
-  rect(ctx, 5, 3, 7, 1, '#6a6a7a');
+  rect(ctx, 5, 3, 7, 1, '#6a6858');
   // Foot pedal
-  rect(ctx, 5, 15, 4, 1, '#4a4a5a');
+  rect(ctx, 5, 15, 4, 1, '#4a4840');
   // Shadow
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
   ctx.beginPath();
