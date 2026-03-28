@@ -490,7 +490,7 @@ export class Renderer {
 
     // ---- TIME-OF-DAY LIGHT RAYS ----
     if (progress < 0.75) {
-      this.renderLightRays(ctx, progress);
+      this.renderLightRays(ctx, progress, gameState.weather);
     }
 
     // ---- CEILING TEXTURE (acoustic tile look) ----

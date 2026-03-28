@@ -1568,6 +1568,12 @@ export function getRandomEventAny(phaseName) {
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 
+  // Positive events (5% chance, any phase except opening)
+  if (Math.random() < 0.05 && phaseName !== 'OPENING' && EVENT_POOL.positive) {
+    const pool = EVENT_POOL.positive;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
   // True positive events (5% chance, not in opening or lunch close)
   if (Math.random() < 0.05 && phaseName !== 'OPENING' && phaseName !== 'LUNCH_CLOSE') {
     const pool = EVENT_POOL.truePositive;

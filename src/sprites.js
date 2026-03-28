@@ -1339,17 +1339,23 @@ function drawShelfTile(row) {
   rect(ctx, 0, 14, 16, 2, '#9a7a50');
   rect(ctx, 0, 15, 16, 1, '#aa8a60');
 
-  // Price tags on shelf edges (tiny colored rectangles on shelf front)
+  // Price tags on shelf edges (tiny yellow rectangle with 1px text line)
   const tagSeed = row * 31;
+  // Price tag helper: draws a 3x2 yellow tag with a 1px dark line for text
+  const drawPriceTag = (tx, ty) => {
+    rect(ctx, tx, ty, 3, 2, '#ffe866');       // yellow tag background
+    rect(ctx, tx, ty, 3, 1, '#fff4a0');       // top highlight
+    px(ctx, tx + 1, ty + 1, '#887744');       // tiny price text line
+  };
   if (tagSeed % 3 === 0) {
-    px(ctx, 3, 7, '#f0f0e0');
-    px(ctx, 10, 7, '#f0f0e0');
+    drawPriceTag(2, 7);
+    drawPriceTag(10, 7);
   } else if (tagSeed % 3 === 1) {
-    px(ctx, 5, 7, '#ffeeaa');
-    px(ctx, 12, 7, '#ffeeaa');
+    drawPriceTag(5, 7);
+    drawPriceTag(11, 14);
   } else {
-    px(ctx, 4, 14, '#f0f0e0');
-    px(ctx, 9, 14, '#ffeeaa');
+    drawPriceTag(3, 14);
+    drawPriceTag(9, 7);
   }
 
   // Medicine items on each shelf — varied types with empty spots
