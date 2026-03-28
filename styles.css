@@ -62,24 +62,24 @@ html, body {
 
 #meters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3px 6px;
+  gap: 2px;
   margin-bottom: 3px;
 }
 
 .meter {
-  flex: 1 1 28%;
+  flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .meter-label {
-  font-size: 8px;
+  font-size: 7px;
   font-weight: bold;
-  width: 30px;
+  width: 24px;
   flex-shrink: 0;
+  letter-spacing: 0.5px;
 }
 
 #meter-queue .meter-label { color: #00d4ff; }
@@ -90,7 +90,7 @@ html, body {
 
 .meter-bar {
   flex: 1;
-  height: 7px;
+  height: 6px;
   background: #2a1e14;
   border-radius: 3px;
   overflow: hidden;
@@ -111,8 +111,8 @@ html, body {
 #scrutiny-fill { background: linear-gradient(90deg, #cc66ff, #9933cc); }
 
 .meter-value {
-  font-size: 10px;
-  width: 22px;
+  font-size: 9px;
+  width: 18px;
   text-align: right;
   flex-shrink: 0;
   transition: color 0.3s;
@@ -211,7 +211,7 @@ html, body {
 #card-container {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 /* ========== EVENT CARDS ========== */
@@ -219,11 +219,11 @@ html, body {
   background: #1e1e32;
   border: 1px solid #3a3a5a;
   border-left: 4px solid #3a3a5a;
-  border-radius: 8px;
-  padding: 10px 12px 10px 10px;
+  border-radius: 6px;
+  padding: 8px 10px 8px 8px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   animation: cardSlideIn 0.25s ease-out;
   transition: max-height 0.2s, padding 0.2s, margin 0.2s, opacity 0.2s, transform 0.2s;
   position: relative;
@@ -324,13 +324,13 @@ html, body {
 }
 
 .card-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #fff;
 }
 
 .card-desc {
-  font-size: 11px;
+  font-size: 10px;
   color: #999;
   line-height: 1.3;
 }
@@ -361,12 +361,12 @@ html, body {
 
 .card-btn {
   flex: 1;
-  padding: 12px 8px;
-  min-height: 44px;
+  padding: 10px 6px;
+  min-height: 40px;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   font-family: 'Courier New', monospace;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   cursor: pointer;
   text-transform: uppercase;
@@ -514,15 +514,17 @@ html, body {
 
 .title-content, .lunch-content, .results-content {
   text-align: center;
-  padding: 30px;
+  padding: 20px 20px;
   max-width: 380px;
+  max-height: 90dvh;
+  overflow-y: auto;
 }
 
 .title-content h1 {
-  font-size: 32px;
+  font-size: 28px;
   color: #f0e8d0;
   letter-spacing: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-shadow: 0 0 20px rgba(240, 216, 128, 0.3);
   animation: titleGlow 3s ease-in-out infinite;
 }
@@ -533,31 +535,31 @@ html, body {
 }
 
 .title-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: 36px;
+  margin-bottom: 8px;
   filter: drop-shadow(0 0 8px rgba(240, 200, 100, 0.3));
 }
 
 .subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: #e8c060;
   letter-spacing: 3px;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .flavor {
-  font-size: 13px;
+  font-size: 12px;
   color: #777;
-  margin-bottom: 20px;
-  line-height: 1.5;
+  margin-bottom: 14px;
+  line-height: 1.4;
 }
 
 .title-tips {
   font-size: 10px;
   color: #555;
-  margin-bottom: 16px;
-  line-height: 1.6;
+  margin-bottom: 12px;
+  line-height: 1.5;
 }
 
 .title-tips span {
@@ -567,16 +569,16 @@ html, body {
 .big-btn {
   display: block;
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   border: 2px solid #00d4ff;
   background: transparent;
   color: #00d4ff;
   font-family: 'Courier New', monospace;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: bold;
   letter-spacing: 3px;
   cursor: pointer;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   border-radius: 4px;
   transition: background 0.2s, transform 0.1s;
 }
@@ -619,15 +621,15 @@ html, body {
 
 /* ========== RESULTS ========== */
 .results-content h2 {
-  font-size: 24px;
+  font-size: 22px;
   letter-spacing: 3px;
   margin-bottom: 4px;
 }
 
 .results-grade {
-  font-size: 48px;
+  font-size: 38px;
   font-weight: bold;
-  margin: 8px 0 12px;
+  margin: 6px 0 8px;
   letter-spacing: 4px;
 }
 
@@ -639,14 +641,14 @@ html, body {
 .grade-f { color: #ff4444; text-shadow: 0 0 15px rgba(255, 68, 68, 0.3); }
 
 #results-flavor {
-  font-size: 12px;
+  font-size: 11px;
   color: #888;
-  margin-bottom: 20px;
-  line-height: 1.5;
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 #results-meters {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .result-meter {
@@ -686,11 +688,11 @@ html, body {
   text-align: left;
   font-size: 11px;
   color: #888;
-  margin-bottom: 20px;
-  padding: 10px;
+  margin-bottom: 14px;
+  padding: 8px;
   background: #0d0d1a;
   border-radius: 6px;
-  line-height: 1.8;
+  line-height: 1.6;
 }
 
 .stat-section-label {
@@ -773,7 +775,7 @@ html, body {
   display: flex;
   gap: 8px;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .diff-btn {
@@ -936,8 +938,10 @@ html, body {
 /* ========== DAY INTRO OVERLAY ========== */
 .day-intro-content {
   text-align: center;
-  padding: 24px 20px;
+  padding: 18px 16px;
   max-width: 360px;
+  max-height: 88dvh;
+  overflow-y: auto;
 }
 
 .day-number {
@@ -991,8 +995,10 @@ html, body {
 /* ========== SHIFT END / DECISION OVERLAY ========== */
 .shift-end-content {
   text-align: center;
-  padding: 20px 16px;
+  padding: 16px 14px;
   max-width: 380px;
+  max-height: 88dvh;
+  overflow-y: auto;
 }
 
 .shift-end-content h2 {
@@ -1052,9 +1058,9 @@ html, body {
 /* ========== CAMPAIGN END OVERLAY ========== */
 .campaign-end-content {
   text-align: center;
-  padding: 20px 16px;
+  padding: 16px 14px;
   max-width: 400px;
-  max-height: 85vh;
+  max-height: 88dvh;
   overflow-y: auto;
 }
 
@@ -1073,25 +1079,25 @@ html, body {
 }
 
 .campaign-summary {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 12px;
+  margin-bottom: 14px;
 }
 
 .campaign-stat {
   text-align: center;
+  padding: 4px 0;
 }
 
 .campaign-stat-value {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: bold;
   color: #f0d880;
 }
 
 .campaign-stat-label {
-  font-size: 9px;
+  font-size: 8px;
   color: #777;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -1100,18 +1106,18 @@ html, body {
 .campaign-days {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
+  gap: 3px;
+  margin-bottom: 12px;
 }
 
 .campaign-day-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
+  padding: 4px 8px;
   background: #1a1a2e;
   border-radius: 4px;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .campaign-day-name {
@@ -1153,8 +1159,10 @@ html, body {
 .endless-intro-content,
 .endless-extend-content {
   text-align: center;
-  padding: 24px 20px;
+  padding: 18px 16px;
   max-width: 360px;
+  max-height: 88dvh;
+  overflow-y: auto;
 }
 
 .endless-prompt-text {
