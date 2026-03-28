@@ -273,15 +273,129 @@ const EVENT_POOL = {
     },
   ],
 
-  // ========== POSITIVE EVENTS (rare breather) ==========
-  positive: [
+  // ========== TRUE POSITIVE EVENTS (genuinely good moments) ==========
+  truePositive: [
     {
-      id: 'patient_thanks',
-      title: 'PATIENT THANK-YOU',
-      desc: '"You\'re the only one who helps me."',
+      id: 'rockstar_tech',
+      title: 'ROCKSTAR TECH',
+      desc: 'Tech handled 5 scripts while you were on the phone.',
+      station: 'verify',
+      duration: 3,
+      effects: { queue: -6, burnout: -3, safety: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'clinical_save',
+      title: 'CLINICAL SAVE',
+      desc: 'You caught a dangerous interaction.',
+      station: 'verify',
+      duration: 4,
+      effects: { safety: -8, scrutiny: -3, burnout: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'patient_defends',
+      title: 'PATIENT DEFENDS YOU',
+      desc: "'Leave them alone, they're doing their best.'",
+      station: 'pickup',
+      duration: 2,
+      effects: { rage: -6, burnout: -4 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'they_apologize',
+      title: 'THEY APOLOGIZE',
+      desc: "'I'm sorry I yelled. Bad day.'",
+      station: 'pickup',
+      duration: 2,
+      effects: { rage: -5, burnout: -3 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'real_thank_you',
+      title: 'REAL THANK YOU',
+      desc: 'Patient wrote a card. By hand.',
+      station: 'pickup',
+      duration: 2,
+      effects: { burnout: -5, scrutiny: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'training_paid_off',
+      title: 'TRAINING PAID OFF',
+      desc: 'New tech just handled a crisis solo.',
+      station: 'verify',
+      duration: 3,
+      effects: { queue: -4, burnout: -3, safety: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'true_doctor_moment',
+      title: 'TRUE DOCTOR MOMENT',
+      desc: 'Your clinical knowledge genuinely helped someone.',
+      station: 'consult',
+      duration: 4,
+      effects: { burnout: -5, scrutiny: -3, safety: -3 },
+      canDefer: false,
+      isPositive: true,
+    },
+  ],
+
+  // ========== RELIEF EVENTS (temporary breathing room) ==========
+  relief: [
+    {
+      id: 'phone_pause',
+      title: 'PHONE PAUSE',
+      desc: 'Phones went quiet. Enjoy it.',
+      station: 'phone',
+      duration: 2,
+      effects: { burnout: -2, queue: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'quiet_five',
+      title: 'QUIET FIVE MINUTES',
+      desc: "Nobody's yelling. Suspicious.",
+      station: 'verify',
+      duration: 2,
+      effects: { burnout: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'line_thins',
+      title: 'LINE THINS OUT',
+      desc: 'Wait... is no one in line?',
+      station: 'pickup',
+      duration: 2,
+      effects: { queue: -5, rage: -3 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'smooth_reopen',
+      title: 'SMOOTH REOPEN',
+      desc: "Post-lunch rush wasn't as bad as expected.",
       station: 'pickup',
       duration: 3,
-      effects: { rage: -4, burnout: -3 },
+      effects: { queue: -4, rage: -4 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'insurance_goes_through',
+      title: 'INSURANCE GOES THROUGH',
+      desc: 'First try. No prior auth.',
+      station: 'verify',
+      duration: 2,
+      effects: { queue: -3, burnout: -1 },
       canDefer: false,
       isPositive: true,
     },
@@ -292,6 +406,50 @@ const EVENT_POOL = {
       station: 'verify',
       duration: 5,
       effects: { queue: -8, burnout: 1 },
+      canDefer: false,
+      isPositive: true,
+    },
+  ],
+
+  // ========== COMIC EVENTS (humor and humanity) ==========
+  comic: [
+    {
+      id: 'drive_thru_dog',
+      title: 'DRIVE-THRU DOG',
+      desc: 'Dog in the car. Very excited to see you.',
+      station: 'drive',
+      duration: 2,
+      effects: { burnout: -3 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'coworker_joke',
+      title: 'COWORKER ONE-LINER',
+      desc: "Tech: 'If I wanted abuse, I'd call my ex.'",
+      station: 'verify',
+      duration: 1,
+      effects: { burnout: -2 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'harmless_weird',
+      title: 'HARMLESS WEIRD',
+      desc: 'Patient wants to know if you sell live fish.',
+      station: 'consult',
+      duration: 2,
+      effects: { burnout: -1 },
+      canDefer: false,
+      isPositive: true,
+    },
+    {
+      id: 'kid_waves',
+      title: 'KID WAVES',
+      desc: "Little kid at pickup waves and says 'hi doctor.'",
+      station: 'pickup',
+      duration: 1,
+      effects: { burnout: -2 },
       canDefer: false,
       isPositive: true,
     },
@@ -662,6 +820,202 @@ const EVENT_POOL = {
       canDefer: true,
     },
   ],
+
+  // ========== STICKY SOCIAL ENCOUNTERS / "CAN'T BE RUDE" ==========
+  social: [
+    {
+      id: 'lonely_regular',
+      title: 'LONELY REGULAR',
+      desc: 'They just want to talk. For 20 minutes.',
+      station: 'pickup',
+      duration: 8,
+      effects: { burnout: 5, queue: 3 },
+      ignoreEffects: { rage: 3 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'how_are_kids',
+      title: 'HOW ARE THE KIDS?',
+      desc: "You don't have kids.",
+      station: 'pickup',
+      duration: 4,
+      effects: { burnout: 2 },
+      ignoreEffects: { rage: 2 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'patient_friend',
+      title: "THINKS YOU'RE FRIENDS",
+      desc: 'Brought you cookies. Needs 30 minutes.',
+      station: 'consult',
+      duration: 9,
+      effects: { burnout: 4, queue: 4 },
+      ignoreEffects: { rage: 4, burnout: 2 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'cant_be_rude',
+      title: "CAN'T BE RUDE",
+      desc: 'Elderly patient telling a long story.',
+      station: 'pickup',
+      duration: 7,
+      effects: { burnout: 3, queue: 3 },
+      ignoreEffects: { rage: 5 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+  ],
+
+  // ========== GUILT TRIP AT COUNTER ==========
+  guilt: [
+    {
+      id: 'sick_kid',
+      title: 'MY KID IS SICK',
+      desc: 'Uses child as emotional leverage.',
+      station: 'pickup',
+      duration: 6,
+      effects: { rage: -5, burnout: 4, safety: 2 },
+      ignoreEffects: { rage: 6 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'mom_is_dying',
+      title: 'MY MOM IS DYING',
+      desc: 'Needs compassion AND speed.',
+      station: 'pickup',
+      duration: 7,
+      effects: { rage: -6, burnout: 5 },
+      ignoreEffects: { rage: 7 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'no_one_cares',
+      title: 'NO ONE CARES ABOUT ME',
+      desc: 'Emotional collapse at counter.',
+      station: 'consult',
+      duration: 8,
+      effects: { rage: -4, burnout: 6, scrutiny: 2 },
+      ignoreEffects: { rage: 5, scrutiny: 3 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+  ],
+
+  // ========== PHONE TRAPS ==========
+  phone_trap: [
+    {
+      id: 'lonely_caller',
+      title: 'LONELY CALLER',
+      desc: "Won't stop talking. Can't hang up.",
+      station: 'phone',
+      duration: 10,
+      effects: { burnout: 5, queue: 4 },
+      ignoreEffects: { rage: 4 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'transfer_hold',
+      title: 'TRANSFER HOLD HELL',
+      desc: 'On hold 20 min, they answered when you stepped away.',
+      station: 'phone',
+      duration: 8,
+      effects: { queue: -3, rage: -4, burnout: 5 },
+      ignoreEffects: { rage: 5, queue: 4 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'call_own_insurance',
+      title: 'CALL YOUR OWN INSURANCE',
+      desc: 'Patient expects you to handle their insurer.',
+      station: 'phone',
+      duration: 9,
+      effects: { rage: -5, burnout: 4 },
+      ignoreEffects: { rage: 6 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+  ],
+
+  // ========== PULLED INTO THE AISLE / GOT SWARMED ==========
+  aisle: [
+    {
+      id: 'aisle_swarm',
+      title: 'GOT SWARMED',
+      desc: 'Stepped out, now 3 people asking questions.',
+      station: 'consult',
+      duration: 10,
+      effects: { queue: 5, burnout: 5, safety: 3 },
+      ignoreEffects: { rage: 4, queue: 3 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'aisle_trap',
+      title: 'AISLE TRAP',
+      desc: 'Left to help one person, trapped by two more.',
+      station: 'consult',
+      duration: 8,
+      effects: { queue: 4, burnout: 4 },
+      ignoreEffects: { rage: 3, queue: 3 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'drive_shopping',
+      title: 'DRIVE-THRU SHOPPING',
+      desc: 'Wants you to grab items from the store.',
+      station: 'drive',
+      duration: 7,
+      effects: { queue: 3, burnout: 3, rage: -3 },
+      ignoreEffects: { rage: 5 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+  ],
+
+  // ========== LEGENDARY ABSURDITY (very rare) ==========
+  absurd: [
+    {
+      id: 'rat_pharmacy',
+      title: 'RAT IN THE PHARMACY',
+      desc: 'There is a rat. In the pharmacy.',
+      station: 'consult',
+      duration: 6,
+      effects: { safety: 8, scrutiny: 5, burnout: 3 },
+      ignoreEffects: { safety: 10, scrutiny: 8 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'car_building',
+      title: 'CAR INTO BUILDING',
+      desc: 'Someone drove into the storefront.',
+      station: 'pickup',
+      duration: 12,
+      effects: { safety: 10, scrutiny: 8, queue: 10, rage: 5 },
+      ignoreEffects: { safety: 12, scrutiny: 10 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+    {
+      id: 'checked_out_rph',
+      title: 'CHECKED-OUT PHARMACIST',
+      desc: 'Your partner pharmacist just... left.',
+      station: 'verify',
+      duration: 8,
+      effects: { burnout: 8, safety: 5, scrutiny: 3 },
+      ignoreEffects: { safety: 8, scrutiny: 5 },
+      canDefer: false,
+      isInterrupt: false,
+    },
+  ],
 };
 
 // Escalated event variants
@@ -889,9 +1243,21 @@ export function getRandomEventAny(phaseName) {
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 
-  // Rare positive event (8% chance, not in opening or lunch)
-  if (Math.random() < 0.08 && phaseName !== 'OPENING' && phaseName !== 'LUNCH_CLOSE') {
-    const pool = EVENT_POOL.positive;
+  // True positive events (5% chance, not in opening or lunch close)
+  if (Math.random() < 0.05 && phaseName !== 'OPENING' && phaseName !== 'LUNCH_CLOSE') {
+    const pool = EVENT_POOL.truePositive;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Relief events (6% chance, any phase except opening)
+  if (Math.random() < 0.06 && phaseName !== 'OPENING') {
+    const pool = EVENT_POOL.relief;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Comic events (4% chance, any phase)
+  if (Math.random() < 0.04) {
+    const pool = EVENT_POOL.comic;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 
@@ -931,6 +1297,36 @@ export function getRandomEventAny(phaseName) {
   // Tech/system failure events (6% flat chance)
   if (Math.random() < 0.06 && EVENT_POOL.tech) {
     const pool = EVENT_POOL.tech;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Social encounters (8% chance, not in opening)
+  if (Math.random() < 0.08 && phaseName !== 'OPENING' && EVENT_POOL.social) {
+    const pool = EVENT_POOL.social;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Guilt trip events (6% chance, not in opening)
+  if (Math.random() < 0.06 && phaseName !== 'OPENING' && EVENT_POOL.guilt) {
+    const pool = EVENT_POOL.guilt;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Phone trap events (5% chance, any phase)
+  if (Math.random() < 0.05 && EVENT_POOL.phone_trap) {
+    const pool = EVENT_POOL.phone_trap;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Aisle swarm events (6% chance, not in opening)
+  if (Math.random() < 0.06 && phaseName !== 'OPENING' && EVENT_POOL.aisle) {
+    const pool = EVENT_POOL.aisle;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Legendary absurdity (1% chance, only in REOPEN_RUSH or LATE_DRAG)
+  if (Math.random() < 0.01 && (phaseName === 'REOPEN_RUSH' || phaseName === 'LATE_DRAG') && EVENT_POOL.absurd) {
+    const pool = EVENT_POOL.absurd;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 

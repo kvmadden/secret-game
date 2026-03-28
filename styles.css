@@ -1139,6 +1139,77 @@ html, body {
 .campaign-day-result.won { color: #80cc80; }
 .campaign-day-result.lost { color: #ff6644; }
 
+/* ========== ENDLESS MODE ========== */
+.endless-btn {
+  background: #2a0a0a;
+  color: #ff6644;
+  border: 2px solid #993322;
+  margin-top: 6px;
+}
+.endless-btn:active {
+  background: #3a1a1a;
+}
+
+.endless-intro-content,
+.endless-extend-content {
+  text-align: center;
+  padding: 24px 20px;
+  max-width: 360px;
+}
+
+.endless-prompt-text {
+  font-size: 18px;
+  color: #f0d880;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.endless-prompt-sub {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+  margin-bottom: 16px;
+}
+
+.endless-fatigue {
+  margin: 12px 0;
+  text-align: center;
+}
+
+.fatigue-bar-bg {
+  width: 200px;
+  height: 10px;
+  background: #1a1a2e;
+  border-radius: 5px;
+  overflow: hidden;
+  margin: 6px auto;
+  border: 1px solid #333;
+}
+
+.fatigue-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff8800, #ff4444);
+  border-radius: 5px;
+  transition: width 0.5s;
+}
+
+.fatigue-label {
+  font-size: 10px;
+  color: #ff8800;
+  letter-spacing: 1px;
+}
+
+.endless-extend-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.endless-extend-buttons .big-btn {
+  min-width: 120px;
+}
+
 /* ========== CAMPAIGN HUD INDICATOR ========== */
 #campaign-hud {
   display: none;

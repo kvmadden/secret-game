@@ -22,6 +22,7 @@ import { createTileMap } from './map.js';
 import { Renderer } from './renderer.js';
 import { UI } from './ui.js';
 import { Campaign } from './campaign.js';
+import { EndlessMode } from './endless.js';
 import * as Audio from './audio.js';
 
 let uidCounter = 0;
@@ -35,6 +36,7 @@ export class Game {
     this.renderer.init(this.tileMap);
     this.difficulty = 'NORMAL';
     this.campaign = new Campaign();
+    this.endless = new EndlessMode();
     this.reset();
     this.setupListeners();
     this.loadHighScores();
@@ -143,6 +145,9 @@ export class Game {
     this.ui.hideDayIntro();
     this.ui.hideShiftEnd();
     this.ui.hideCampaignEnd();
+    this.ui.hideEndlessIntro();
+    this.ui.hideEndlessExtend();
+    this.ui.hideEndlessEnd();
 
     this.updatePipelineCards();
   }
@@ -179,6 +184,30 @@ export class Game {
       Audio.playClick();
       this.ui.hideDayIntro();
       this.startShiftFromCampaign();
+    });
+
+    // Endless mode button
+    document.getElementById('endless-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.startEndless();
+    });
+
+    // Endless intro start
+    document.getElementById('endless-go-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.ui.hideEndlessIntro();
+      this.startEndlessSegment();
+    });
+
+    // Endless end → title
+    document.getElementById('endless-title-btn').addEventListener('click', () => {
+      Audio.playClick();
+      this.endless.reset();
+      this.reset();
+      this.ui.hideEndlessEnd();
+      this.ui.showTitle();
+      this.loadHighScores();
+      this.startTitleAnimation();
     });
 
     // Campaign end → title
@@ -258,7 +287,7 @@ export class Game {
     }
 
     // Game over: Enter/Space to retry (only in quick shift mode)
-    if (this.state === 'GAMEOVER' && !this.campaign.isActive()) {
+    if (this.state === 'GAMEOVER' && !this.campaign.isActive() && !this.endless.isActive()) {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         Audio.playClick();
@@ -286,6 +315,17 @@ export class Game {
         e.preventDefault();
         Audio.playClick();
         this.handleCampaignDecision(num - 1);
+      }
+      return;
+    }
+
+    // Endless intro: Enter/Space to start
+    if (this.state === 'ENDLESS_INTRO') {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        Audio.playClick();
+        this.ui.hideEndlessIntro();
+        this.startEndlessSegment();
       }
       return;
     }
@@ -1499,7 +1539,8 @@ export class Game {
 
     const meterSnapshot = { ...this.meters };
 
-    this.ui.showResults(won, lostMeter, meterSnapshot, this.stats, this.campaign.isActive());
+    const hideButtons = this.campaign.isActive() || this.endless.isActive();
+    this.ui.showResults(won, lostMeter, meterSnapshot, this.stats, hideButtons);
 
     // Achievements
     const newAchievements = this.ui.checkAchievements(won, meterSnapshot, this.stats);
@@ -1508,7 +1549,7 @@ export class Game {
     }
 
     // Save high score (quick shift only)
-    if (!this.campaign.isActive()) {
+    if (!this.campaign.isActive() && !this.endless.isActive()) {
       const grade = this.ui.calculateGrade(won, this.meters, this.stats);
       this.saveHighScore(grade, won);
     }
@@ -1516,6 +1557,11 @@ export class Game {
     // Campaign: route to between-shift flow
     if (this.campaign.isActive()) {
       this.handleCampaignShiftEnd(won, lostMeter);
+    }
+
+    // Endless: route to extension prompt or end
+    if (this.endless.isActive()) {
+      this.handleEndlessShiftEnd(won);
     }
   }
 
@@ -1701,6 +1747,136 @@ export class Game {
       this.ui.showCampaignEnd(endMsg, summary);
       this.state = 'CAMPAIGN_END';
     }
+  }
+
+  // ========== ENDLESS MODE ==========
+
+  startEndless() {
+    this.stopTitleAnimation();
+    this.endless.start();
+    this.ui.hideTitle();
+    this.showEndlessIntro();
+  }
+
+  showEndlessIntro() {
+    this.state = 'ENDLESS_INTRO';
+    const segInfo = this.endless.getSegmentInfo();
+    this.ui.showEndlessIntro(segInfo);
+  }
+
+  startEndlessSegment() {
+    const seg = this.endless.currentSegmentType;
+    this.diff = DIFFICULTY[this.difficulty] || DIFFICULTY.NORMAL;
+    this.shiftDay = this.endless.getShiftDay();
+    this.weather = this.endless.getWeather();
+
+    // Reset shift state
+    this.time = 0;
+    this.elapsed = 0;
+    this.lastTimestamp = null;
+    this.meters = this.endless.getStartingMeters();
+    this.meterWarningCooldown = { queue: 0, safety: 0, rage: 0, burnout: 0, scrutiny: 0 };
+    this.phase = 'OPENING';
+    this.prevPhase = null;
+
+    this.pharmacist = {
+      col: PHARMACIST_START.col, row: PHARMACIST_START.row,
+      state: 'IDLE', facing: 'right', path: [], pathIndex: 0,
+      workTimer: 0, workDuration: 0, workEvent: null, workLabel: '',
+      idleTimer: 0, stress: 0,
+    };
+
+    this.pipeline = new Pipeline();
+    this.pipeline.addScript(2);
+    this.stationManager = new StationManager();
+    this.activeEvents = [];
+    this.deferredEvents = [];
+    this.patients = [];
+    this.nextPatientId = 0;
+    this.driveThruCars = 0;
+    this.ambientShoppers = [];
+    this.ambientShopperTimer = 2;
+    this.nextEventTimer = 3;
+    this.nextScriptTimer = 6;
+    this.lunchMessageTimer = 0;
+    this.lunchMessageIndex = 0;
+    this.phoneRinging = false;
+    this.phoneRingTimer = 0;
+    this.lunchGraceTimer = 0;
+    this.comboCount = 0;
+    this.comboTimer = 0;
+    this.tutorialShown = new Set();
+    this.tutorialTimer = 0;
+    this.stats = {
+      eventsHandled: 0, scriptsVerified: 0, patientsServed: 0,
+      eventsDeferred: 0, eventsEscalated: 0, patientsLost: 0,
+    };
+
+    this.ui.clearCards();
+    this.ui.hideWorkProgress();
+    this.ui.hideLunch();
+    this.ui.hideResults();
+    this.ui.hidePhaseAnnounce();
+    this.ui.hideTutorial();
+    this.ui.hidePause();
+    this.ui.hideCombo();
+    this.ui.showCampaignHud(this.endless.segment, '∞');
+
+    this.state = 'PLAYING';
+    this.renderer.setOverview(false);
+    this.lastTimestamp = performance.now();
+    Audio.startAmbient();
+    this.spawnInitialPatients();
+
+    this.ui.showPhaseAnnounce(seg.name);
+    this.updatePipelineCards();
+    this.tick();
+  }
+
+  handleEndlessShiftEnd(won) {
+    this.endless.recordSegmentResult(won, this.meters, this.stats);
+
+    if (!won) {
+      // Collapsed — show endless end
+      this.endless.collapse();
+      setTimeout(() => {
+        this.ui.hideResults();
+        const endMsg = this.endless.getEndMessage();
+        const summary = this.endless.getEndlessSummary();
+        this.ui.showEndlessEnd(endMsg, summary);
+        this.state = 'ENDLESS_END';
+      }, 2000);
+      return;
+    }
+
+    // Survived — ask to continue
+    setTimeout(() => {
+      this.ui.hideResults();
+      const prompt = this.endless.getExtensionPrompt();
+      this.state = 'ENDLESS_EXTEND';
+      this.ui.showEndlessExtend(
+        prompt,
+        this.endless.fatigue,
+        this.endless.hoursAwake,
+        () => {
+          // STAY
+          Audio.playClick();
+          this.ui.hideEndlessExtend();
+          this.endless.advanceSegment();
+          this.showEndlessIntro();
+        },
+        () => {
+          // CLOCK OUT
+          Audio.playClick();
+          this.ui.hideEndlessExtend();
+          this.endless.cashOut();
+          const endMsg = this.endless.getEndMessage();
+          const summary = this.endless.getEndlessSummary();
+          this.ui.showEndlessEnd(endMsg, summary);
+          this.state = 'ENDLESS_END';
+        }
+      );
+    }, 2000);
   }
 
   // ========== HIGH SCORES ==========

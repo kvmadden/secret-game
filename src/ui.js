@@ -698,4 +698,99 @@ export class UI {
     const overlay = document.getElementById('campaign-end');
     if (overlay) overlay.style.display = 'none';
   }
+
+  // ========== ENDLESS MODE UI ==========
+
+  showEndlessIntro(segInfo) {
+    const overlay = document.getElementById('endless-intro');
+    if (!overlay) return;
+    document.getElementById('endless-segment-num').textContent = `SEGMENT ${segInfo.segment}`;
+    document.getElementById('endless-store-name').textContent = segInfo.type.name;
+    document.getElementById('endless-store-desc').textContent = segInfo.type.desc;
+    document.getElementById('endless-store-flavor').textContent = segInfo.type.flavor;
+    document.getElementById('endless-fatigue-display').innerHTML = this._fatigueBar(segInfo.fatigue, segInfo.hoursAwake);
+    overlay.style.display = 'flex';
+  }
+
+  hideEndlessIntro() {
+    const el = document.getElementById('endless-intro');
+    if (el) el.style.display = 'none';
+  }
+
+  showEndlessExtend(prompt, fatigue, hoursAwake, onStay, onLeave) {
+    const overlay = document.getElementById('endless-extend');
+    if (!overlay) return;
+    document.getElementById('endless-extend-prompt').textContent = prompt.prompt;
+    document.getElementById('endless-extend-sub').textContent = prompt.sub;
+    document.getElementById('endless-extend-fatigue').innerHTML = this._fatigueBar(fatigue, hoursAwake);
+
+    // Wire buttons (clone to remove old listeners)
+    const stayBtn = document.getElementById('endless-stay-btn');
+    const leaveBtn = document.getElementById('endless-leave-btn');
+    const newStay = stayBtn.cloneNode(true);
+    const newLeave = leaveBtn.cloneNode(true);
+    stayBtn.replaceWith(newStay);
+    leaveBtn.replaceWith(newLeave);
+    newStay.addEventListener('click', onStay);
+    newLeave.addEventListener('click', onLeave);
+
+    overlay.style.display = 'flex';
+  }
+
+  hideEndlessExtend() {
+    const el = document.getElementById('endless-extend');
+    if (el) el.style.display = 'none';
+  }
+
+  showEndlessEnd(endMsg, summary) {
+    const overlay = document.getElementById('endless-end');
+    if (!overlay) return;
+
+    const titleEl = document.getElementById('endless-end-title');
+    titleEl.textContent = endMsg.title;
+    titleEl.style.color = summary.cashedOut ? '#f0d880' : '#ff4444';
+    document.getElementById('endless-end-flavor').textContent = endMsg.flavor;
+
+    document.getElementById('endless-end-summary').innerHTML = `
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.segments}</div>
+        <div class="campaign-stat-label">SEGMENTS</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.survived}</div>
+        <div class="campaign-stat-label">SURVIVED</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${summary.hoursAwake}h</div>
+        <div class="campaign-stat-label">AWAKE</div>
+      </div>
+      <div class="campaign-stat">
+        <div class="campaign-stat-value">${Math.round(summary.fatigue)}</div>
+        <div class="campaign-stat-label">FATIGUE</div>
+      </div>
+    `;
+
+    document.getElementById('endless-end-segments').innerHTML = summary.results.map((r, i) => `
+      <div class="campaign-day-row">
+        <span class="campaign-day-name">${r.segmentName}</span>
+        <span class="campaign-day-result ${r.won ? 'won' : 'lost'}">${r.won ? 'SURVIVED' : 'COLLAPSED'}</span>
+      </div>
+    `).join('');
+
+    overlay.style.display = 'flex';
+  }
+
+  hideEndlessEnd() {
+    const el = document.getElementById('endless-end');
+    if (el) el.style.display = 'none';
+  }
+
+  _fatigueBar(fatigue, hours) {
+    return `
+      <div class="fatigue-label">FATIGUE — ${Math.round(fatigue)}% | ${hours}h AWAKE</div>
+      <div class="fatigue-bar-bg">
+        <div class="fatigue-bar-fill" style="width:${Math.min(100, fatigue)}%"></div>
+      </div>
+    `;
+  }
 }

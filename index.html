@@ -88,6 +88,7 @@
         </div>
         <button id="start-btn" class="big-btn">QUICK SHIFT</button>
         <button id="campaign-btn" class="big-btn campaign-btn">CAMPAIGN WEEK</button>
+        <button id="endless-btn" class="big-btn endless-btn">NO RELIEF</button>
         <div id="high-score-display"></div>
       </div>
     </div>
@@ -156,6 +157,42 @@
         <div id="campaign-summary" class="campaign-summary"></div>
         <div id="campaign-day-results" class="campaign-days"></div>
         <button id="campaign-title-btn" class="big-btn">BACK TO TITLE</button>
+      </div>
+    </div>
+
+    <!-- Endless Segment Intro -->
+    <div id="endless-intro" class="overlay" style="display:none;">
+      <div class="endless-intro-content">
+        <div id="endless-segment-num" class="day-number">SEGMENT 1</div>
+        <h2 id="endless-store-name">Late Close</h2>
+        <p id="endless-store-desc" class="day-intro-text"></p>
+        <p id="endless-store-flavor" class="day-intro-flavor"></p>
+        <div id="endless-fatigue-display" class="endless-fatigue"></div>
+        <button id="endless-go-btn" class="big-btn">START</button>
+      </div>
+    </div>
+
+    <!-- Endless Extension Prompt -->
+    <div id="endless-extend" class="overlay" style="display:none;">
+      <div class="endless-extend-content">
+        <p id="endless-extend-prompt" class="endless-prompt-text"></p>
+        <p id="endless-extend-sub" class="endless-prompt-sub"></p>
+        <div id="endless-extend-fatigue" class="endless-fatigue"></div>
+        <div class="endless-extend-buttons">
+          <button id="endless-stay-btn" class="big-btn">STAY</button>
+          <button id="endless-leave-btn" class="big-btn secondary">CLOCK OUT</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Endless End Screen -->
+    <div id="endless-end" class="overlay" style="display:none;">
+      <div class="campaign-end-content">
+        <h2 id="endless-end-title">NO RELIEF</h2>
+        <p id="endless-end-flavor" class="campaign-flavor"></p>
+        <div id="endless-end-summary" class="campaign-summary"></div>
+        <div id="endless-end-segments" class="campaign-days"></div>
+        <button id="endless-title-btn" class="big-btn">BACK TO TITLE</button>
       </div>
     </div>
 
