@@ -695,16 +695,15 @@ export class UI {
       </div>
     `;
 
-    // Day-by-day results
-    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    // Compact shift grid — each shift is a grade pip
     const daysEl = document.getElementById('campaign-day-results');
-    daysEl.innerHTML = summary.results.map((r, i) => `
-      <div class="campaign-day-row">
-        <span class="campaign-day-name">${dayNames[i] || 'Day ' + (i + 1)}</span>
-        <span class="campaign-day-grade grade-${r.grade.toLowerCase()}">${r.grade}</span>
-        <span class="campaign-day-result ${r.won ? 'won' : 'lost'}">${r.won ? 'SURVIVED' : 'LOST'}</span>
-      </div>
-    `).join('');
+    daysEl.innerHTML = '<div class="campaign-shift-label">SHIFTS</div><div class="campaign-shift-grid">' +
+      summary.results.map((r, i) => `
+        <div class="shift-pip grade-${r.grade.toLowerCase()} ${r.won ? 'won' : 'lost'}" title="Shift ${i + 1}: ${r.grade} ${r.won ? 'Won' : 'Lost'}">
+          <span class="pip-num">${i + 1}</span>
+          <span class="pip-grade">${r.grade}</span>
+        </div>
+      `).join('') + '</div>';
 
     overlay.style.display = 'flex';
   }

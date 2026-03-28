@@ -13,13 +13,20 @@
     <!-- Zone 1: HUD -->
     <div id="hud">
       <div id="hud-top">
-        <div id="phase-name">OPENING</div>
+        <div id="hud-left">
+          <div id="phase-name">OPENING</div>
+          <div id="pipeline-indicator">
+            <span class="pipe-stage" id="pipe-unverified">📋<span id="pipe-unverified-count">0</span></span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-stage" id="pipe-ready">✓<span id="pipe-ready-count">0</span></span>
+            <span class="pipe-arrow">→</span>
+            <span class="pipe-stage" id="pipe-served">🛍<span id="pipe-served-count">0</span></span>
+          </div>
+        </div>
         <div id="combo-indicator" style="display:none;"><span id="combo-count">x2</span> COMBO</div>
         <div id="hud-right">
           <div id="timer">9:00 AM</div>
-          <button id="zoom-btn">🔍</button>
-          <button id="mute-btn">🔊</button>
-          <button id="pause-btn">⏸</button>
+          <button id="pause-btn" title="Pause / Mute / Zoom">⏸</button>
         </div>
       </div>
       <div id="meters">
@@ -50,13 +57,6 @@
         </div>
       </div>
       <div id="campaign-hud"></div>
-      <div id="pipeline-indicator">
-        <span class="pipe-stage" id="pipe-unverified">📋 <span id="pipe-unverified-count">0</span></span>
-        <span class="pipe-arrow">→</span>
-        <span class="pipe-stage" id="pipe-ready">✓ <span id="pipe-ready-count">0</span></span>
-        <span class="pipe-arrow">→</span>
-        <span class="pipe-stage" id="pipe-served">🛍 <span id="pipe-served-count">0</span></span>
-      </div>
     </div>
 
     <!-- Zone 2: Pharmacy Canvas -->
@@ -120,6 +120,10 @@
       <div class="pause-content">
         <h2>PAUSED</h2>
         <p class="pause-flavor">Take a breath. They'll still be angry when you get back.</p>
+        <div class="pause-controls">
+          <button id="zoom-btn" class="pause-ctrl-btn">🔍 ZOOM</button>
+          <button id="mute-btn" class="pause-ctrl-btn">🔊 SOUND</button>
+        </div>
         <button id="resume-btn" class="big-btn">RESUME</button>
       </div>
     </div>
