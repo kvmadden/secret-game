@@ -20,8 +20,10 @@ export const SHIFT_END_HOUR = 15;   // 3:00 PM (6 hour shift)
 // ========== COLORS ==========
 export const COLORS = {
   QUEUE: '#00d4ff',
+  SAFETY: '#ffcc00',
   RAGE: '#ff4444',
   BURNOUT: '#ff8800',
+  SCRUTINY: '#cc66ff',
 
   // Pharmacy palette — warm Stardew-inspired tones
   FLOOR: '#e0d4c0',
@@ -78,11 +80,11 @@ export const PHASE_EVENT_INTERVAL = {
 
 // Phase-based ambient meter pressure per second
 export const PHASE_AMBIENT = {
-  OPENING:     { queue: 0.2,  rage: 0.15, burnout: 0.08 },
-  BUILDING:    { queue: 0.4,  rage: 0.3,  burnout: 0.15 },
-  LUNCH_CLOSE: { queue: 0.7,  rage: 0.9,  burnout: -0.12 },
-  REOPEN_RUSH: { queue: 0.6,  rage: 0.45, burnout: 0.25 },
-  LATE_DRAG:   { queue: 0.25, rage: 0.2,  burnout: 0.2 },
+  OPENING:     { queue: 0.2,  safety: 0.05, rage: 0.15, burnout: 0.08, scrutiny: 0.03 },
+  BUILDING:    { queue: 0.4,  safety: 0.12, rage: 0.3,  burnout: 0.15, scrutiny: 0.08 },
+  LUNCH_CLOSE: { queue: 0.7,  safety: 0.08, rage: 0.9,  burnout: -0.12, scrutiny: 0.15 },
+  REOPEN_RUSH: { queue: 0.6,  safety: 0.2,  rage: 0.45, burnout: 0.25, scrutiny: 0.12 },
+  LATE_DRAG:   { queue: 0.25, safety: 0.15, rage: 0.2,  burnout: 0.2,  scrutiny: 0.1 },
 };
 
 // Script pipeline intervals (seconds between new scripts entering)
@@ -167,6 +169,7 @@ export const PATIENT_BARKS = [
 // ========== PIPELINE DANGER THRESHOLDS ==========
 export const PIPELINE_QUEUE_PRESSURE_MULT = 0.06; // per unverified script per second
 export const PIPELINE_RAGE_PRESSURE_MULT = 0.03;  // per ready-but-unserved script
+export const PIPELINE_SAFETY_PRESSURE_MULT = 0.04; // rushed scripts increase safety risk
 
 // ========== ESCALATION ==========
 export const MAX_ESCALATION_CHAIN = 3; // After 3 escalations, event expires with full penalty
@@ -214,9 +217,11 @@ export const WIN_TITLES = [
 ];
 
 export const LOSS_TITLES = {
-  queue:   { title: 'QUEUE COLLAPSE', flavor: 'The line reached the blood pressure machine.' },
-  rage:    { title: 'THEY WANT YOUR NAME', flavor: 'Corporate will hear about this. All of it.' },
-  burnout: { title: 'BURNED OUT', flavor: 'You stared at a vial for 30 seconds and forgot why.' },
+  queue:    { title: 'QUEUE COLLAPSE', flavor: 'The line reached the blood pressure machine.' },
+  safety:   { title: 'NEAR MISS', flavor: 'You almost dispensed the wrong thing. Almost.' },
+  rage:     { title: 'THEY WANT YOUR NAME', flavor: 'Corporate will hear about this. All of it.' },
+  burnout:  { title: 'BURNED OUT', flavor: 'You stared at a vial for 30 seconds and forgot why.' },
+  scrutiny: { title: 'UNDER REVIEW', flavor: 'District manager is on the phone. For you.' },
 };
 
 // Extended loss flavors per meter
@@ -226,6 +231,12 @@ export const LOSS_FLAVORS = {
     'People are queuing outside. In the rain.',
     'The drive-thru line is blocking the road.',
     'They opened a second line at the register. There is no second register.',
+  ],
+  safety: [
+    'You almost dispensed the wrong thing. Almost.',
+    'The board will want to see your notes.',
+    'A near-miss report just got filed. By you.',
+    'You caught it. This time.',
   ],
   rage: [
     'Corporate will hear about this. All of it.',
@@ -238,6 +249,12 @@ export const LOSS_FLAVORS = {
     'You counted the same bottle three times.',
     'You accidentally put someone on hold. An hour ago.',
     'You considered a career in literally anything else.',
+  ],
+  scrutiny: [
+    'District manager is on the phone. For you.',
+    'Your metrics are "flagged." Whatever that means.',
+    'Corporate sent an email with your name in the subject line.',
+    'The DM just walked in. Unannounced.',
   ],
 };
 

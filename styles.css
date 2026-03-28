@@ -62,33 +62,37 @@ html, body {
 
 #meters {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 3px 6px;
   margin-bottom: 3px;
 }
 
 .meter {
-  flex: 1;
+  flex: 1 1 28%;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
 }
 
 .meter-label {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: bold;
-  width: 32px;
+  width: 30px;
   flex-shrink: 0;
 }
 
 #meter-queue .meter-label { color: #00d4ff; }
+#meter-safety .meter-label { color: #ffcc00; }
 #meter-rage .meter-label { color: #ff4444; }
 #meter-burnout .meter-label { color: #ff8800; }
+#meter-scrutiny .meter-label { color: #cc66ff; }
 
 .meter-bar {
   flex: 1;
-  height: 8px;
+  height: 7px;
   background: #2a1e14;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   border: 1px solid #333;
 }
@@ -101,8 +105,10 @@ html, body {
 }
 
 #queue-fill { background: linear-gradient(90deg, #00d4ff, #0099cc); }
+#safety-fill { background: linear-gradient(90deg, #ffcc00, #cc9900); }
 #rage-fill { background: linear-gradient(90deg, #ff4444, #cc0000); }
 #burnout-fill { background: linear-gradient(90deg, #ff8800, #cc6600); }
+#scrutiny-fill { background: linear-gradient(90deg, #cc66ff, #9933cc); }
 
 .meter-value {
   font-size: 10px;
@@ -343,8 +349,10 @@ html, body {
 }
 
 .effect-queue { background: #002233; color: #00d4ff; }
+.effect-safety { background: #332b00; color: #ffcc00; }
 .effect-rage { background: #330011; color: #ff4444; }
 .effect-burnout { background: #331a00; color: #ff8800; }
+.effect-scrutiny { background: #1a0033; color: #cc66ff; }
 
 .card-buttons {
   display: flex;

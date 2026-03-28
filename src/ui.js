@@ -13,11 +13,15 @@ export class UI {
     this.phaseEl = document.getElementById('phase-name');
     this.timerEl = document.getElementById('timer');
     this.queueFill = document.getElementById('queue-fill');
+    this.safetyFill = document.getElementById('safety-fill');
     this.rageFill = document.getElementById('rage-fill');
     this.burnoutFill = document.getElementById('burnout-fill');
+    this.scrutinyFill = document.getElementById('scrutiny-fill');
     this.queueValue = document.getElementById('queue-value');
+    this.safetyValue = document.getElementById('safety-value');
     this.rageValue = document.getElementById('rage-value');
     this.burnoutValue = document.getElementById('burnout-value');
+    this.scrutinyValue = document.getElementById('scrutiny-value');
     this.pipeUnverified = document.getElementById('pipe-unverified-count');
     this.pipeReady = document.getElementById('pipe-ready-count');
     this.pipeServed = document.getElementById('pipe-served-count');
@@ -89,24 +93,23 @@ export class UI {
     this.phaseEl.textContent = phase ? phase.label : phaseName;
   }
 
-  updateMeters(queue, rage, burnout) {
-    this.queueFill.style.width = `${Math.min(100, queue)}%`;
-    this.rageFill.style.width = `${Math.min(100, rage)}%`;
-    this.burnoutFill.style.width = `${Math.min(100, burnout)}%`;
-    this.queueValue.textContent = Math.round(queue);
-    this.rageValue.textContent = Math.round(rage);
-    this.burnoutValue.textContent = Math.round(burnout);
-
-    // Flash when high
+  updateMeters(meters) {
+    const fills = {
+      queue: this.queueFill, safety: this.safetyFill,
+      rage: this.rageFill, burnout: this.burnoutFill, scrutiny: this.scrutinyFill,
+    };
+    const vals = {
+      queue: this.queueValue, safety: this.safetyValue,
+      rage: this.rageValue, burnout: this.burnoutValue, scrutiny: this.scrutinyValue,
+    };
     const now = Date.now();
-    this.queueFill.style.opacity = queue > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
-    this.rageFill.style.opacity = rage > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
-    this.burnoutFill.style.opacity = burnout > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
-
-    // Change value text color when critical
-    this.queueValue.style.color = queue > 75 ? '#ff4444' : queue > 50 ? '#ffaa00' : '#aaa';
-    this.rageValue.style.color = rage > 75 ? '#ff4444' : rage > 50 ? '#ffaa00' : '#aaa';
-    this.burnoutValue.style.color = burnout > 75 ? '#ff4444' : burnout > 50 ? '#ffaa00' : '#aaa';
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
+      const v = meters[key];
+      fills[key].style.width = `${Math.min(100, v)}%`;
+      vals[key].textContent = Math.round(v);
+      fills[key].style.opacity = v > 75 ? (0.7 + Math.sin(now / 200) * 0.3) : 1;
+      vals[key].style.color = v > 75 ? '#ff4444' : v > 50 ? '#ffaa00' : '#aaa';
+    }
   }
 
   updatePipeline(unverified, ready, served) {
@@ -272,18 +275,13 @@ export class UI {
 
   renderEffects(effects) {
     if (!effects) return '';
+    const labels = { queue: 'QUEUE', safety: 'SAFE', rage: 'RAGE', burnout: 'BURN', scrutiny: 'SCRUT' };
     let html = '';
-    if (effects.queue) {
-      const val = effects.queue;
-      html += `<span class="effect-tag effect-queue">QUEUE ${val > 0 ? '+' : ''}${Math.round(val)}</span>`;
-    }
-    if (effects.rage) {
-      const val = effects.rage;
-      html += `<span class="effect-tag effect-rage">RAGE ${val > 0 ? '+' : ''}${Math.round(val)}</span>`;
-    }
-    if (effects.burnout) {
-      const val = effects.burnout;
-      html += `<span class="effect-tag effect-burnout">BURN ${val > 0 ? '+' : ''}${Math.round(val)}</span>`;
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
+      if (effects[key]) {
+        const val = effects[key];
+        html += `<span class="effect-tag effect-${key}">${labels[key]} ${val > 0 ? '+' : ''}${Math.round(val)}</span>`;
+      }
     }
     return html;
   }
@@ -397,39 +395,30 @@ export class UI {
     }
 
     // Animated meter fill
-    metersEl.innerHTML = `
+    const meterDefs = [
+      { key: 'queue', label: 'QUEUE', color: '#00d4ff', id: 'rq-fill' },
+      { key: 'safety', label: 'SAFETY', color: '#ffcc00', id: 'rs-fill' },
+      { key: 'rage', label: 'RAGE', color: '#ff4444', id: 'rr-fill' },
+      { key: 'burnout', label: 'BURNOUT', color: '#ff8800', id: 'rb-fill' },
+      { key: 'scrutiny', label: 'SCRUTINY', color: '#cc66ff', id: 'rsc-fill' },
+    ];
+    metersEl.innerHTML = meterDefs.map(m => `
       <div class="result-meter">
-        <span class="result-meter-label" style="color:#00d4ff">QUEUE</span>
+        <span class="result-meter-label" style="color:${m.color}">${m.label}</span>
         <div class="result-meter-bar">
-          <div class="result-meter-fill" id="rq-fill" style="width:0%;background:#00d4ff"></div>
+          <div class="result-meter-fill" id="${m.id}" style="width:0%;background:${m.color}"></div>
         </div>
-        <span class="result-meter-val">${Math.round(meters.queue)}</span>
+        <span class="result-meter-val">${Math.round(meters[m.key])}</span>
       </div>
-      <div class="result-meter">
-        <span class="result-meter-label" style="color:#ff4444">RAGE</span>
-        <div class="result-meter-bar">
-          <div class="result-meter-fill" id="rr-fill" style="width:0%;background:#ff4444"></div>
-        </div>
-        <span class="result-meter-val">${Math.round(meters.rage)}</span>
-      </div>
-      <div class="result-meter">
-        <span class="result-meter-label" style="color:#ff8800">BURNOUT</span>
-        <div class="result-meter-bar">
-          <div class="result-meter-fill" id="rb-fill" style="width:0%;background:#ff8800"></div>
-        </div>
-        <span class="result-meter-val">${Math.round(meters.burnout)}</span>
-      </div>
-    `;
+    `).join('');
 
     // Animate meter fills
     requestAnimationFrame(() => {
       setTimeout(() => {
-        const qf = document.getElementById('rq-fill');
-        const rf = document.getElementById('rr-fill');
-        const bf = document.getElementById('rb-fill');
-        if (qf) qf.style.width = `${Math.min(100, meters.queue)}%`;
-        if (rf) rf.style.width = `${Math.min(100, meters.rage)}%`;
-        if (bf) bf.style.width = `${Math.min(100, meters.burnout)}%`;
+        for (const m of meterDefs) {
+          const el = document.getElementById(m.id);
+          if (el) el.style.width = `${Math.min(100, meters[m.key])}%`;
+        }
       }, 100);
     });
 
@@ -466,7 +455,7 @@ export class UI {
 
   calculateGrade(won, meters, stats) {
     if (!won) return 'F';
-    const avgMeter = (meters.queue + meters.rage + meters.burnout) / 3;
+    const avgMeter = (meters.queue + meters.safety + meters.rage + meters.burnout + meters.scrutiny) / 5;
     const handled = stats.eventsHandled + stats.scriptsVerified + stats.patientsServed;
     const penalties = stats.eventsEscalated * 4 + (stats.patientsLost || 0) * 5;
     const meterPenalty = avgMeter * 0.6;
@@ -487,7 +476,9 @@ export class UI {
     if (won) achievements.push({ icon: '🏆', name: 'Shift Survivor', desc: 'Completed a full shift' });
     if (won && meters.burnout < 20) achievements.push({ icon: '🧘', name: 'Cool Head', desc: 'Won with burnout under 20' });
     if (won && meters.rage < 20) achievements.push({ icon: '😊', name: 'People Person', desc: 'Won with rage under 20' });
-    if (won && meters.queue < 20 && meters.rage < 20 && meters.burnout < 20)
+    if (won && meters.safety < 20) achievements.push({ icon: '🛡', name: 'Safe Hands', desc: 'Won with safety risk under 20' });
+    if (won && meters.scrutiny < 20) achievements.push({ icon: '👤', name: 'Under the Radar', desc: 'Won with scrutiny under 20' });
+    if (won && meters.queue < 20 && meters.rage < 20 && meters.burnout < 20 && meters.safety < 20 && meters.scrutiny < 20)
       achievements.push({ icon: '⭐', name: 'Flawless Shift', desc: 'All meters under 20' });
 
     // Stat-based
@@ -495,7 +486,7 @@ export class UI {
     if (stats.scriptsVerified >= 10) achievements.push({ icon: '📋', name: 'Verification Pro', desc: 'Verified 10+ scripts' });
     if (stats.patientsLost === 0 && won) achievements.push({ icon: '💎', name: 'Zero Walkouts', desc: 'No patients lost' });
     if (stats.eventsDeferred === 0 && won) achievements.push({ icon: '🔥', name: 'No Deferrals', desc: 'Never deferred an event' });
-    if (stats.eventsEscalated === 0 && won) achievements.push({ icon: '🛡', name: 'De-escalator', desc: 'No escalations' });
+    if (stats.eventsEscalated === 0 && won) achievements.push({ icon: '✨', name: 'De-escalator', desc: 'No escalations' });
 
     // Save new achievements
     try {

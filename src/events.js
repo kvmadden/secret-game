@@ -48,8 +48,8 @@ const EVENT_POOL = {
       desc: 'Narcotics count is off by two.',
       station: 'verify',
       duration: 10,
-      effects: { queue: -3, rage: -2, burnout: 7 },
-      ignoreEffects: { burnout: 5, queue: 3 },
+      effects: { queue: -3, rage: -2, burnout: 7, safety: -5 },
+      ignoreEffects: { burnout: 5, queue: 3, safety: 6, scrutiny: 4 },
       canDefer: true,
       escalatesTo: 'controlled_audit',
     },
@@ -59,8 +59,8 @@ const EVENT_POOL = {
       desc: 'Prescriber sent wrong med.',
       station: 'verify',
       duration: 8,
-      effects: { queue: -5, rage: -4, burnout: 4 },
-      ignoreEffects: { rage: 5, queue: 4 },
+      effects: { queue: -5, rage: -4, burnout: 4, safety: -6 },
+      ignoreEffects: { rage: 5, queue: 4, safety: 8 },
       canDefer: true,
       escalatesTo: 'wrong_drug_urgent',
     },
@@ -131,8 +131,8 @@ const EVENT_POOL = {
       desc: 'New med, legal requirement.',
       station: 'consult',
       duration: 8,
-      effects: { queue: -3, rage: -4, burnout: 3 },
-      ignoreEffects: { rage: 5, burnout: 2 },
+      effects: { queue: -3, rage: -4, burnout: 3, safety: -3 },
+      ignoreEffects: { rage: 5, burnout: 2, safety: 5, scrutiny: 3 },
       canDefer: true,
       escalatesTo: 'skipped_counsel',
     },
@@ -365,6 +365,183 @@ const EVENT_POOL = {
       canDefer: false,
       isInterrupt: true,
     },
+    {
+      id: 'super_glue',
+      title: "WHERE'S THE SUPER GLUE?",
+      desc: '"It used to be in aisle 4."',
+      station: 'consult',
+      duration: 2,
+      effects: { burnout: 2 },
+      ignoreEffects: { rage: 2 },
+      canDefer: false,
+      isInterrupt: true,
+    },
+    {
+      id: 'not_my_dept',
+      title: 'NOT MY DEPARTMENT',
+      desc: 'Front store radio: "Pharmacy, line 2."',
+      station: 'phone',
+      duration: 3,
+      effects: { burnout: 2 },
+      ignoreEffects: { rage: 3 },
+      canDefer: false,
+      isInterrupt: true,
+    },
+  ],
+
+  // ========== LEADERSHIP / CORPORATE PRESSURE ==========
+  leadership: [
+    {
+      id: 'dm_visit',
+      title: 'DM SURPRISE VISIT',
+      desc: 'District manager just walked in.',
+      station: 'consult',
+      duration: 10,
+      effects: { scrutiny: -10, burnout: 6, rage: -2 },
+      ignoreEffects: { scrutiny: 12, burnout: 4 },
+      canDefer: false,
+    },
+    {
+      id: 'metrics_call',
+      title: 'METRICS CALL',
+      desc: '"Why are your numbers slipping?"',
+      station: 'phone',
+      duration: 8,
+      effects: { scrutiny: -8, burnout: 5 },
+      ignoreEffects: { scrutiny: 10 },
+      canDefer: true,
+      escalatesTo: 'metrics_escalation',
+    },
+    {
+      id: 'urgent_email',
+      title: 'URGENT EMAIL',
+      desc: 'Corporate wants a response. Today.',
+      station: 'verify',
+      duration: 6,
+      effects: { scrutiny: -6, burnout: 4 },
+      ignoreEffects: { scrutiny: 8 },
+      canDefer: true,
+      escalatesTo: 'email_followup',
+    },
+    {
+      id: 'complaint_filed',
+      title: 'COMPLAINT FILED',
+      desc: 'Patient filed formal complaint.',
+      station: 'pickup',
+      duration: 7,
+      effects: { scrutiny: -7, rage: -4, burnout: 5 },
+      ignoreEffects: { scrutiny: 9, rage: 5 },
+      canDefer: false,
+    },
+    {
+      id: 'survey_score',
+      title: 'LOW SURVEY SCORE',
+      desc: 'NPS dropped below threshold.',
+      station: 'verify',
+      duration: 5,
+      effects: { scrutiny: -5, burnout: 3 },
+      ignoreEffects: { scrutiny: 7 },
+      canDefer: true,
+    },
+  ],
+
+  // ========== INSURANCE / PAYMENT CHAOS ==========
+  insurance: [
+    {
+      id: 'prior_auth_wall',
+      title: 'PRIOR AUTH WALL',
+      desc: 'Insurance wants 3 forms for 1 pill.',
+      station: 'verify',
+      duration: 9,
+      effects: { queue: -5, rage: -6, burnout: 5, scrutiny: 2 },
+      ignoreEffects: { rage: 7, queue: 4 },
+      canDefer: true,
+      escalatesTo: 'prior_auth_meltdown',
+    },
+    {
+      id: 'free_last_time',
+      title: '"IT WAS FREE LAST TIME"',
+      desc: 'Copay changed. Patient in denial.',
+      station: 'pickup',
+      duration: 7,
+      effects: { rage: -8, burnout: 3 },
+      ignoreEffects: { rage: 8 },
+      canDefer: false,
+    },
+    {
+      id: 'goodrx_drama',
+      title: 'GOODRX SAYS $7',
+      desc: '"But your price is $47."',
+      station: 'pickup',
+      duration: 6,
+      effects: { queue: -3, rage: -6, burnout: 3 },
+      ignoreEffects: { rage: 6 },
+      canDefer: false,
+    },
+    {
+      id: 'insurance_lapsed',
+      title: 'INSURANCE LAPSED',
+      desc: 'Card expired. Patient didn\'t know.',
+      station: 'verify',
+      duration: 8,
+      effects: { queue: -4, rage: -7, burnout: 4 },
+      ignoreEffects: { rage: 6, queue: 3 },
+      canDefer: true,
+    },
+    {
+      id: 'coupon_chaos',
+      title: 'COUPON CHAOS',
+      desc: 'Three coupons, none compatible.',
+      station: 'pickup',
+      duration: 6,
+      effects: { queue: -3, rage: -5, burnout: 3 },
+      ignoreEffects: { rage: 5 },
+      canDefer: false,
+    },
+  ],
+
+  // ========== STAFFING / LABOR FRICTION ==========
+  staffing: [
+    {
+      id: 'tech_callout',
+      title: 'TECH CALLED OUT',
+      desc: 'Down one tech. Pipeline slows.',
+      station: 'verify',
+      duration: 5,
+      effects: { queue: 6, burnout: 5, scrutiny: 2 },
+      ignoreEffects: { queue: 4, burnout: 3 },
+      canDefer: false,
+    },
+    {
+      id: 'break_demand',
+      title: 'BREAK TIME',
+      desc: 'Tech needs their legally required break.',
+      station: 'verify',
+      duration: 4,
+      effects: { queue: 4, burnout: -3 },
+      ignoreEffects: { burnout: 4, scrutiny: 3 },
+      canDefer: true,
+    },
+    {
+      id: 'worst_relief',
+      title: 'WORST RELIEF TECH',
+      desc: 'Relief tech asks where everything is.',
+      station: 'verify',
+      duration: 7,
+      effects: { queue: -2, burnout: 5, safety: 3 },
+      ignoreEffects: { safety: 4, queue: 3 },
+      canDefer: false,
+    },
+    {
+      id: 'solo_open',
+      title: 'SOLO OPEN',
+      desc: 'Nobody else showed up.',
+      station: 'verify',
+      duration: 3,
+      effects: { burnout: 8, scrutiny: 3 },
+      ignoreEffects: { burnout: 5 },
+      canDefer: false,
+    },
   ],
 };
 
@@ -431,8 +608,8 @@ const ESCALATED_EVENTS = {
     desc: 'Corporate will hear about this.',
     station: 'consult',
     duration: 8,
-    effects: { queue: -2, rage: -6, burnout: 7 },
-    ignoreEffects: { rage: 8, burnout: 3 },
+    effects: { queue: -2, rage: -6, burnout: 7, scrutiny: 5, safety: 4 },
+    ignoreEffects: { rage: 8, burnout: 3, scrutiny: 6 },
     canDefer: false,
     isEscalated: true,
   },
@@ -499,8 +676,8 @@ const ESCALATED_EVENTS = {
     desc: 'DEA paperwork trail. Cannot skip.',
     station: 'verify',
     duration: 12,
-    effects: { queue: -2, rage: -1, burnout: 10 },
-    ignoreEffects: { burnout: 8, rage: 4 },
+    effects: { queue: -2, rage: -1, burnout: 10, safety: -8, scrutiny: 6 },
+    ignoreEffects: { burnout: 8, rage: 4, safety: 10, scrutiny: 8 },
     canDefer: false,
     isEscalated: true,
   },
@@ -510,8 +687,8 @@ const ESCALATED_EVENTS = {
     desc: '"Get me your supervisor. NOW."',
     station: 'pickup',
     duration: 9,
-    effects: { queue: -4, rage: -12, burnout: 6 },
-    ignoreEffects: { rage: 10 },
+    effects: { queue: -4, rage: -12, burnout: 6, scrutiny: 4 },
+    ignoreEffects: { rage: 10, scrutiny: 5 },
     canDefer: false,
     isEscalated: true,
   },
@@ -523,6 +700,39 @@ const ESCALATED_EVENTS = {
     duration: 7,
     effects: { queue: -4, rage: -10, burnout: 5 },
     ignoreEffects: { rage: 9, queue: 5 },
+    canDefer: false,
+    isEscalated: true,
+  },
+  metrics_escalation: {
+    id: 'metrics_escalation',
+    title: 'METRICS REVIEW',
+    desc: 'DM scheduling a formal sit-down.',
+    station: 'phone',
+    duration: 10,
+    effects: { scrutiny: -12, burnout: 7 },
+    ignoreEffects: { scrutiny: 14, burnout: 5 },
+    canDefer: false,
+    isEscalated: true,
+  },
+  email_followup: {
+    id: 'email_followup',
+    title: 'EMAIL FOLLOW-UP',
+    desc: '"Per my last email..." from corporate.',
+    station: 'verify',
+    duration: 8,
+    effects: { scrutiny: -9, burnout: 5 },
+    ignoreEffects: { scrutiny: 12 },
+    canDefer: false,
+    isEscalated: true,
+  },
+  prior_auth_meltdown: {
+    id: 'prior_auth_meltdown',
+    title: 'PRIOR AUTH MELTDOWN',
+    desc: 'Patient crying. Insurance still saying no.',
+    station: 'verify',
+    duration: 10,
+    effects: { queue: -5, rage: -10, burnout: 7, scrutiny: 3 },
+    ignoreEffects: { rage: 12, scrutiny: 5 },
     canDefer: false,
     isEscalated: true,
   },
@@ -539,7 +749,7 @@ export function getRandomEvent(stationType, phaseName) {
 // Get a random event from any pool, weighted by phase
 export function getRandomEventAny(phaseName) {
   // Weight interrupt events lower in early phases
-  const pools = ['verify', 'pickup', 'consult', 'phone', 'drive'];
+  const corePools = ['verify', 'pickup', 'consult', 'phone', 'drive'];
   const interruptChance = phaseName === 'OPENING' ? 0.1 :
                           phaseName === 'BUILDING' ? 0.2 :
                           phaseName === 'REOPEN_RUSH' ? 0.3 : 0.25;
@@ -555,7 +765,30 @@ export function getRandomEventAny(phaseName) {
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 
-  const poolKey = pools[Math.floor(Math.random() * pools.length)];
+  // Leadership events ramp up in later phases (10-18% chance)
+  const leadershipChance = phaseName === 'OPENING' ? 0.03 :
+                           phaseName === 'BUILDING' ? 0.08 :
+                           phaseName === 'REOPEN_RUSH' ? 0.15 :
+                           phaseName === 'LATE_DRAG' ? 0.18 : 0;
+  if (Math.random() < leadershipChance && EVENT_POOL.leadership) {
+    const pool = EVENT_POOL.leadership;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Insurance chaos (12% chance after opening)
+  if (Math.random() < 0.12 && phaseName !== 'OPENING' && EVENT_POOL.insurance) {
+    const pool = EVENT_POOL.insurance;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  // Staffing events (8% chance, higher in late drag)
+  const staffingChance = phaseName === 'LATE_DRAG' ? 0.12 : 0.06;
+  if (Math.random() < staffingChance && EVENT_POOL.staffing) {
+    const pool = EVENT_POOL.staffing;
+    return { ...pool[Math.floor(Math.random() * pool.length)] };
+  }
+
+  const poolKey = corePools[Math.floor(Math.random() * corePools.length)];
   return getRandomEvent(poolKey, phaseName);
 }
 
@@ -571,13 +804,17 @@ export function getEscalatedEvent(originalEvent) {
     duration: Math.max(originalEvent.duration - 1, 3),
     effects: {
       queue: (originalEvent.effects.queue || 0) * 1.3,
+      safety: (originalEvent.effects.safety || 0) * 1.3,
       rage: (originalEvent.effects.rage || 0) * 1.3,
       burnout: (originalEvent.effects.burnout || 0) * 1.3,
+      scrutiny: (originalEvent.effects.scrutiny || 0) * 1.3 + 2,
     },
     ignoreEffects: {
       rage: (originalEvent.ignoreEffects?.rage || 0) * 1.5,
       queue: (originalEvent.ignoreEffects?.queue || 0) * 1.5,
+      safety: (originalEvent.ignoreEffects?.safety || 0) * 1.5,
       burnout: (originalEvent.ignoreEffects?.burnout || 0) * 1.5,
+      scrutiny: (originalEvent.ignoreEffects?.scrutiny || 0) * 1.5 + 2,
     },
     canDefer: false,
     isEscalated: true,

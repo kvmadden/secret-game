@@ -9,7 +9,8 @@ import {
   PHARMACIST_START, PHARMACIST_SPEED, VERIFY_TIME, SERVE_TIME,
   PATIENT_PALETTES, PATIENT_BARKS, LUNCH_MESSAGES,
   MAX_PATIENTS_PER_STATION, PIPELINE_QUEUE_PRESSURE_MULT,
-  PIPELINE_RAGE_PRESSURE_MULT, MAX_ESCALATION_CHAIN,
+  PIPELINE_RAGE_PRESSURE_MULT, PIPELINE_SAFETY_PRESSURE_MULT,
+  MAX_ESCALATION_CHAIN,
   DIFFICULTY, COMBO_WINDOW, COMBO_BONUS_PER_STACK,
   SHIFT_DAYS, WEATHER_TYPES,
 } from './constants.js';
@@ -49,14 +50,14 @@ export class Game {
     this.lastTimestamp = null;
 
     // Meters — start low, pressure builds
-    this.meters = { queue: 5, rage: 3, burnout: 0 };
+    this.meters = { queue: 5, safety: 2, rage: 3, burnout: 0, scrutiny: 0 };
 
     // Phase
     this.phase = 'OPENING';
     this.prevPhase = null;
 
     // Meter warning cooldowns
-    this.meterWarningCooldown = { queue: 0, rage: 0, burnout: 0 };
+    this.meterWarningCooldown = { queue: 0, safety: 0, rage: 0, burnout: 0, scrutiny: 0 };
 
     // Pharmacist
     this.pharmacist = {
@@ -493,7 +494,7 @@ export class Game {
     }
 
     // Update pharmacist stress visual
-    const avgMeter = (this.meters.queue + this.meters.rage + this.meters.burnout) / 3;
+    const avgMeter = (this.meters.queue + this.meters.safety + this.meters.rage + this.meters.burnout + this.meters.scrutiny) / 5;
     this.pharmacist.stress = Math.min(1, avgMeter / 70);
 
     this.renderer.updateCamera(this.pharmacist, dt, this.getState());
@@ -504,7 +505,7 @@ export class Game {
 
     this.ui.updateTimer(this.elapsed);
     this.ui.updatePhase(this.phase);
-    this.ui.updateMeters(this.meters.queue, this.meters.rage, this.meters.burnout);
+    this.ui.updateMeters(this.meters);
     this.ui.updatePipeline(this.pipeline.unverified, this.pipeline.ready, this.pipeline.served);
 
     requestAnimationFrame(() => this.tick());
@@ -577,6 +578,7 @@ export class Game {
       this.ui.showPhaseAnnounce('REOPEN RUSH');
       this.meters.queue = Math.min(METER_MAX, this.meters.queue + 15);
       this.meters.rage = Math.min(METER_MAX, this.meters.rage + 8);
+      this.meters.scrutiny = Math.min(METER_MAX, this.meters.scrutiny + 5);
       this.pipeline.addScript(4);
       this.spawnPatient('pickup');
       this.spawnPatient('pickup');
@@ -624,9 +626,9 @@ export class Game {
 
     this.lunchMessageTimer += dt;
     const ambient = PHASE_AMBIENT.LUNCH_CLOSE;
-    this.meters.queue = Math.min(METER_MAX, Math.max(0, this.meters.queue + ambient.queue * dt));
-    this.meters.rage = Math.min(METER_MAX, Math.max(0, this.meters.rage + ambient.rage * dt));
-    this.meters.burnout = Math.max(0, this.meters.burnout + ambient.burnout * dt);
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
+      this.meters[key] = Math.max(0, Math.min(METER_MAX, this.meters[key] + (ambient[key] || 0) * dt));
+    }
 
     if (this.lunchMessageTimer > 3) {
       this.lunchMessageTimer = 0;
@@ -652,8 +654,10 @@ export class Game {
     const dayBurnout = this.shiftDay?.burnoutMult || 1;
 
     this.meters.queue += ambient.queue * aMult * dt;
+    this.meters.safety += ambient.safety * aMult * dt;
     this.meters.rage += ambient.rage * aMult * dayRage * dt;
     this.meters.burnout += ambient.burnout * aMult * dayBurnout * dt;
+    this.meters.scrutiny += ambient.scrutiny * aMult * dt;
 
     // Combo timer
     if (this.comboTimer > 0) {
@@ -672,6 +676,21 @@ export class Game {
     const ragePressure = this.pipeline.ready * PIPELINE_RAGE_PRESSURE_MULT * dt;
     this.meters.rage += ragePressure;
 
+    // High pipeline backlog increases safety risk (rushing = mistakes)
+    if (this.pipeline.unverified > 3) {
+      this.meters.safety += (this.pipeline.unverified - 3) * PIPELINE_SAFETY_PRESSURE_MULT * dt;
+    }
+
+    // High burnout increases safety risk (tired = errors)
+    if (this.meters.burnout > 50) {
+      this.meters.safety += 0.1 * dt;
+    }
+
+    // High rage and queue compound scrutiny (corporate notices chaos)
+    if (this.meters.rage > 60 || this.meters.queue > 60) {
+      this.meters.scrutiny += 0.08 * dt;
+    }
+
     // Patient wait time contribution to rage
     let angryPatients = 0;
     for (const patient of this.patients) {
@@ -684,19 +703,20 @@ export class Game {
       }
     }
 
-    // Many angry patients compound burnout
+    // Many angry patients compound burnout and scrutiny
     if (angryPatients >= 3) {
       this.meters.burnout += 0.2 * dt;
+      this.meters.scrutiny += 0.1 * dt;
     }
 
-    // Clamp
-    this.meters.queue = Math.max(0, Math.min(METER_MAX, this.meters.queue));
-    this.meters.rage = Math.max(0, Math.min(METER_MAX, this.meters.rage));
-    this.meters.burnout = Math.max(0, Math.min(METER_MAX, this.meters.burnout));
+    // Clamp all meters
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
+      this.meters[key] = Math.max(0, Math.min(METER_MAX, this.meters[key]));
+    }
   }
 
   checkMeterWarnings(dt) {
-    for (const key of ['queue', 'rage', 'burnout']) {
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
       this.meterWarningCooldown[key] -= dt;
       if (this.meters[key] > 70 && this.meterWarningCooldown[key] <= 0) {
         Audio.playMeterWarning();
@@ -711,7 +731,7 @@ export class Game {
   applyEffects(effects) {
     if (!effects) return;
     const mMult = this.diff.meterMult;
-    for (const key of ['queue', 'rage', 'burnout']) {
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
       if (effects[key]) {
         // Positive (penalty) scales with difficulty; negative (relief) does not
         const val = effects[key] > 0 ? effects[key] * mMult : effects[key];
@@ -766,9 +786,9 @@ export class Game {
       // After 8 seconds unhandled, start applying ignore effects
       if (event.ageTimer > 8 && event.ignoreEffects) {
         const factor = dt * 0.15; // 15% of ignore effects per second
-        if (event.ignoreEffects.rage) this.meters.rage += event.ignoreEffects.rage * factor;
-        if (event.ignoreEffects.queue) this.meters.queue += event.ignoreEffects.queue * factor;
-        if (event.ignoreEffects.burnout) this.meters.burnout += event.ignoreEffects.burnout * factor;
+        for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
+          if (event.ignoreEffects[key]) this.meters[key] += event.ignoreEffects[key] * factor;
+        }
       }
 
       // Update card aging visual
@@ -876,8 +896,9 @@ export class Game {
 
     Audio.playRush();
 
-    // Rush cost: immediate burnout
+    // Rush cost: immediate burnout + safety risk (rushing = mistakes)
     this.meters.burnout = Math.min(METER_MAX, this.meters.burnout + 6 * this.diff.meterMult);
+    this.meters.safety = Math.min(METER_MAX, this.meters.safety + 4 * this.diff.meterMult);
 
     const station = STATIONS[event.station];
     const path = findPath(this.tileMap, Math.round(this.pharmacist.col), Math.round(this.pharmacist.row), station.col, station.row);
@@ -935,13 +956,13 @@ export class Game {
         if (escalationCount >= MAX_ESCALATION_CHAIN) {
           // Event expires with full ignore penalty
           if (originalEvent.ignoreEffects) {
-            this.applyEffects({
-              rage: originalEvent.ignoreEffects.rage || 0,
-              queue: originalEvent.ignoreEffects.queue || 0,
-              burnout: (originalEvent.ignoreEffects.burnout || 0) + 3,
-            });
+            const penalty = { ...originalEvent.ignoreEffects };
+            penalty.burnout = (penalty.burnout || 0) + 3;
+            penalty.scrutiny = (penalty.scrutiny || 0) + 3;
+            this.applyEffects(penalty);
           }
           this.meters.rage = Math.min(METER_MAX, this.meters.rage + 5);
+          this.meters.scrutiny = Math.min(METER_MAX, this.meters.scrutiny + 3);
           this.stats.eventsEscalated++;
           Audio.playEscalation();
           continue;
@@ -1053,6 +1074,7 @@ export class Game {
         const bonus = (this.comboCount - 1) * COMBO_BONUS_PER_STACK;
         this.meters.queue = Math.max(0, this.meters.queue - bonus);
         this.meters.rage = Math.max(0, this.meters.rage - bonus * 0.5);
+        this.meters.scrutiny = Math.max(0, this.meters.scrutiny - bonus * 0.3);
         // Extra particles for combos
         this.renderer.spawnParticles(pharm.col, pharm.row, '#ffdd00', this.comboCount * 3);
       }
@@ -1260,9 +1282,10 @@ export class Game {
         patient.bubbleText = Math.random() < 0.5 ? "I'M LEAVING!" : "UNBELIEVABLE!";
         patient.bubbleTimer = 2;
         Audio.playBark();
-        // Rage spike when patient leaves angry
+        // Rage spike when patient leaves angry + scrutiny
         this.meters.rage = Math.min(METER_MAX, this.meters.rage + 4);
         this.meters.queue = Math.min(METER_MAX, this.meters.queue + 2);
+        this.meters.scrutiny = Math.min(METER_MAX, this.meters.scrutiny + 2);
         // Angry particles
         this.renderer.spawnParticles(patient.col, patient.row, '#ff6644', 4);
         if (!this.tutorialShown.has('leaving')) {
@@ -1394,12 +1417,11 @@ export class Game {
   // ========== GAME OVER ==========
 
   checkGameOver() {
-    if (this.meters.queue >= METER_MAX) {
-      this.endGame(false, 'queue');
-    } else if (this.meters.rage >= METER_MAX) {
-      this.endGame(false, 'rage');
-    } else if (this.meters.burnout >= METER_MAX) {
-      this.endGame(false, 'burnout');
+    for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
+      if (this.meters[key] >= METER_MAX) {
+        this.endGame(false, key);
+        return;
+      }
     }
   }
 
@@ -1419,11 +1441,7 @@ export class Game {
     this.ui.hideLunch();
     this.ui.hideTutorial();
 
-    const meterSnapshot = {
-      queue: this.meters.queue,
-      rage: this.meters.rage,
-      burnout: this.meters.burnout,
-    };
+    const meterSnapshot = { ...this.meters };
 
     this.ui.showResults(won, lostMeter, meterSnapshot, this.stats);
 
