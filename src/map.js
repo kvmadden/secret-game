@@ -18,7 +18,7 @@
  *  Drive window at col 13, row 12
  */
 
-import { MAP_COLS, MAP_ROWS, STATIONS, COLORS } from './constants.js';
+import { MAP_COLS, MAP_ROWS, STATIONS, COLORS, TILE } from './constants.js';
 import { Sprites } from './sprites.js';
 import { SpriteFurniture } from './sprite-furniture.js';
 import { SpriteItems } from './sprite-items.js';
@@ -30,20 +30,8 @@ export function setStoreType(type) {
   currentStoreType = type || 'home';
 }
 
-// Tile types
-export const TILE = {
-  FLOOR: 0,
-  COUNTER_TOP: 1,
-  COUNTER_FRONT: 2,
-  SHELF: 3,
-  WALL: 4,
-  BACK_WALL: 5,
-  CUSTOMER_FLOOR: 6,
-  WORKSPACE: 7,
-  DRIVE_LANE: 8,
-  STORE_FLOOR: 9,   // Retail store hint area
-  HALF_WALL: 10,    // Low wall / divider
-};
+// TILE is imported from constants.js — re-export for any legacy consumers
+export { TILE };
 
 // Generate the tile map
 export function createTileMap() {

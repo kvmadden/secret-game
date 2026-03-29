@@ -1,3 +1,18 @@
+// ========== TILE TYPES ==========
+export const TILE = {
+  FLOOR: 0,
+  COUNTER_TOP: 1,
+  COUNTER_FRONT: 2,
+  SHELF: 3,
+  WALL: 4,
+  BACK_WALL: 5,
+  CUSTOMER_FLOOR: 6,
+  WORKSPACE: 7,
+  DRIVE_LANE: 8,
+  STORE_FLOOR: 9,
+  HALF_WALL: 10,
+};
+
 // ========== TIMING ==========
 export const GAME_DURATION = 360; // 6 minutes in seconds
 export const TICK_RATE = 1000 / 60; // 60fps

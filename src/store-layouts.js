@@ -5,8 +5,7 @@
  * specific areas of the base 16x20 tile map without replacing it entirely.
  */
 
-import { TILE } from './map.js';
-import { MAP_COLS, MAP_ROWS } from './constants.js';
+import { TILE, MAP_COLS, MAP_ROWS } from './constants.js';
 
 // Seeded pseudo-random for deterministic "random" crack positions per layout
 function layoutRand(seed) {
