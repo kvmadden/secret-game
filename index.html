@@ -15,44 +15,44 @@
       <div id="hud-top">
         <div id="hud-left">
           <div id="phase-name">OPENING</div>
-          <div id="pipeline-indicator">
-            <span class="pipe-stage" id="pipe-unverified">📋<span id="pipe-unverified-count">0</span></span>
-            <span class="pipe-arrow">→</span>
-            <span class="pipe-stage" id="pipe-ready">✓<span id="pipe-ready-count">0</span></span>
-            <span class="pipe-arrow">→</span>
-            <span class="pipe-stage" id="pipe-served">🛍<span id="pipe-served-count">0</span></span>
-          </div>
           <span id="weather-indicator" class="weather-icon"></span>
         </div>
-        <div id="combo-indicator" style="display:none;"><span id="combo-count">x2</span> COMBO</div>
-        <div id="hud-right">
+        <div id="hud-center">
           <div id="timer">9:00 AM</div>
+          <div id="combo-indicator" style="display:none;"><span id="combo-count">x2</span> COMBO</div>
+        </div>
+        <div id="hud-right">
+          <div id="pipeline-indicator">
+            <span class="pipe-stage" id="pipe-unverified"><span id="pipe-unverified-count">0</span> waiting</span>
+            <span class="pipe-stage pipe-ready-stage" id="pipe-ready" style="display:none;"><span id="pipe-ready-count">0</span> ready</span>
+            <span class="pipe-stage pipe-served-stage" id="pipe-served" style="display:none;"><span id="pipe-served-count">0</span> done</span>
+          </div>
           <button id="pause-btn" title="Pause / Mute / Zoom">⏸</button>
         </div>
       </div>
       <div id="meters">
         <div class="meter" id="meter-queue">
-          <span class="meter-label">QUEUE</span>
+          <span class="meter-label">QUE</span>
           <div class="meter-bar"><div class="meter-fill" id="queue-fill"></div></div>
           <span class="meter-value" id="queue-value">0</span>
         </div>
         <div class="meter" id="meter-safety">
-          <span class="meter-label">SAFE</span>
+          <span class="meter-label">SAF</span>
           <div class="meter-bar"><div class="meter-fill" id="safety-fill"></div></div>
           <span class="meter-value" id="safety-value">0</span>
         </div>
         <div class="meter" id="meter-rage">
-          <span class="meter-label">RAGE</span>
+          <span class="meter-label">RAG</span>
           <div class="meter-bar"><div class="meter-fill" id="rage-fill"></div></div>
           <span class="meter-value" id="rage-value">0</span>
         </div>
         <div class="meter" id="meter-burnout">
-          <span class="meter-label">BURN</span>
+          <span class="meter-label">BRN</span>
           <div class="meter-bar"><div class="meter-fill" id="burnout-fill"></div></div>
           <span class="meter-value" id="burnout-value">0</span>
         </div>
         <div class="meter" id="meter-scrutiny">
-          <span class="meter-label">SCRUT</span>
+          <span class="meter-label">EYE</span>
           <div class="meter-bar"><div class="meter-fill" id="scrutiny-fill"></div></div>
           <span class="meter-value" id="scrutiny-value">0</span>
         </div>
@@ -78,7 +78,7 @@
         <div class="title-sparkle"></div>
         <h1>ON THE BENCH</h1>
         <p class="subtitle">A Retail Pharmacy Survival Game</p>
-        <p class="flavor">Solo Sunday shift. Six minutes. Five meters. One pharmacist.</p>
+        <p class="flavor">Solo Sunday shift. Seven minutes. Five meters. One pharmacist.</p>
         <div class="title-tips">
           <span>HANDLE — dispatch pharmacist to resolve</span>
           <span>RUSH — half the time, double the stress</span>

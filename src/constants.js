@@ -104,7 +104,7 @@ export const PHASE_AMBIENT = {
 
 // Script pipeline intervals (seconds between new scripts entering)
 export const PHASE_SCRIPT_INTERVAL = {
-  OPENING:     { min: 18, max: 28 },
+  OPENING:     { min: 25, max: 40 },
   BUILDING:    { min: 10, max: 16 },
   LUNCH_CLOSE: { min: 999, max: 999 },
   REOPEN_RUSH: { min: 7, max: 12 },

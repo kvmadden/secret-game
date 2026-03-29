@@ -188,26 +188,42 @@ export class UI {
       ? '<span class="card-urgency-dot"></span>'
       : '';
 
-    card.innerHTML = `
-      <div class="card-header">
+    if (event.isPipeline) {
+      // Pipeline cards: single-line slim bar
+      card.innerHTML = `
         <span class="card-key-hint">${cardIndex}</span>
-        ${urgencyDot}
         <span class="card-station ${stationClass}">${stationLabel}</span>
-        <span class="card-time">${event.duration}s</span>
-      </div>
-      <div class="card-title">${event.title}</div>
-      <div class="card-desc">${event.desc}</div>
-      <div class="card-effects">
-        ${this.renderEffects(event.effects)}
-      </div>
-      <div class="card-buttons">
-        <button class="card-btn btn-handle">HANDLE</button>
-        ${event.duration >= 4 && !event.isPipeline ? '<button class="card-btn btn-rush">RUSH</button>' : ''}
-        ${event.canDefer ? '<button class="card-btn btn-defer">DEFER</button>' : ''}
-      </div>
-      ${!event.isPipeline ? '<div class="card-age-bar"><div class="card-age-fill"></div></div>' : ''}
-      <div class="card-timer" data-max="${event.timeout || 30}"><div class="card-timer-fill" style="width:100%"></div></div>
-    `;
+        <div class="card-title-row">
+          <span class="card-title">${event.title}</span>
+          <span class="card-time">${event.duration}s</span>
+        </div>
+        <div class="card-buttons">
+          <button class="card-btn btn-handle">HANDLE</button>
+        </div>
+      `;
+    } else {
+      // Regular event cards: compact two-row layout
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="card-key-hint">${cardIndex}</span>
+          ${urgencyDot}
+          <span class="card-station ${stationClass}">${stationLabel}</span>
+          <span class="card-time">${event.duration}s</span>
+        </div>
+        <div class="card-title-row">
+          <span class="card-title">${event.title}</span>
+          <span class="card-desc">${event.desc}</span>
+          <span class="card-effects">${this.renderEffects(event.effects)}</span>
+        </div>
+        <div class="card-buttons">
+          <button class="card-btn btn-handle">HANDLE</button>
+          ${event.duration >= 4 ? '<button class="card-btn btn-rush">RUSH</button>' : ''}
+          ${event.canDefer ? '<button class="card-btn btn-defer">DEFER</button>' : ''}
+        </div>
+        <div class="card-age-bar"><div class="card-age-fill"></div></div>
+        <div class="card-timer" data-max="${event.timeout || 30}"><div class="card-timer-fill" style="width:100%"></div></div>
+      `;
+    }
 
     // Button handlers — use click only, prevent double-fire
     const handleBtn = card.querySelector('.btn-handle');

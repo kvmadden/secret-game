@@ -88,7 +88,7 @@ export class Game {
     this.lastTimestamp = null;
 
     // Meters — start low, pressure builds
-    this.meters = { queue: 5, safety: 2, rage: 3, burnout: 0, scrutiny: 0 };
+    this.meters = { queue: 0, safety: 0, rage: 0, burnout: 0, scrutiny: 0 };
 
     // Phase
     this.phase = 'OPENING';
@@ -116,7 +116,7 @@ export class Game {
 
     // Pipeline
     this.pipeline = new Pipeline();
-    this.pipeline.addScript(2);
+    this.pipeline.addScript(1);
 
     // Station manager
     this.stationManager = new StationManager();

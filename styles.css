@@ -36,8 +36,8 @@ html, body {
 #hud {
   flex-shrink: 0;
   background: #0d0d1a;
-  padding: 4px 8px;
-  padding-top: env(safe-area-inset-top, 4px);
+  padding: 6px 10px 4px;
+  padding-top: env(safe-area-inset-top, 6px);
   border-bottom: 2px solid #2a2a4a;
   z-index: 10;
 }
@@ -46,7 +46,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
 }
 
 #hud-left {
@@ -56,59 +56,64 @@ html, body {
 }
 
 #phase-name {
-  font-size: 9px;
-  color: #8888aa;
+  font-size: 12px;
+  color: #aaaacc;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  font-weight: bold;
 }
 
 #pipeline-indicator {
   display: flex;
   align-items: center;
-  gap: 3px;
-  font-size: 9px;
+  gap: 4px;
+  font-size: 12px;
 }
 
 .pipe-stage {
-  padding: 0px 3px;
-  background: #2a1e14;
-  border-radius: 2px;
-  border: 1px solid #333;
+  padding: 3px 8px;
+  background: linear-gradient(180deg, #2a1e14 0%, #1a1208 100%);
+  border-radius: 4px;
+  border: 1px solid #5a3a20;
   transition: border-color 0.3s;
-  font-size: 9px;
+  font-size: 12px;
+  color: #dda866;
+  white-space: nowrap;
 }
 
 .pipe-arrow {
   color: #555;
-  font-size: 8px;
+  font-size: 10px;
 }
 
 #timer {
-  font-size: 13px;
+  font-size: 20px;
   font-weight: bold;
   color: #ffffff;
   transition: color 0.3s;
+  letter-spacing: 0.5px;
 }
 
 #meters {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 3px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px 10px;
+  margin-bottom: 4px;
 }
 
 .meter {
-  flex: 1;
-  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .meter-label {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: bold;
-  width: 26px;
+  width: 28px;
   flex-shrink: 0;
+  letter-spacing: 0.5px;
 }
 
 #meter-queue .meter-label { color: #00d4ff; }
@@ -119,19 +124,20 @@ html, body {
 
 .meter-bar {
   flex: 1;
-  height: 6px;
-  background: #2a1e14;
-  border-radius: 3px;
+  height: 10px;
+  background: #1a1428;
+  border-radius: 5px;
   overflow: hidden;
   border: 1px solid #333;
+  min-width: 0;
 }
 
 .meter-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: 5px;
   transition: width 0.3s ease;
   width: 0%;
-  background-image: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, transparent 50%, rgba(0,0,0,0.1) 100%);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 50%, rgba(0,0,0,0.15) 100%);
   background-blend-mode: overlay;
 }
 
@@ -155,11 +161,12 @@ html, body {
 #scrutiny-fill { background: linear-gradient(90deg, #cc66ff, #9933cc); }
 
 .meter-value {
-  font-size: 9px;
-  width: 18px;
+  font-size: 11px;
+  width: 20px;
   text-align: right;
   flex-shrink: 0;
   transition: color 0.3s;
+  font-weight: bold;
 }
 
 /* pipeline indicator is now inlined in hud-top */
@@ -227,27 +234,27 @@ html, body {
   border-top: 2px solid #2a2a4a;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 6px;
-  padding-bottom: env(safe-area-inset-bottom, 6px);
+  padding: 4px;
+  padding-bottom: env(safe-area-inset-bottom, 4px);
   -webkit-overflow-scrolling: touch;
 }
 
 #card-container {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 
 /* ========== EVENT CARDS ========== */
 .event-card {
   background: #1e1e32;
   border: 1px solid #3a3a5a;
-  border-left: 4px solid #3a3a5a;
-  border-radius: 6px;
-  padding: 8px 10px 8px 8px;
+  border-left: 3px solid #3a3a5a;
+  border-radius: 3px;
+  padding: 3px 6px 2px 5px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
   animation: cardSlideIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   transition: max-height 0.2s, padding 0.2s, margin 0.2s, opacity 0.2s, transform 0.2s;
   position: relative;
@@ -316,19 +323,18 @@ html, body {
 
 .card-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
 }
 
 .card-key-hint {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: rgba(255, 255, 255, 0.4);
-  font-size: 9px;
+  font-size: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -336,11 +342,11 @@ html, body {
 }
 
 .card-station {
-  font-size: 9px;
+  font-size: 7px;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  padding: 2px 6px;
-  border-radius: 3px;
+  letter-spacing: 0.5px;
+  padding: 0px 3px;
+  border-radius: 2px;
   font-weight: bold;
 }
 
@@ -352,38 +358,56 @@ html, body {
 .interrupt { background: #2a2a11; color: #cccc44; border: 1px solid #555522; }
 
 .card-time {
-  font-size: 10px;
-  color: #888;
+  font-size: 7px;
+  color: #555;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Title + desc + effects on one line */
+.card-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .card-title {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: bold;
   color: #fff;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .card-desc {
-  font-size: 10px;
-  color: #999;
-  line-height: 1.3;
-  max-height: 2.6em;
+  font-size: 8px;
+  color: #666;
+  line-height: 1.1;
+  white-space: nowrap;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
+/* Inline effect badges — tiny */
 .card-effects {
-  display: flex;
-  gap: 6px;
-  font-size: 10px;
-  flex-wrap: wrap;
+  display: inline-flex;
+  gap: 2px;
+  font-size: 7px;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .effect-tag {
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 0px 2px;
+  border-radius: 2px;
   font-weight: bold;
+  font-size: 7px;
+  line-height: 1.3;
+  opacity: 0.85;
 }
 
 .effect-queue { background: #002233; color: #00d4ff; }
@@ -394,21 +418,22 @@ html, body {
 
 .card-buttons {
   display: flex;
-  gap: 8px;
+  gap: 3px;
+  margin-top: 1px;
 }
 
 .card-btn {
-  flex: 1;
-  padding: 7px 6px;
-  min-height: 32px;
+  padding: 1px 6px;
+  min-height: 0;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   font-family: 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 8px;
   font-weight: bold;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
+  line-height: 1.4;
   transition: transform 0.1s, opacity 0.2s, background 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -445,36 +470,87 @@ html, body {
   opacity: 0.3;
 }
 
-/* Card age indicator bar */
+/* Card age indicator bar — thin */
 .card-age-bar {
-  height: 3px;
-  background: #222;
-  border-radius: 1px;
+  height: 1px;
+  background: #1a1a2a;
+  border-radius: 0;
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .card-age-fill {
   height: 100%;
   width: 0%;
   background: #555;
-  border-radius: 1px;
+  border-radius: 0;
   transition: width 0.5s linear, background 0.3s;
 }
 
-/* Pipeline action cards */
+/* Pipeline action cards — slim muted bar style */
 .pipeline-card {
-  background: #0d1a2e;
-  border-color: #1a4466;
+  background: transparent;
+  border: 1px dashed #1a3348;
+  border-left: 2px solid #1a4466;
+  border-radius: 2px;
+  padding: 2px 6px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.pipeline-card .card-header {
+  display: contents;
+}
+
+.pipeline-card .card-title-row {
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
 }
 
 .pipeline-card .card-title {
-  color: #00d4ff;
+  color: #5599bb;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.pipeline-card .card-desc {
+  font-size: 7px;
+  color: #446677;
+}
+
+.pipeline-card .card-buttons {
+  flex-shrink: 0;
+  margin-top: 0;
 }
 
 .pipeline-card .btn-handle {
-  background: #0d3355;
-  color: #44bbff;
+  background: transparent;
+  color: #44aadd;
+  border: 1px solid #1a4466;
+  padding: 0px 5px;
+  font-size: 7px;
+}
+
+.pipeline-card .card-time {
+  font-size: 7px;
+  color: #335566;
+}
+
+.pipeline-card .card-effects {
+  display: none;
+}
+
+.pipeline-card .card-age-bar,
+.pipeline-card .card-timer {
+  display: none;
+}
+
+.pipeline-card .card-key-hint {
+  width: 10px;
+  height: 10px;
+  font-size: 6px;
 }
 
 /* ========== PHASE ANNOUNCEMENT ========== */
@@ -1060,7 +1136,7 @@ html, body {
     padding-top: max(4px, env(safe-area-inset-top));
   }
   #action-zone {
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
   }
 }
 
@@ -1395,27 +1471,28 @@ html, body {
   border-radius: 2px;
 }
 
-/* Card timer bar */
+/* Card timer bar — subtle */
 .card-timer {
-  height: 3px;
-  background: #222;
-  border-radius: 1px;
+  height: 1px;
+  background: #1a1a2a;
+  border-radius: 0;
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: 0px;
 }
 
 .card-timer-fill {
   height: 100%;
   width: 100%;
   background: #44aa44;
-  border-radius: 1px;
+  border-radius: 0;
   transition: width 0.5s linear, background 0.3s;
+  opacity: 0.7;
 }
 
 /* Card urgency dot */
 .card-urgency-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: #ff4444;
   display: inline-block;
