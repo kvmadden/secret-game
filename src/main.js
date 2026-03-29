@@ -3,9 +3,13 @@
  */
 
 import { Game } from './game.js';
+import { SpriteSheets } from './spritesheet.js';
 
 // Wait for DOM
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load sprite sheets (non-blocking — programmatic sprites used as fallback)
+  SpriteSheets.load();
+
   const canvas = document.getElementById('pharmacy-canvas');
   const game = new Game(canvas);
 

@@ -4,6 +4,7 @@
  */
 
 import { PATIENT_PALETTES } from './constants.js';
+import { getPharmacistFrame, getPatientFrame } from './spritesheet.js';
 
 // Cache for pre-rendered sprites
 const spriteCache = new Map();
@@ -39,6 +40,11 @@ function drawPharmacistFrame(facing, frame, stress, time, hairstyle) {
   // hairstyle: 0=default short, 1=ponytail (optional, default 0)
   hairstyle = hairstyle || 0;
   const stressLevel = stress < 0.3 ? 0 : stress < 0.5 ? 1 : stress < 0.7 ? 2 : 3;
+
+  // Try spritesheet override first
+  const sheetFrame = getPharmacistFrame(facing, frame, stressLevel);
+  if (sheetFrame) return sheetFrame;
+
   const t = time || 0;
   // Blink: eyes closed for ~0.15s every ~3s
   const blinkCycle = t % 3.0;
@@ -449,6 +455,10 @@ const PATIENT_SKIN_TONES = [
 ];
 
 function drawPatientSprite(paletteIndex, emotionLevel) {
+  // Try spritesheet override first
+  const sheetFrame = getPatientFrame(paletteIndex, emotionLevel);
+  if (sheetFrame) return sheetFrame;
+
   // emotionLevel: 0=calm, 1=impatient, 2=angry
   // Bit flags: emotionLevel & 4 = child variant, emotionLevel & 8 = elderly variant
   // paletteIndex acts as patient ID for deterministic variety

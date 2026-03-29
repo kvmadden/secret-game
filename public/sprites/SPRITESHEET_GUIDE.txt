@@ -1,0 +1,136 @@
+SPRITESHEET GUIDE — "On the Bench" Pharmacy Game
+=================================================
+
+This game supports drop-in PNG sprite sheets that automatically
+override the programmatic pixel art. Place PNGs in this folder
+and uncomment the matching entry in src/spritesheet.js.
+
+GENERAL RULES:
+- All sprites are TRUE 16x16 pixel art (no anti-aliasing)
+- Use transparent PNG with alpha channel
+- No padding between frames — pack tightly in a grid
+- Pixel-perfect: every pixel should be intentional
+- Color palette: 12-16 colors max per sheet for cohesion
+
+
+FILE 1: pharmacist.png
+-----------------------
+Size: 96 x 64 pixels (6 cols x 4 rows of 16x16 frames)
+Purpose: Main player character — the pharmacist
+
+  Row 0: Walk RIGHT — 6 frames (standing, step1, mid-stride, step2, mid-stride2, step3)
+  Row 1: Walk LEFT  — 6 frames (same sequence, mirrored)
+  Row 2: Walk UP    — 6 frames
+  Row 3: Walk DOWN  — 6 frames
+
+Character description:
+- Young pharmacy technician in white lab coat
+- Name badge with green accent
+- Dark pants, dark shoes
+- Warm skin tone, short brown hair
+- Friendly but focused expression
+- The coat should have slight shadow/highlight distinction
+- Frame 0 = idle/standing, frames 1-5 = walk cycle
+
+OPTIONAL: Stress variants (expand to 96 x 256)
+  Rows 0-3:  Stress level 0 (calm, normal colors)
+  Rows 4-7:  Stress level 1 (slightly tense shoulders)
+  Rows 8-11: Stress level 2 (red-tinted skin, hunched)
+  Rows 12-15: Stress level 3 (very red, raised shoulders)
+
+AI PROMPT for generating:
+"16x16 pixel art sprite sheet, pharmacy technician character,
+white lab coat, walk cycle 6 frames, 4 directions (right left up down),
+Stardew Valley style, warm colors, transparent background, no anti-aliasing,
+game asset, top-down RPG perspective"
+
+
+FILE 2: patients.png
+---------------------
+Size: 48 x 128 pixels (3 cols x 8 rows of 16x16 frames)
+Purpose: Customer/patient characters (8 varieties x 3 emotions)
+
+  Each ROW = one patient palette/appearance (8 total)
+  Each COL = emotion level:
+    Col 0: Calm (patient, neutral expression)
+    Col 1: Impatient (furrowed brow, tapping foot)
+    Col 2: Angry (red-faced, arms crossed or storming out)
+
+Patient variety descriptions:
+  Row 0: Young woman, blonde hair, blue top
+  Row 1: Middle-aged man, dark hair, green jacket
+  Row 2: Elderly woman, gray hair, purple cardigan
+  Row 3: Young man, red cap, hoodie
+  Row 4: Business woman, black hair, blazer
+  Row 5: Large man, bald, flannel shirt
+  Row 6: Teen, colorful hair, casual clothes
+  Row 7: Elderly man, glasses, sweater vest
+
+AI PROMPT:
+"16x16 pixel art sprite sheet, 8 different pharmacy customer characters,
+each shown in 3 emotions (calm, impatient, angry), top-down RPG view,
+Stardew Valley style, diverse appearances, warm retail store lighting,
+transparent background, game asset"
+
+
+FILE 3: vehicles.png
+---------------------
+Size: 32 x 128 pixels (1 col x 8 rows of 32x16 frames)
+Purpose: Drive-thru vehicles
+
+  Row 0: Sedan (blue)
+  Row 1: SUV (olive green)
+  Row 2: Pickup truck (light blue)
+  Row 3: Minivan (burgundy)
+  Row 4: Sports car (red)
+  Row 5: Delivery van (white)
+  Row 6: Ambulance (white + red)
+  Row 7: Bicycle (small, centered in 32x16)
+
+Side view, facing left. 32 pixels wide, 16 tall.
+
+AI PROMPT:
+"32x16 pixel art sprite sheet, 8 vehicles side view facing left,
+sedan SUV pickup minivan sports-car delivery-van ambulance bicycle,
+Stardew Valley style, colorful, transparent background, game asset"
+
+
+FILE 4: furniture.png (optional)
+---------------------------------
+Size: varies (16x16 per item)
+Purpose: Pharmacy furniture and equipment
+
+Suggested grid (6 cols x 4 rows = 96 x 64):
+  (0,0) Filing cabinet     (1,0) Fridge unit      (2,0) Safe box
+  (3,0) Printer            (4,0) Computer monitor  (5,0) BP machine
+  (0,1) Register           (1,1) Phone             (2,1) Counting tray
+  (3,1) Signature pad      (4,1) Drop-off bin      (5,1) Rx bags
+  (0,2) Pill bottles       (1,2) Trash bin          (2,2) Coffee mug
+  (3,2) Brochure rack      (4,2) Clipboard         (5,2) Receipt printer
+  (0,3) Sneeze guard       (1,3) Chair             (2,3) Waiting chair
+  (3,3) Verify bench       (4,3) Drive-thru window (5,3) Sign
+
+AI PROMPT:
+"16x16 pixel art sprite sheet, pharmacy equipment and furniture items,
+filing cabinet fridge safe computer register phone, top-down RPG view,
+Stardew Valley style, warm wooden pharmacy interior, transparent background"
+
+
+WORKFLOW:
+1. Generate with AI tool (PixelLab.ai or Stable Diffusion + pixel art LoRA)
+2. Open in Aseprite or Piskel
+3. Clean up to exact 16x16 grid alignment
+4. Ensure transparent background (no white bg)
+5. Reduce to 12-16 color palette per sheet
+6. Export as PNG
+7. Save to this folder (public/sprites/)
+8. Uncomment matching entry in src/spritesheet.js
+9. Refresh game — new sprites appear instantly, programmatic fallback gone
+
+
+TESTING:
+- Open browser console — you'll see:
+  [SpriteSheet] Loaded 1/1 sprite sheets
+- If a sheet fails to load, you'll see a warning and the
+  programmatic sprites continue working as fallback
+- No code changes needed beyond uncommenting the manifest entry
