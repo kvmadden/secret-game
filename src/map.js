@@ -783,8 +783,8 @@ export function renderMap(map, scale) {
 
   // Store-type specific decorations
   const storeDecorations = getStoreDecorations(currentStoreType);
-  if (storeDecorations) {
-    for (const dec of storeDecorations) {
+  if (storeDecorations && storeDecorations.decorationOverrides) {
+    for (const dec of storeDecorations.decorationOverrides) {
       if (dec.spriteFunc && typeof dec.spriteFunc === 'function') {
         ctx.drawImage(dec.spriteFunc(), dec.col * tileSize, dec.row * tileSize);
       }
