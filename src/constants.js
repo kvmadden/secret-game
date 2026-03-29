@@ -86,29 +86,29 @@ export const METER_MAX = 100;
 
 // Phase-based event intervals (seconds between events)
 export const PHASE_EVENT_INTERVAL = {
-  OPENING:     { min: 8, max: 14 },
-  BUILDING:    { min: 6, max: 10 },
+  OPENING:     { min: 14, max: 22 },
+  BUILDING:    { min: 8, max: 13 },
   LUNCH_CLOSE: { min: 999, max: 999 },
-  REOPEN_RUSH: { min: 4, max: 7 },
-  LATE_DRAG:   { min: 6, max: 10 },
+  REOPEN_RUSH: { min: 5, max: 9 },
+  LATE_DRAG:   { min: 7, max: 12 },
 };
 
 // Phase-based ambient meter pressure per second
 export const PHASE_AMBIENT = {
-  OPENING:     { queue: 0.08, safety: 0.02, rage: 0.05, burnout: 0.03, scrutiny: 0.01 },
-  BUILDING:    { queue: 0.15, safety: 0.05, rage: 0.12, burnout: 0.06, scrutiny: 0.03 },
-  LUNCH_CLOSE: { queue: 0.3,  safety: 0.03, rage: 0.4,  burnout: -0.12, scrutiny: 0.06 },
-  REOPEN_RUSH: { queue: 0.25, safety: 0.08, rage: 0.18, burnout: 0.1,  scrutiny: 0.05 },
-  LATE_DRAG:   { queue: 0.1,  safety: 0.06, rage: 0.08, burnout: 0.08, scrutiny: 0.04 },
+  OPENING:     { queue: 0.03, safety: 0.01, rage: 0.02, burnout: 0.01, scrutiny: 0.0 },
+  BUILDING:    { queue: 0.08, safety: 0.03, rage: 0.06, burnout: 0.03, scrutiny: 0.01 },
+  LUNCH_CLOSE: { queue: 0.2,  safety: 0.02, rage: 0.25, burnout: -0.15, scrutiny: 0.03 },
+  REOPEN_RUSH: { queue: 0.15, safety: 0.05, rage: 0.12, burnout: 0.06, scrutiny: 0.03 },
+  LATE_DRAG:   { queue: 0.06, safety: 0.03, rage: 0.05, burnout: 0.05, scrutiny: 0.02 },
 };
 
 // Script pipeline intervals (seconds between new scripts entering)
 export const PHASE_SCRIPT_INTERVAL = {
-  OPENING:     { min: 12, max: 20 },
-  BUILDING:    { min: 8, max: 14 },
+  OPENING:     { min: 18, max: 28 },
+  BUILDING:    { min: 10, max: 16 },
   LUNCH_CLOSE: { min: 999, max: 999 },
-  REOPEN_RUSH: { min: 6, max: 10 },
-  LATE_DRAG:   { min: 9, max: 15 },
+  REOPEN_RUSH: { min: 7, max: 12 },
+  LATE_DRAG:   { min: 12, max: 18 },
 };
 
 // ========== DEFER SETTINGS ==========

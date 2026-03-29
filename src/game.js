@@ -141,8 +141,8 @@ export class Game {
     this.weather = this._pickWeather();
 
     // Timers
-    this.nextEventTimer = 6;
-    this.nextScriptTimer = 10;
+    this.nextEventTimer = 10;
+    this.nextScriptTimer = 15;
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
 
@@ -493,7 +493,6 @@ export class Game {
 
   spawnInitialPatients() {
     this.spawnPatient('pickup');
-    setTimeout(() => this.spawnPatient('consult'), 500);
   }
 
   // ========== TITLE SCREEN ANIMATION ==========
@@ -852,7 +851,7 @@ export class Game {
       );
     }
 
-    if (Math.random() < 0.008) {
+    if (Math.random() < 0.003) {
       this.pipeline.addScript(1);
     }
   }
@@ -896,31 +895,30 @@ export class Game {
     }
 
     // High burnout increases safety risk (tired = errors)
-    if (this.meters.burnout > 50) {
-      this.meters.safety += 0.1 * dt;
+    if (this.meters.burnout > 70) {
+      this.meters.safety += 0.04 * dt;
     }
 
     // High rage and queue compound scrutiny (corporate notices chaos)
-    if (this.meters.rage > 60 || this.meters.queue > 60) {
-      this.meters.scrutiny += 0.08 * dt;
+    if (this.meters.rage > 75 && this.meters.queue > 75) {
+      this.meters.scrutiny += 0.03 * dt;
     }
 
-    // Patient wait time contribution to rage
+    // Patient wait time contribution to rage (gentle)
     let angryPatients = 0;
     for (const patient of this.patients) {
       if (!patient.visible || patient.fadeOut || patient.walking) continue;
       if (patient.patience < 0.3) {
-        this.meters.rage += 0.4 * dt;
-        angryPatients++;
-      } else if (patient.patience < 0.6) {
         this.meters.rage += 0.15 * dt;
+        angryPatients++;
+      } else if (patient.patience < 0.5) {
+        this.meters.rage += 0.05 * dt;
       }
     }
 
-    // Many angry patients compound burnout and scrutiny
-    if (angryPatients >= 3) {
-      this.meters.burnout += 0.2 * dt;
-      this.meters.scrutiny += 0.1 * dt;
+    // Many angry patients compound burnout (only when overwhelmed)
+    if (angryPatients >= 4) {
+      this.meters.burnout += 0.08 * dt;
     }
 
     // Clamp all meters
@@ -984,7 +982,12 @@ export class Game {
     this.nextEventTimer -= dt;
 
     const nonPipelineEvents = this.activeEvents.filter(e => !e.isPipeline);
-    if (this.nextEventTimer <= 0 && nonPipelineEvents.length < 3) {
+    // Progressive event cap: start with 1, ramp to 3 at the rush
+    const maxEvents = this.phase === 'OPENING' ? 1
+      : this.phase === 'BUILDING' ? 2
+      : this.phase === 'LATE_DRAG' ? 2
+      : 3; // REOPEN_RUSH
+    if (this.nextEventTimer <= 0 && nonPipelineEvents.length < maxEvents) {
       this.spawnEvent();
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
       const eMult = this.diff.eventMult;
@@ -1002,9 +1005,9 @@ export class Game {
       if (event.isPipeline) continue;
       event.ageTimer = (event.ageTimer || 0) + dt;
 
-      // After 8 seconds unhandled, start applying ignore effects
-      if (event.ageTimer > 8 && event.ignoreEffects) {
-        const factor = dt * 0.15; // 15% of ignore effects per second
+      // After 15 seconds unhandled, start applying ignore effects
+      if (event.ageTimer > 15 && event.ignoreEffects) {
+        const factor = dt * 0.08; // 8% of ignore effects per second
         for (const key of ['queue', 'safety', 'rage', 'burnout', 'scrutiny']) {
           if (event.ignoreEffects[key]) this.meters[key] += event.ignoreEffects[key] * factor;
         }
@@ -1549,7 +1552,7 @@ export class Game {
       }
 
       patient.waitTime += dt;
-      patient.patience = Math.max(0, patient.patience - dt * 0.025 * this.diff.patienceMult);
+      patient.patience = Math.max(0, patient.patience - dt * 0.015 * this.diff.patienceMult);
 
       // Patient leaves when patience hits 0 — storm out
       if (patient.patience <= 0 && !patient.fadeOut && !patient.stormingOut) {
@@ -1993,8 +1996,8 @@ export class Game {
     this.driveThruCarQueue = [];
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
-    this.nextEventTimer = 6;
-    this.nextScriptTimer = 10;
+    this.nextEventTimer = 10;
+    this.nextScriptTimer = 15;
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
     this.phoneRinging = false;
@@ -2173,8 +2176,8 @@ export class Game {
     this.driveThruCarQueue = [];
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
-    this.nextEventTimer = 6;
-    this.nextScriptTimer = 10;
+    this.nextEventTimer = 10;
+    this.nextScriptTimer = 15;
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
     this.phoneRinging = false;
