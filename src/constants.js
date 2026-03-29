@@ -14,10 +14,10 @@ export const TILE = {
 };
 
 // ========== TIMING ==========
-export const GAME_DURATION = 360; // 6 minutes in seconds
+export const GAME_DURATION = 420; // 7 minutes in seconds
 export const TICK_RATE = 1000 / 60; // 60fps
-export const VERIFY_TIME = 4; // seconds to verify a script
-export const SERVE_TIME = 3;  // seconds to serve a patient
+export const VERIFY_TIME = 3; // seconds to verify a script
+export const SERVE_TIME = 2;  // seconds to serve a patient
 
 // ========== PHASES ==========
 export const PHASES = [
@@ -86,34 +86,34 @@ export const METER_MAX = 100;
 
 // Phase-based event intervals (seconds between events)
 export const PHASE_EVENT_INTERVAL = {
-  OPENING:     { min: 4, max: 7 },
-  BUILDING:    { min: 2.5, max: 4.5 },
+  OPENING:     { min: 8, max: 14 },
+  BUILDING:    { min: 6, max: 10 },
   LUNCH_CLOSE: { min: 999, max: 999 },
-  REOPEN_RUSH: { min: 1.5, max: 3 },
-  LATE_DRAG:   { min: 3, max: 5.5 },
+  REOPEN_RUSH: { min: 4, max: 7 },
+  LATE_DRAG:   { min: 6, max: 10 },
 };
 
 // Phase-based ambient meter pressure per second
 export const PHASE_AMBIENT = {
-  OPENING:     { queue: 0.2,  safety: 0.05, rage: 0.15, burnout: 0.08, scrutiny: 0.03 },
-  BUILDING:    { queue: 0.4,  safety: 0.12, rage: 0.3,  burnout: 0.15, scrutiny: 0.08 },
-  LUNCH_CLOSE: { queue: 0.7,  safety: 0.08, rage: 0.9,  burnout: -0.12, scrutiny: 0.15 },
-  REOPEN_RUSH: { queue: 0.6,  safety: 0.2,  rage: 0.45, burnout: 0.25, scrutiny: 0.12 },
-  LATE_DRAG:   { queue: 0.25, safety: 0.15, rage: 0.2,  burnout: 0.2,  scrutiny: 0.1 },
+  OPENING:     { queue: 0.08, safety: 0.02, rage: 0.05, burnout: 0.03, scrutiny: 0.01 },
+  BUILDING:    { queue: 0.15, safety: 0.05, rage: 0.12, burnout: 0.06, scrutiny: 0.03 },
+  LUNCH_CLOSE: { queue: 0.3,  safety: 0.03, rage: 0.4,  burnout: -0.12, scrutiny: 0.06 },
+  REOPEN_RUSH: { queue: 0.25, safety: 0.08, rage: 0.18, burnout: 0.1,  scrutiny: 0.05 },
+  LATE_DRAG:   { queue: 0.1,  safety: 0.06, rage: 0.08, burnout: 0.08, scrutiny: 0.04 },
 };
 
 // Script pipeline intervals (seconds between new scripts entering)
 export const PHASE_SCRIPT_INTERVAL = {
-  OPENING:     { min: 7, max: 12 },
-  BUILDING:    { min: 4, max: 7 },
+  OPENING:     { min: 12, max: 20 },
+  BUILDING:    { min: 8, max: 14 },
   LUNCH_CLOSE: { min: 999, max: 999 },
-  REOPEN_RUSH: { min: 2.5, max: 5 },
-  LATE_DRAG:   { min: 5, max: 9 },
+  REOPEN_RUSH: { min: 6, max: 10 },
+  LATE_DRAG:   { min: 9, max: 15 },
 };
 
 // ========== DEFER SETTINGS ==========
-export const DEFER_RETURN_MIN = 12;
-export const DEFER_RETURN_MAX = 22;
+export const DEFER_RETURN_MIN = 20;
+export const DEFER_RETURN_MAX = 35;
 
 // ========== PHARMACIST MOVEMENT ==========
 export const PHARMACIST_SPEED = 5; // tiles per second (slowed for strategy)
@@ -258,18 +258,18 @@ export const PATIENT_BARKS = [
 ];
 
 // ========== PIPELINE DANGER THRESHOLDS ==========
-export const PIPELINE_QUEUE_PRESSURE_MULT = 0.06; // per unverified script per second
-export const PIPELINE_RAGE_PRESSURE_MULT = 0.03;  // per ready-but-unserved script
-export const PIPELINE_SAFETY_PRESSURE_MULT = 0.04; // rushed scripts increase safety risk
+export const PIPELINE_QUEUE_PRESSURE_MULT = 0.025; // per unverified script per second
+export const PIPELINE_RAGE_PRESSURE_MULT = 0.015;  // per ready-but-unserved script
+export const PIPELINE_SAFETY_PRESSURE_MULT = 0.02;  // rushed scripts increase safety risk
 
 // ========== ESCALATION ==========
 export const MAX_ESCALATION_CHAIN = 3; // After 3 escalations, event expires with full penalty
 
 // ========== DIFFICULTY ==========
 export const DIFFICULTY = {
-  EASY:   { label: 'Easy',   meterMult: 0.7, eventMult: 1.3, ambientMult: 0.6, patienceMult: 0.6 },
-  NORMAL: { label: 'Normal', meterMult: 1.0, eventMult: 1.0, ambientMult: 1.0, patienceMult: 1.0 },
-  HARD:   { label: 'Hard',   meterMult: 1.4, eventMult: 0.7, ambientMult: 1.5, patienceMult: 1.4 },
+  EASY:   { label: 'Easy',   meterMult: 0.5, eventMult: 1.5, ambientMult: 0.4, patienceMult: 0.4 },
+  NORMAL: { label: 'Normal', meterMult: 0.8, eventMult: 1.0, ambientMult: 0.8, patienceMult: 0.8 },
+  HARD:   { label: 'Hard',   meterMult: 1.2, eventMult: 0.8, ambientMult: 1.2, patienceMult: 1.2 },
 };
 
 // ========== COMBO ==========

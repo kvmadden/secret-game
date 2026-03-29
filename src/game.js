@@ -141,8 +141,8 @@ export class Game {
     this.weather = this._pickWeather();
 
     // Timers
-    this.nextEventTimer = 3;
-    this.nextScriptTimer = 6;
+    this.nextEventTimer = 6;
+    this.nextScriptTimer = 10;
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
 
@@ -984,7 +984,7 @@ export class Game {
     this.nextEventTimer -= dt;
 
     const nonPipelineEvents = this.activeEvents.filter(e => !e.isPipeline);
-    if (this.nextEventTimer <= 0 && nonPipelineEvents.length < 5) {
+    if (this.nextEventTimer <= 0 && nonPipelineEvents.length < 3) {
       this.spawnEvent();
       const interval = PHASE_EVENT_INTERVAL[this.phase] || PHASE_EVENT_INTERVAL.OPENING;
       const eMult = this.diff.eventMult;
@@ -1022,6 +1022,7 @@ export class Game {
     if (!event) return;
 
     event.uid = nextUid();
+    event.duration = (event.duration || 10) * 1.8; // Give more time to react
     event.ageTimer = 0;
     event.escalationCount = 0;
     this.activeEvents.push(event);
@@ -1992,8 +1993,8 @@ export class Game {
     this.driveThruCarQueue = [];
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
-    this.nextEventTimer = 3;
-    this.nextScriptTimer = 6;
+    this.nextEventTimer = 6;
+    this.nextScriptTimer = 10;
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
     this.phoneRinging = false;
@@ -2172,8 +2173,8 @@ export class Game {
     this.driveThruCarQueue = [];
     this.ambientShoppers = [];
     this.ambientShopperTimer = 2;
-    this.nextEventTimer = 3;
-    this.nextScriptTimer = 6;
+    this.nextEventTimer = 6;
+    this.nextScriptTimer = 10;
     this.lunchMessageTimer = 0;
     this.lunchMessageIndex = 0;
     this.phoneRinging = false;
