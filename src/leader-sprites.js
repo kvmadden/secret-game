@@ -89,4 +89,12 @@ function drawLeaderPortrait(leaderType) {
 
 export const LeaderSprites = {
   leaderPortrait: drawLeaderPortrait,
+  cheerleader: () => drawLeaderPortrait('supportive'),
+  ghost: () => drawLeaderPortrait('absent'),
+  fake_helper: () => drawLeaderPortrait('supportive'),
+  rescuer_user: () => drawLeaderPortrait('supportive'),
+  metrics_hawk: () => drawLeaderPortrait('demanding'),
+  polished_visitor: () => drawLeaderPortrait('demanding'),
+  ladder_climber: () => drawLeaderPortrait('demanding'),
+  competent_unicorn: () => drawLeaderPortrait('supportive'),
 };
