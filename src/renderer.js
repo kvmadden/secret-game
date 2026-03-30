@@ -1439,7 +1439,8 @@ export class Renderer {
       const px = patient.col * TILE_SIZE;
       const py = patient.row * TILE_SIZE;
 
-      const fadeIn = Math.min(1, (3 - patient.bubbleTimer + 0.01) * 4);
+      const age = 3 - patient.bubbleTimer;  // 0 = just spawned, 3 = about to expire
+      const fadeIn = Math.min(1, age * 4);
       const fadeOut = Math.min(1, patient.bubbleTimer * 3);
       ctx.globalAlpha = Math.min(fadeIn, fadeOut);
 

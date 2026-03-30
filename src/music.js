@@ -259,7 +259,7 @@ export class MusicSystem {
   /** Set master volume (0-1). */
   setVolume(v) {
     this._volume = Math.max(0, Math.min(1, v));
-    if (this._masterGain && !this._muted) {
+    if (this._masterGain && this._ctx && !this._muted) {
       const ctx = this._ctx;
       this._masterGain.gain.setValueAtTime(this._masterGain.gain.value, ctx.currentTime);
       this._masterGain.gain.linearRampToValueAtTime(this._volume, ctx.currentTime + 0.1);

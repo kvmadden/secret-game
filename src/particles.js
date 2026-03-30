@@ -164,7 +164,7 @@ class Particle {
     const t = this.life / this.maxLife; // 1 = fresh, 0 = dead
 
     // Physics
-    this.vy += this.gravity * 60 * dt * 60; // gravity in px/frame scaled to dt
+    this.vy += this.gravity * 60 * dt; // gravity in px/s scaled to dt
     this.vx *= Math.pow(this.friction, dt * 60);
     this.vy *= Math.pow(this.friction, dt * 60);
 

@@ -961,6 +961,7 @@ export function playSignatureEventStart() {
     // Vibrato via LFO
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
+    lfo.type = 'sine';
     lfo.frequency.value = 5;
     lfoGain.gain.value = 3;
     lfo.connect(lfoGain);

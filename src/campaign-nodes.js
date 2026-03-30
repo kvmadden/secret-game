@@ -711,7 +711,10 @@ export function getExpandedChapters() {
  * @param {number|string} chapterId
  */
 export function getChapterLeader(chapterId) {
-  return FIELD_LEADERS[chapterId] ?? null;
+  for (const leader of Object.values(FIELD_LEADERS)) {
+    if (leader.chapter === chapterId) return leader;
+  }
+  return null;
 }
 
 /**

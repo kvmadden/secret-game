@@ -65,6 +65,8 @@ export function calculateCampaignGrade(shiftGrades, endingLane) {
     builder: 3,
     quiet_pro: 2,
     climber: 1,
+    escape: 0,
+    martyr: 1,
     burnout_end: -5,
   };
   if (endingLane && endingMods[endingLane] !== undefined) {

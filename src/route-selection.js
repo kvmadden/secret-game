@@ -5,7 +5,7 @@ export const LANE_DESCRIPTIONS = {
   climber:   'You climbed the ladder, trading comfort for visibility and influence.',
   escape:    'You chose yourself and walked away before the job could take more.',
   quiet_pro: 'You kept your head down, did excellent work, and stayed whole.',
-  burnout:   'The weight finally broke you — not from weakness, but from caring too long.',
+  burnout_end: 'The weight finally broke you — not from weakness, but from caring too long.',
   martyr:    'You burned bright holding the line, earning respect at great personal cost.',
 };
 
@@ -109,7 +109,7 @@ export class RouteAnalysis {
       ((100 - s.clinicalIntegrity) * 0.1);
     const burnoutEligible = s.burnout > 65;
     if (!burnoutEligible) burnoutRaw = 0;
-    reasons.burnout = burnoutEligible
+    reasons.burnout_end = burnoutEligible
       ? [
           `burnout(${s.burnout})*0.5`,
           f.said_yes_often ? '+10 said_yes_often' : null,
@@ -140,18 +140,18 @@ export class RouteAnalysis {
       climber:   clamp(Math.round(climberRaw)),
       escape:    clamp(Math.round(escapeRaw)),
       quiet_pro: clamp(Math.round(quietProRaw)),
-      burnout:   clamp(Math.round(burnoutRaw)),
+      burnout_end: clamp(Math.round(burnoutRaw)),
       martyr:    clamp(Math.round(martyrRaw)),
     };
 
     // Override: burnout > 80 forces burnout lane unless martyr scores higher
     if (s.burnout > 80) {
-      if (!(martyrEligible && this._scores.martyr > this._scores.burnout)) {
+      if (!(martyrEligible && this._scores.martyr > this._scores.burnout_end)) {
         // Force burnout to be the highest by setting it above current max
         const currentMax = Math.max(...Object.values(this._scores));
-        if (this._scores.burnout < currentMax) {
-          this._scores.burnout = Math.min(100, currentMax + 1);
-          reasons.burnout.push('+override: burnout>80 forced to top');
+        if (this._scores.burnout_end < currentMax) {
+          this._scores.burnout_end = Math.min(100, currentMax + 1);
+          reasons.burnout_end.push('+override: burnout>80 forced to top');
         }
       }
     }

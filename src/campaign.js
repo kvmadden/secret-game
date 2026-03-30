@@ -533,7 +533,14 @@ export class Campaign {
   // ===== Enhanced ending system =====
 
   getEnhancedEnding() {
-    const result = selectEndingRoute(this.vars, this.flags);
+    const result = selectEndingRoute({
+      burnout: this.burnout,
+      reputation: this.reputation,
+      teamStrength: this.teamStrength,
+      storeReadiness: this.storeReadiness,
+      leadershipAlignment: this.leadershipAlignment,
+      clinicalIntegrity: this.clinicalIntegrity,
+    }, this.flags);
     return result;
   }
 
@@ -591,8 +598,7 @@ export class Campaign {
       this.flags.deserialize(data.flags);
     }
     if (data.campaignStats) {
-      this.campaignStats = new CampaignStats();
-      this.campaignStats.deserialize(data.campaignStats);
+      this.campaignStats = CampaignStats.deserialize(data.campaignStats);
     }
   }
 }

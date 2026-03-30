@@ -105,7 +105,7 @@ export function createTileMap() {
 export function isWalkable(map, col, row) {
   if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return false;
   const tile = map[row][col];
-  return tile === TILE.WORKSPACE || tile === TILE.FLOOR;
+  return tile === TILE.WORKSPACE || tile === TILE.FLOOR || tile === TILE.CUSTOMER_FLOOR || tile === TILE.STORE_FLOOR;
 }
 
 // Render the full map to an offscreen canvas (called once, then blitted)
@@ -475,8 +475,10 @@ export function renderMap(map, scale) {
   const storeDecorations = getStoreDecorations(currentStoreType);
   if (storeDecorations && storeDecorations.decorationOverrides) {
     for (const dec of storeDecorations.decorationOverrides) {
-      if (dec.spriteFunc && typeof dec.spriteFunc === 'function') {
-        ctx.drawImage(dec.spriteFunc(), dec.col * tileSize, dec.row * tileSize);
+      if (dec.spriteName) {
+        // decorations are visual markers; render a subtle colored rectangle as placeholder
+        ctx.fillStyle = 'rgba(120, 100, 80, 0.25)';
+        ctx.fillRect(dec.col * tileSize + 2, dec.row * tileSize + 2, tileSize - 4, tileSize - 4);
       }
     }
   }

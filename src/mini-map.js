@@ -413,7 +413,7 @@ export class MiniMap {
     // Center viewport on pharmacist if available, else center of map
     let worldCX, worldCY;
     if (this._state && this._state.pharmacist &&
-        this._state.pharmacist.col != null) {
+        this._state.pharmacist.col != null && this._state.pharmacist.row != null) {
       worldCX = (this._state.pharmacist.col + 0.5) * this.tileSize * sx;
       worldCY = (this._state.pharmacist.row + 0.5) * this.tileSize * sy;
     } else {

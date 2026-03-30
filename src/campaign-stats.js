@@ -73,7 +73,7 @@ class CampaignStats {
       if (won && maxMeterValue <= 50) this.perfectShifts++;
     }
 
-    const chapterId = shiftId ? shiftId.split('-')[0] : null;
+    const chapterId = shiftId ? shiftId.split('_')[0] : null;
     if (chapterId && duration) {
       this.chapterCompletionTimes[chapterId] =
         (this.chapterCompletionTimes[chapterId] || 0) + duration;
@@ -103,7 +103,7 @@ class CampaignStats {
   }
 
   getChapterSummary(chapterId) {
-    const shifts = this.gradeHistory.filter(h => h.shiftId && h.shiftId.startsWith(chapterId + '-'));
+    const shifts = this.gradeHistory.filter(h => h.shiftId && h.shiftId.startsWith(chapterId + '_'));
     const grades = shifts.map(s => s.grade);
     const wins = shifts.length;
     return {

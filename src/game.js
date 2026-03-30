@@ -360,7 +360,7 @@ export class Game {
             this.advanceCampaignNode();
           }
         } else if (this.endless.isActive()) {
-          this.startShiftFromCampaign();
+          this.startEndlessSegment();
         }
       }
       return;
@@ -648,7 +648,7 @@ export class Game {
         this._supervisorEventTimer -= dt;
         if (this._supervisorEventTimer <= 0) {
           const sevt = this._supervisorEvents[Math.floor(Math.random() * this._supervisorEvents.length)];
-          if (sevt && this.activeCards.length < 4) {
+          if (sevt && this.ui.activeCards.size < 4) {
             this.spawnEvent(sevt);
           }
           this._supervisorEventTimer = 90 + Math.random() * 90; // Next event in 90-180s
@@ -670,7 +670,8 @@ export class Game {
     this.cameraJuice.update(dt);
     this.dayNight.update(this.elapsed, GAME_DURATION, this.weather);
     this.miniMap.update(this.getState());
-    this.weatherRenderer.update(dt, this.weather || 'clear', 0.7);
+    const weatherName = (this.weather && this.weather.name) ? this.weather.name.toLowerCase() : 'clear';
+    this.weatherRenderer.update(dt, weatherName, 0.7);
     this.nightRenderer.update(dt, this.nightRenderer.isNightShift(this.campaign?.currentNodeId));
     this.signatureVisuals.update(dt);
 
@@ -687,7 +688,7 @@ export class Game {
     this.meterVisuals.render(ctx, w, h);
     this.screenFX.applyEffects(ctx, w, h, this.getState());
     this.miniMap.render(ctx, w / (this.renderer.dpr || 1), h / (this.renderer.dpr || 1), this.renderer.camZoom);
-    this.weatherRenderer.render(ctx, w, h, this.weather || 'clear', 0.7);
+    this.weatherRenderer.render(ctx, w, h, weatherName, 0.7);
     this.nightRenderer.render(ctx, w, h, this.nightRenderer.isNightShift(this.campaign?.currentNodeId));
     this.signatureVisuals.render(ctx, w, h);
 

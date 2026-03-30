@@ -1316,6 +1316,28 @@ const EVENT_POOL = {
 
 // Escalated event variants
 const ESCALATED_EVENTS = {
+  pressure_fake_script_escalated: {
+    id: 'pressure_fake_script_escalated',
+    title: 'CONFIRMED FORGERY',
+    desc: 'The script is definitely fake. Patient is getting aggressive.',
+    station: 'verify',
+    duration: 12,
+    effects: { safety: -10, burnout: 6, queue: 4, scrutiny: 4 },
+    ignoreEffects: { safety: 12, scrutiny: 8 },
+    canDefer: false,
+    isEscalated: true,
+  },
+  pressure_drug_recall_escalated: {
+    id: 'pressure_drug_recall_escalated',
+    title: 'RECALL ESCALATION',
+    desc: 'Multiple patients already received the recalled medication.',
+    station: 'verify',
+    duration: 12,
+    effects: { safety: -10, burnout: 6, queue: 5, scrutiny: 6 },
+    ignoreEffects: { safety: 12, scrutiny: 10 },
+    canDefer: false,
+    isEscalated: true,
+  },
   compounding_urgent: {
     id: 'compounding_urgent',
     title: 'COMPOUNDING CRISIS',
@@ -1567,7 +1589,7 @@ export function getRandomEventAny(phaseName) {
                           phaseName === 'BUILDING' ? 0.2 :
                           phaseName === 'REOPEN_RUSH' ? 0.3 : 0.25;
 
-  if (Math.random() < interruptChance) {
+  if (Math.random() < interruptChance && EVENT_POOL.interrupt) {
     const pool = EVENT_POOL.interrupt;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
@@ -1579,19 +1601,19 @@ export function getRandomEventAny(phaseName) {
   }
 
   // True positive events (5% chance, not in opening or lunch close)
-  if (Math.random() < 0.05 && phaseName !== 'OPENING' && phaseName !== 'LUNCH_CLOSE') {
+  if (Math.random() < 0.05 && phaseName !== 'OPENING' && phaseName !== 'LUNCH_CLOSE' && EVENT_POOL.truePositive) {
     const pool = EVENT_POOL.truePositive;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 
   // Relief events (6% chance, any phase except opening)
-  if (Math.random() < 0.06 && phaseName !== 'OPENING') {
+  if (Math.random() < 0.06 && phaseName !== 'OPENING' && EVENT_POOL.relief) {
     const pool = EVENT_POOL.relief;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
 
   // Comic events (4% chance, any phase)
-  if (Math.random() < 0.04) {
+  if (Math.random() < 0.04 && EVENT_POOL.comic) {
     const pool = EVENT_POOL.comic;
     return { ...pool[Math.floor(Math.random() * pool.length)] };
   }
@@ -1680,11 +1702,11 @@ export function getEscalatedEvent(originalEvent) {
     title: originalEvent.title + ' (AGAIN)',
     duration: Math.max(originalEvent.duration - 1, 3),
     effects: {
-      queue: (originalEvent.effects.queue || 0) * 1.3,
-      safety: (originalEvent.effects.safety || 0) * 1.3,
-      rage: (originalEvent.effects.rage || 0) * 1.3,
-      burnout: (originalEvent.effects.burnout || 0) * 1.3,
-      scrutiny: (originalEvent.effects.scrutiny || 0) * 1.3 + 2,
+      queue: (originalEvent.effects?.queue || 0) * 1.3,
+      safety: (originalEvent.effects?.safety || 0) * 1.3,
+      rage: (originalEvent.effects?.rage || 0) * 1.3,
+      burnout: (originalEvent.effects?.burnout || 0) * 1.3,
+      scrutiny: (originalEvent.effects?.scrutiny || 0) * 1.3 + 2,
     },
     ignoreEffects: {
       rage: (originalEvent.ignoreEffects?.rage || 0) * 1.5,

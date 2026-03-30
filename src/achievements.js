@@ -39,9 +39,10 @@ const ACHIEVEMENT_DEFS = [
   { id: 'ending_builder', name: 'Builder', description: 'Reach the Builder ending', category: 'Campaign', icon: '🔨', hidden: false, target: 1 },
   { id: 'ending_escape', name: 'Escape Artist', description: 'Reach the Escape ending', category: 'Campaign', icon: '🚪', hidden: false, target: 1 },
   { id: 'ending_climber', name: 'Climber', description: 'Reach the Climber ending', category: 'Campaign', icon: '🧗', hidden: false, target: 1 },
-  { id: 'ending_quiet', name: 'Quiet Professional', description: 'Reach the Quiet Pro ending', category: 'Campaign', icon: '🤐', hidden: false, target: 1 },
+  { id: 'ending_quiet_pro', name: 'Quiet Professional', description: 'Reach the Quiet Pro ending', category: 'Campaign', icon: '🤐', hidden: false, target: 1 },
+  { id: 'ending_burnout', name: 'Burned Out', description: 'Reach the Burnout ending', category: 'Campaign', icon: '🕯️', hidden: false, target: 1 },
   { id: 'ending_martyr', name: 'Martyr', description: 'Reach the Martyr ending', category: 'Campaign', icon: '🕯️', hidden: false, target: 1 },
-  { id: 'seen_it_all', name: 'Seen It All', description: 'Reach all 5 endings', category: 'Campaign', icon: '🗺️', hidden: false, target: 5 },
+  { id: 'seen_it_all', name: 'Seen It All', description: 'Reach all 6 endings', category: 'Campaign', icon: '🗺️', hidden: false, target: 6 },
 
   // === Hidden ===
   { id: 'triple_defer', name: '???', description: 'Defer the same event 3 times', category: 'Hidden', icon: '🔄', hidden: true, target: 1 },
@@ -69,7 +70,7 @@ export class AchievementSystem {
     if (typeof CAMPAIGN_ACHIEVEMENTS !== 'undefined') {
       for (const ach of CAMPAIGN_ACHIEVEMENTS) {
         if (!this._achievements.find(a => a.id === ach.id)) {
-          const entry = { ...ach, progress: 0, unlocked: false, unlockedAt: null };
+          const entry = { ...ach, name: ach.name || ach.title, target: ach.target || 1, progress: 0, unlocked: false, unlockedAt: null };
           this._achievements.push(entry);
           this._index[entry.id] = entry;
         }
@@ -200,8 +201,8 @@ export class AchievementSystem {
           builder: 'ending_builder',
           escape: 'ending_escape',
           climber: 'ending_climber',
-          quiet: 'ending_quiet',
-          quiet_pro: 'ending_quiet',
+          quiet_pro: 'ending_quiet_pro',
+          burnout_end: 'ending_burnout',
           martyr: 'ending_martyr',
         };
         const achId = endingMap[d.ending];
@@ -209,8 +210,8 @@ export class AchievementSystem {
           this._increment(achId, 1);
         }
         // Check Seen It All
-        const endingIds = ['ending_builder', 'ending_escape', 'ending_climber', 'ending_quiet', 'ending_martyr'];
-        const endingsUnlocked = endingIds.filter(eid => this._index[eid].unlocked).length;
+        const endingIds = ['ending_builder', 'ending_escape', 'ending_climber', 'ending_quiet_pro', 'ending_burnout', 'ending_martyr'];
+        const endingsUnlocked = endingIds.filter(eid => this._index[eid] && this._index[eid].unlocked).length;
         this._setProgress('seen_it_all', endingsUnlocked);
         break;
       }
@@ -460,7 +461,7 @@ export class AchievementSystem {
   _toPublic(ach) {
     return {
       id: ach.id,
-      name: ach.hidden && !ach.unlocked ? '???' : ach.name,
+      name: ach.hidden && !ach.unlocked ? '???' : (ach.name || ach.title),
       description: ach.hidden && !ach.unlocked ? 'Keep playing to discover this achievement' : ach.description,
       category: ach.category,
       icon: ach.hidden && !ach.unlocked ? '❓' : ach.icon,

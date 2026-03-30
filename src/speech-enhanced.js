@@ -128,6 +128,7 @@ class Bubble {
 
     // Lifetime (counts down after typewriter finishes)
     this.age = 0;
+    this.lifeTimer = 0;
     this.alive = true;
 
     // Bounce animation

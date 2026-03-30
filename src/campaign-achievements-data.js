@@ -108,7 +108,7 @@ export const CAMPAIGN_ACHIEVEMENTS = [
     title: 'Empty Tank',
     description: 'Reach The Burnout ending',
     category: 'ending',
-    condition: { type: 'ending_reached', value: 'burnout' },
+    condition: { type: 'ending_reached', value: 'burnout_end' },
     icon: '🕯️',
     hidden: true
   },

@@ -36,9 +36,9 @@ const PRESSURE_EVENTS = [
 // Signature event IDs are defined in signature-events.js.
 // We keep a reference list here so the classifier stays complete.
 const SIGNATURE_EVENTS = [
-  'dea_audit', 'system_meltdown', 'flu_shot_frenzy', 'karen_supreme',
-  'pharmacist_down', 'the_long_wait', 'opioid_dilemma', 'power_outage',
-  'board_inspector', 'the_recall',
+  'sig_dea_audit', 'sig_system_meltdown', 'sig_flu_shot_frenzy', 'sig_karen_supreme',
+  'sig_pharmacist_down', 'sig_the_long_wait', 'sig_opioid_dilemma', 'sig_power_outage',
+  'sig_board_inspector', 'sig_the_recall',
 ];
 
 // Build the lookup map
